@@ -1,0 +1,838 @@
+{
+  "source": "GitHub Actions job 131944978372 structured stdout; no raw logs or credentials",
+  "run": "https://github.com/openaxcloud/vibecore/actions/runs/43442951559",
+  "sha": "1e46bd9bdb82c0b8125664eb6d99a549bd00a452",
+  "conclusion": "success",
+  "newCoverage": "Unchanged production workspace-agent Dockerfile; Node24/Alpine musl, native node-pty, and exact inspected imageID in both workspace pods",
+  "limits": [
+    "Not proof of a deployed production registry image",
+    "API/manager remain the test harness profile",
+    "No browser UX, AI generation, publication, gVisor or production isolation validation",
+    "Production npm ranges and OS package resolutions remain mutable; recorded inventory fingerprints this execution only",
+    "Required PR checks remain separate"
+  ],
+  "productionAgentBuild": {
+    "dockerfile": "services/workspace-agent/Dockerfile",
+    "base": "node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5",
+    "imageID": "sha256:e7e63a5f561b3e5da81a945112ace5a7ad525b946cd861e94635835c8b516a46",
+    "node": "24.22.3",
+    "alpine": "3.24.4",
+    "libc": "musl",
+    "nodePtyLoaded": true,
+    "lockSha256": "84b921fcecdc55be407896071f9218bea3acf9f2eb92262c33bb06a2dd93be53",
+    "dependencies": [
+      {
+        "path": "node_modules/@esbuild/aix-ppc64",
+        "version": "0.28.2",
+        "integrity": "sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ=="
+      },
+      {
+        "path": "node_modules/@esbuild/android-arm",
+        "version": "0.28.2",
+        "integrity": "sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg=="
+      },
+      {
+        "path": "node_modules/@esbuild/android-arm64",
+        "version": "0.28.2",
+        "integrity": "sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A=="
+      },
+      {
+        "path": "node_modules/@esbuild/android-x64",
+        "version": "0.28.2",
+        "integrity": "sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q=="
+      },
+      {
+        "path": "node_modules/@esbuild/darwin-arm64",
+        "version": "0.28.2",
+        "integrity": "sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw=="
+      },
+      {
+        "path": "node_modules/@esbuild/darwin-x64",
+        "version": "0.28.2",
+        "integrity": "sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw=="
+      },
+      {
+        "path": "node_modules/@esbuild/freebsd-arm64",
+        "version": "0.28.2",
+        "integrity": "sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw=="
+      },
+      {
+        "path": "node_modules/@esbuild/freebsd-x64",
+        "version": "0.28.2",
+        "integrity": "sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg=="
+      },
+      {
+        "path": "node_modules/@esbuild/linux-arm",
+        "version": "0.28.2",
+        "integrity": "sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w=="
+      },
+      {
+        "path": "node_modules/@esbuild/linux-arm64",
+        "version": "0.28.2",
+        "integrity": "sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug=="
+      },
+      {
+        "path": "node_modules/@esbuild/linux-ia32",
+        "version": "0.28.2",
+        "integrity": "sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ=="
+      },
+      {
+        "path": "node_modules/@esbuild/linux-loong64",
+        "version": "0.28.2",
+        "integrity": "sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ=="
+      },
+      {
+        "path": "node_modules/@esbuild/linux-mips64el",
+        "version": "0.28.2",
+        "integrity": "sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA=="
+      },
+      {
+        "path": "node_modules/@esbuild/linux-ppc64",
+        "version": "0.28.2",
+        "integrity": "sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ=="
+      },
+      {
+        "path": "node_modules/@esbuild/linux-riscv64",
+        "version": "0.28.2",
+        "integrity": "sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA=="
+      },
+      {
+        "path": "node_modules/@esbuild/linux-s390x",
+        "version": "0.28.2",
+        "integrity": "sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg=="
+      },
+      {
+        "path": "node_modules/@esbuild/linux-x64",
+        "version": "0.28.2",
+        "integrity": "sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ=="
+      },
+      {
+        "path": "node_modules/@esbuild/netbsd-arm64",
+        "version": "0.28.2",
+        "integrity": "sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw=="
+      },
+      {
+        "path": "node_modules/@esbuild/netbsd-x64",
+        "version": "0.28.2",
+        "integrity": "sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw=="
+      },
+      {
+        "path": "node_modules/@esbuild/openbsd-arm64",
+        "version": "0.28.2",
+        "integrity": "sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ=="
+      },
+      {
+        "path": "node_modules/@esbuild/openbsd-x64",
+        "version": "0.28.2",
+        "integrity": "sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw=="
+      },
+      {
+        "path": "node_modules/@esbuild/openharmony-arm64",
+        "version": "0.28.2",
+        "integrity": "sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q=="
+      },
+      {
+        "path": "node_modules/@esbuild/sunos-x64",
+        "version": "0.28.2",
+        "integrity": "sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g=="
+      },
+      {
+        "path": "node_modules/@esbuild/win32-arm64",
+        "version": "0.28.2",
+        "integrity": "sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ=="
+      },
+      {
+        "path": "node_modules/@esbuild/win32-ia32",
+        "version": "0.28.2",
+        "integrity": "sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA=="
+      },
+      {
+        "path": "node_modules/@esbuild/win32-x64",
+        "version": "0.28.2",
+        "integrity": "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="
+      },
+      {
+        "path": "node_modules/@fastify/ajv-compiler",
+        "version": "4.0.7",
+        "integrity": "sha512-VP0yIfwlc1ohj733keYDqyHm1VWeP9VQxYomunhr90jkC4aNNibbkrRiaNgPgqj1ORxUenILR4qzA/ppYBNAtQ=="
+      },
+      {
+        "path": "node_modules/@fastify/deepmerge",
+        "version": "3.2.4",
+        "integrity": "sha512-kc8GQq5gX9RRhw0rov3DMrN8wS8yRlxJRdDzsYwwdBV/wazuVgc/1K7CKL90tlvu3RlHan6Y0R0aE3nJtBz2eQ=="
+      },
+      {
+        "path": "node_modules/@fastify/error",
+        "version": "4.2.1",
+        "integrity": "sha512-MYBumuIwP+5MIpXSyKm6/o1Eigcoij186lWUssX3LH5U8KWqU0ktZhzC4CErIX9EJeQeRGI+zJZQWakBlFbUcg=="
+      },
+      {
+        "path": "node_modules/@fastify/fast-json-stringify-compiler",
+        "version": "5.2.0",
+        "integrity": "sha512-LPTVA0w4oPITWHAvox9NgI1rDSrjUnjxX6QN5MCb9FY+HqvDsUmgLucbj9eQakqC8lYwO7UgkDPHEQLJNl9vtg=="
+      },
+      {
+        "path": "node_modules/@fastify/forwarded",
+        "version": "3.1.2",
+        "integrity": "sha512-89WiRG+hW3VQSfCwg4Hb8b43PeyEX15K5+lEfsZ4EUth/FyOjS/lv8HsVuswUNXWiSnxMGNouE/fq/0w3VumHQ=="
+      },
+      {
+        "path": "node_modules/@fastify/merge-json-schemas",
+        "version": "0.2.2",
+        "integrity": "sha512-d/gx9sRbUCVgGRGzma46wLcwiY8noTqO2Nmjg/vbTARxHRE5bdh5PIL8s97Lt1X7ScRWRW52eVYxwIoPwIdVUA=="
+      },
+      {
+        "path": "node_modules/@fastify/proxy-addr",
+        "version": "5.1.2",
+        "integrity": "sha512-uqB4QsgVoro0XDC+DIftIMGXHdBPn+lK6Ek3xXAIxPMCJfqxnbtyEoMCm2KPUVOuIosd7Cyw9HawEqMFM/UA+g=="
+      },
+      {
+        "path": "node_modules/@fastify/websocket",
+        "version": "11.3.7",
+        "integrity": "sha512-fkkS87CkAOY/MzvJrB94S729RxvIbLHXv2LNGkPifli4/q4IdeicpcFoxgJ3oVmIRVNSi4W6FZai5AmRhzhhTw=="
+      },
+      {
+        "path": "node_modules/@pinojs/redact",
+        "version": "0.4.0",
+        "integrity": "sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg=="
+      },
+      {
+        "path": "node_modules/abstract-logging",
+        "version": "2.0.1",
+        "integrity": "sha512-2BjRTZxTPvheOvGbBslFSYOUkr+SjPtOnrLP33f+VIWLzezQpZcqVg7ja3L4dBXmzzgwT+a029jRx5PCi3JuiA=="
+      },
+      {
+        "path": "node_modules/ajv",
+        "version": "8.20.0",
+        "integrity": "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="
+      },
+      {
+        "path": "node_modules/ajv-formats",
+        "version": "3.0.1",
+        "integrity": "sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ=="
+      },
+      {
+        "path": "node_modules/ajv/node_modules/fast-uri",
+        "version": "3.1.9",
+        "integrity": "sha512-hS/0Wt3Ya043oKXs0sIxrMpKQITXhMLIrVAKKXi4gozGC9v7YRWVnXIZzjNPTO02M9BdxLCWqK1yRXgNziVyJQ=="
+      },
+      {
+        "path": "node_modules/atomic-sleep",
+        "version": "1.0.0",
+        "integrity": "sha512-kNOjDqAh7px0XWNI+4QbzoiR/nTkHAWNud2uvnJquD1/x5a7EQZMJT0AczqK0Qn67oY/TTQ1LbUKajZpp3I9tQ=="
+      },
+      {
+        "path": "node_modules/avvio",
+        "version": "9.3.1",
+        "integrity": "sha512-QyTKW61/qlba+cUQBm/sT9X8lri4UdomqSDwCnrnj1IvLVDRRiXRkz4CgBRWB+/cmfC7SK5WQc8T1vSdGvaUcQ=="
+      },
+      {
+        "path": "node_modules/cookie",
+        "version": "2.0.2",
+        "integrity": "sha512-SL0cVuEdETEp7pN0FuZb01toc3vnODEfVUCooxG1SJN0yIirh7JMb9X9bvfCFf0vzzbT68RdbKDHYTiWy7a7iw=="
+      },
+      {
+        "path": "node_modules/dequal",
+        "version": "2.0.3",
+        "integrity": "sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA=="
+      },
+      {
+        "path": "node_modules/duplexify",
+        "version": "4.1.3",
+        "integrity": "sha512-M3BmBhwJRZsSx38lZyhE53Csddgzl5R7xGJNk7CVddZD6CcmwMCH8J+7AprIrQKH7TonKxaCjcv27Qmf+sQ+oA=="
+      },
+      {
+        "path": "node_modules/end-of-stream",
+        "version": "1.4.5",
+        "integrity": "sha512-ooEGc6HP26xXq/N+GCGOT0JKCLDGrq2bQUZrQ7gyrJiZANJ/8YDTxTpQBXGMn+WbIQXNVpyWymm7KYVICQnyOg=="
+      },
+      {
+        "path": "node_modules/esbuild",
+        "version": "0.28.2",
+        "integrity": "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA=="
+      },
+      {
+        "path": "node_modules/fast-decode-uri-component",
+        "version": "1.0.1",
+        "integrity": "sha512-WKgKWg5eUxvRZGwW8FvfbaH7AXSh2cL+3j5fMGzUMCxWBJ3dV3a7Wz8y2f/uQ0e3B6WmodD3oS54jTQ9HVTIIg=="
+      },
+      {
+        "path": "node_modules/fast-deep-equal",
+        "version": "3.1.3",
+        "integrity": "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q=="
+      },
+      {
+        "path": "node_modules/fast-json-stringify",
+        "version": "7.3.5",
+        "integrity": "sha512-g7H3xqJmdH9aWLWh8S3CqrRZFZ321yaeNHZp3QUDl3wtXDWjPChDXCDDTwA4M/zsU42nOhE+z5KmpCzgBaaCgw=="
+      },
+      {
+        "path": "node_modules/fast-querystring",
+        "version": "1.1.2",
+        "integrity": "sha512-g6KuKWmFXc0fID8WWH0jit4g0AGBoJhCkJMb1RmbsSEUNvQ+ZC8D6CUZ+GtF8nMzSPXnhiePyyqqipzNNEnHjg=="
+      },
+      {
+        "path": "node_modules/fast-uri",
+        "version": "4.2.3",
+        "integrity": "sha512-I1PXwP5eAhlNlcdpjt9CgB59op2ZvZfxw+BkqGFVIUOgNpCVTcTqp3HhTX7brxj5vsip+nSY4nTvff+eIA76hg=="
+      },
+      {
+        "path": "node_modules/fastify",
+        "version": "5.12.8",
+        "integrity": "sha512-moP8exb2sCHLUbJkwp+I6C0padhy4D8lp0SdmzY7HhSdZuqm7O/u3o2aq7u8okaQ//33QDzj3G/u+FsSdB8Qzw=="
+      },
+      {
+        "path": "node_modules/fastify-plugin",
+        "version": "6.0.1",
+        "integrity": "sha512-4wW4RxSmvPXLrh5mgQEiu43qU3bw44N2ss4FTkTkQIbprUhE+/s43QX0j/ttcztdWK7PEkHqVthdc5GdEGDvjA=="
+      },
+      {
+        "path": "node_modules/fastq",
+        "version": "1.20.3",
+        "integrity": "sha512-XKv5nnLs6nLF71NgiKJLIZFLkPyIEuOselLG7ujZnGrRfQK8HpvY+WqKhAJUAdLomwVHErVS4LfxFlPq0/FTAw=="
+      },
+      {
+        "path": "node_modules/find-my-way",
+        "version": "9.10.0",
+        "integrity": "sha512-eru+uCPQ2g+nLBkf84MHP/KyNNMar0BDy0j+i8Fb72GF9/YHBZ58q7FODUtfVV7XU9nfRUHXSmaM8NmZcIbZ4Q=="
+      },
+      {
+        "path": "node_modules/fsevents",
+        "version": "2.3.3",
+        "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="
+      },
+      {
+        "path": "node_modules/inherits",
+        "version": "2.0.4",
+        "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ=="
+      },
+      {
+        "path": "node_modules/ipaddr.js",
+        "version": "2.5.0",
+        "integrity": "sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w=="
+      },
+      {
+        "path": "node_modules/json-schema-ref-resolver",
+        "version": "3.0.1",
+        "integrity": "sha512-w+HwgljXpVwZ3IidoUR1qPZxSOQ+NRQWuVe6a5pe8XbHsNZE4UAwVPUvzZagn7yBKbJtt6UJnRFYbNTRPZI45Q=="
+      },
+      {
+        "path": "node_modules/json-schema-traverse",
+        "version": "1.0.0",
+        "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="
+      },
+      {
+        "path": "node_modules/light-my-request",
+        "version": "6.8.0",
+        "integrity": "sha512-5Q8PjoSEdtGIB8fikZsTem5vgRo4F2mR6vUKTDW/H1g6MtAt8e3duQbg/QxL5yzg6BZhor2KOUm3hhWMWLTZwg=="
+      },
+      {
+        "path": "node_modules/node-addon-api",
+        "version": "7.1.1",
+        "integrity": "sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ=="
+      },
+      {
+        "path": "node_modules/node-pty",
+        "version": "1.1.0",
+        "integrity": "sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg=="
+      },
+      {
+        "path": "node_modules/on-exit-leak-free",
+        "version": "2.1.2",
+        "integrity": "sha512-0eJJY6hXLGf1udHwfNftBqH+g73EU4B504nZeKpz1sYRKafAghwxEJunB2O7rDZkL4PGfsMVnTXZ2EjibbqcsA=="
+      },
+      {
+        "path": "node_modules/once",
+        "version": "1.4.0",
+        "integrity": "sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w=="
+      },
+      {
+        "path": "node_modules/pino",
+        "version": "10.4.0",
+        "integrity": "sha512-bk1ZMTwG/Vymx+zPoa28MhNzucFvXJWp3csrSuxuHPSMeUettaCoQ5Jvg07mtC4JGNpcfTwz41oVCnNgBK9+vA=="
+      },
+      {
+        "path": "node_modules/pino-abstract-transport",
+        "version": "3.0.0",
+        "integrity": "sha512-wlfUczU+n7Hy/Ha5j9a/gZNy7We5+cXp8YL+X+PG8S0KXxw7n/JXA3c46Y0zQznIJ83URJiwy7Lh56WLokNuxg=="
+      },
+      {
+        "path": "node_modules/pino-std-serializers",
+        "version": "7.1.0",
+        "integrity": "sha512-BndPH67/JxGExRgiX1dX0w1FvZck5Wa4aal9198SrRhZjH3GxKQUKIBnYJTdj2HDN3UQAS06HlfcSbQj2OHmaw=="
+      },
+      {
+        "path": "node_modules/process-warning",
+        "version": "5.1.1",
+        "integrity": "sha512-oCkNVj4OKnKEcocVBcDfiIugN1/cE6rgfT3nCtzeqZPA8+rIxMaQ0xXzIkGP8Gj2qUaP1UR7uhJ1VD8lUCpzCg=="
+      },
+      {
+        "path": "node_modules/quick-format-unescaped",
+        "version": "4.0.4",
+        "integrity": "sha512-tYC1Q1hgyRuHgloV/YXs2w15unPVh8qfu/qCTfhTYamaw7fyhumKa2yGpdSo87vY32rIclj+4fWYQXUMs9EHvg=="
+      },
+      {
+        "path": "node_modules/readable-stream",
+        "version": "3.6.2",
+        "integrity": "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA=="
+      },
+      {
+        "path": "node_modules/real-require",
+        "version": "1.0.0",
+        "integrity": "sha512-P4nbQYQfePJxRSmY+v/KINxVucm4NF3p3s7pJveMTtom52FR4YGltUQLB8idDXwDDWW+eYrWDFbuzUnjoWHF7g=="
+      },
+      {
+        "path": "node_modules/require-from-string",
+        "version": "2.0.2",
+        "integrity": "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw=="
+      },
+      {
+        "path": "node_modules/ret",
+        "version": "0.5.1",
+        "integrity": "sha512-Z/nyvABwcRnRD2mMP7Kz6G1dFZZqX1mNErOnxF42OCQKE07b9k9hK9SQxHL3LFEZUdzQaLM4dId1E/E6Vm4WhA=="
+      },
+      {
+        "path": "node_modules/reusify",
+        "version": "1.1.0",
+        "integrity": "sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw=="
+      },
+      {
+        "path": "node_modules/rfdc",
+        "version": "1.4.1",
+        "integrity": "sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA=="
+      },
+      {
+        "path": "node_modules/safe-buffer",
+        "version": "5.2.1",
+        "integrity": "sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ=="
+      },
+      {
+        "path": "node_modules/safe-regex2",
+        "version": "5.1.2",
+        "integrity": "sha512-tAtCGFPPP02VroDVzp4daGi6bC7jWG+41D47GKf18FeH/ubvKQHT9VmhAkvtjNOmJwqtApzWeUpEhkyEYULvmw=="
+      },
+      {
+        "path": "node_modules/safe-stable-stringify",
+        "version": "2.5.0",
+        "integrity": "sha512-b3rppTKm9T+PsVCBEOUR46GWI7fdOs00VKZ1+9c1EWDaDMvjQc6tUwuFyIprgGgTcWoVHSKrU8H31ZHA2e0RHA=="
+      },
+      {
+        "path": "node_modules/secure-json-parse",
+        "version": "4.1.1",
+        "integrity": "sha512-lnd81MQEZKjhW/Gd2TQqdd4XP6QYNdDW/EP+I7nTrFHP9y2LmaGPIHk9xsnzcOiEr1c39c/e84xFgGviQKBTRw=="
+      },
+      {
+        "path": "node_modules/semver",
+        "version": "7.8.6",
+        "integrity": "sha512-9lpSSU4Mly3mrtruwLs1eLK6+gzbzqeBFwRNjIjE+9LuDpWdYctrQlQ3ej1Ilgi7gknpsTRnPoLP8DpCHqHIJw=="
+      },
+      {
+        "path": "node_modules/set-cookie-parser",
+        "version": "3.2.2",
+        "integrity": "sha512-df017qMeYuXo4emL09nlyMpi2i2MtEIKS/6jtXH3vmjFgIRsOi852/5RmhJ4EkvN3ZF8jXadM/EkTPXgc8yPIw=="
+      },
+      {
+        "path": "node_modules/sonic-boom",
+        "version": "4.2.1",
+        "integrity": "sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q=="
+      },
+      {
+        "path": "node_modules/split2",
+        "version": "4.2.0",
+        "integrity": "sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg=="
+      },
+      {
+        "path": "node_modules/stream-shift",
+        "version": "1.0.3",
+        "integrity": "sha512-76ORR0DO1o1hlKwTbi/DM3EXWGf3ZJYO8cXX5RJwnul2DEg2oyoZyjLNoQM8WsvZiFKCRfC1O0J7iCvie3RZmQ=="
+      },
+      {
+        "path": "node_modules/string_decoder",
+        "version": "1.3.0",
+        "integrity": "sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA=="
+      },
+      {
+        "path": "node_modules/thread-stream",
+        "version": "4.2.1",
+        "integrity": "sha512-Stg6edJXC/6/xqGwSXwFokrUhChJ18amEjpKH89WrQQ0oVFDF+pUUcTpiwWhFUrE89Vf16FBOlwhaw+lescxMQ=="
+      },
+      {
+        "path": "node_modules/toad-cache",
+        "version": "3.7.4",
+        "integrity": "sha512-m1TdR/rvT7kgGJZhspNtXdsdYk0fddFpJJFlG5s+UkPFo6lkLoZ3YLOaovPYjq1R75NP5JfeTlSHaOsE09peCg=="
+      },
+      {
+        "path": "node_modules/tsx",
+        "version": "4.23.15",
+        "integrity": "sha512-Yiex1Ovn8z2xPpOWckIiysV1SSyRMY9BkLF++q0yKiDxCqRhosKfMg3janKkiLBwZ5c/YryloKwGZcrEmtwxKw=="
+      },
+      {
+        "path": "node_modules/util-deprecate",
+        "version": "1.0.2",
+        "integrity": "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw=="
+      },
+      {
+        "path": "node_modules/wrappy",
+        "version": "1.0.2",
+        "integrity": "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ=="
+      },
+      {
+        "path": "node_modules/ws",
+        "version": "8.23.0",
+        "integrity": "sha512-wCkmX8QMOrKjgO8HW2WyDbTSGeqkocxgDzS9iR79rEAexty6/2qzilx3Ag8Tqf9ykop3irLKle0MtVn5qjVnoQ=="
+      },
+      {
+        "path": "node_modules/zod",
+        "version": "3.25.76",
+        "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
+      }
+    ]
+  },
+  "archive": {
+    "check": "postgres-project-archive-readback",
+    "archiveHash": "6d1b2282ea2781a39208ca7836f77d627ef7273e006b45602f33410b6ef905ba",
+    "fileHash": "74384a5ced918f5cd4e1b05957c5ab4c020882d547baf29ccd67ad500ba851fa",
+    "byteLength": 4726
+  },
+  "result": {
+    "ok": true,
+    "scope": "functional recipe; no AI generation, deployment, gVisor or network-isolation proof",
+    "apiBaseUrl": "http://127.0.0.1:3001",
+    "runtimeBaseUrl": "http://127.0.0.1:3001/api/runtime",
+    "workspaceManagerBaseUrl": "http://127.0.0.1:3010",
+    "namespace": "vc-private-1ddb302f6b200e6b",
+    "projectId": "cmwf2u1nu001n159e1qrdoxw8",
+    "workspaceId": "ws-6d5fe659b48d698f",
+    "checks": [
+      "auth/register",
+      "project/create",
+      "runtime/boot",
+      "workspace/start",
+      "file read/write/list/search",
+      "patch",
+      "command",
+      "terminal websocket",
+      "private preview HTTP content / anonymous and foreign-organization denial",
+      "runtime snapshot rejected with 503 SNAPSHOT_ARCHIVE_UNAVAILABLE",
+      "project archive manifest / restored pod bytes",
+      "PostgreSQL ZIP archive checksum and file bytes",
+      "new pod UID / same PVC UID / persistent bytes",
+      "zip export/import",
+      "workspace/stop"
+    ]
+  },
+  "workspacePods": [
+    {
+      "name": "workspace-ws-6d5fe659b48d698f",
+      "namespace": "vc-private-1ddb302f6b200e6b",
+      "images": [
+        {
+          "name": "workspace-agent",
+          "image": "vc-private-agent:vc-private-1ddb302f6b200e6b"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "workspace-agent",
+          "image": "docker.io/library/vc-private-agent:vc-private-1ddb302f6b200e6b",
+          "imageID": "sha256:e7e63a5f561b3e5da81a945112ace5a7ad525b946cd861e94635835c8b516a46",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "workspace-ws-6d5fe659b48d698f",
+      "namespace": "vc-private-1ddb302f6b200e6b",
+      "images": [
+        {
+          "name": "workspace-agent",
+          "image": "vc-private-agent:vc-private-1ddb302f6b200e6b"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "workspace-agent",
+          "image": "docker.io/library/vc-private-agent:vc-private-1ddb302f6b200e6b",
+          "imageID": "sha256:e7e63a5f561b3e5da81a945112ace5a7ad525b946cd861e94635835c8b516a46",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    }
+  ],
+  "pods": [
+    {
+      "name": "api-57dd584d69-nd7mx",
+      "namespace": "vc-private-1ddb302f6b200e6b",
+      "images": [
+        {
+          "name": "api",
+          "image": "vc-private-platform:vc-private-1ddb302f6b200e6b"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "api",
+          "image": "docker.io/library/vc-private-platform:vc-private-1ddb302f6b200e6b",
+          "imageID": "sha256:285238008c600146c074ca109ca479c2ccd4b31088728c1785757cf88504e2e8",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "manager-86848997f9-z72dx",
+      "namespace": "vc-private-1ddb302f6b200e6b",
+      "images": [
+        {
+          "name": "manager",
+          "image": "vc-private-platform:vc-private-1ddb302f6b200e6b"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "manager",
+          "image": "docker.io/library/vc-private-platform:vc-private-1ddb302f6b200e6b",
+          "imageID": "sha256:285238008c600146c074ca109ca479c2ccd4b31088728c1785757cf88504e2e8",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "migrate-ffs22",
+      "namespace": "vc-private-1ddb302f6b200e6b",
+      "images": [
+        {
+          "name": "migrate",
+          "image": "vc-private-platform:vc-private-1ddb302f6b200e6b"
+        }
+      ],
+      "phase": "Succeeded",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "False"
+        },
+        {
+          "type": "Initialized",
+          "status": "True",
+          "reason": "PodCompleted"
+        },
+        {
+          "type": "Ready",
+          "status": "False",
+          "reason": "PodCompleted"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "False",
+          "reason": "PodCompleted"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "migrate",
+          "image": "docker.io/library/vc-private-platform:vc-private-1ddb302f6b200e6b",
+          "imageID": "sha256:285238008c600146c074ca109ca479c2ccd4b31088728c1785757cf88504e2e8",
+          "ready": false,
+          "restartCount": 0,
+          "terminated": {
+            "reason": "Completed",
+            "exitCode": 0
+          }
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "postgres-7865649cd6-jlfkz",
+      "namespace": "vc-private-1ddb302f6b200e6b",
+      "images": [
+        {
+          "name": "postgres",
+          "image": "vc-private-postgres:vc-private-1ddb302f6b200e6b"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "postgres",
+          "image": "docker.io/library/vc-private-postgres:vc-private-1ddb302f6b200e6b",
+          "imageID": "sha256:b0108689bf51bd54d3129130967d4adf7ba58b395a9ff6653aa598b5fe7d7ba3",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "redis-565c7b44cc-75tt6",
+      "namespace": "vc-private-1ddb302f6b200e6b",
+      "images": [
+        {
+          "name": "redis",
+          "image": "vc-private-redis:vc-private-1ddb302f6b200e6b"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "redis",
+          "image": "docker.io/library/vc-private-redis:vc-private-1ddb302f6b200e6b",
+          "imageID": "sha256:bb8953020f6597e47d5d699a9910a25d77a69608dbd58e0f722940598ed85fc0",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    }
+  ],
+  "cleanup": "Generated cluster deleted and cleanup step succeeded",
+  "artifact": "https://github.com/openaxcloud/vibecore/actions/runs/43442951559/artifacts/14047915590"
+}
