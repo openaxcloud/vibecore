@@ -133,6 +133,16 @@ export interface RunPublishMigrationInput {
   forwardCompatible?: boolean | 'UNKNOWN';
   applySql: SqlApplier;
 
+  /** Dormant admission before creating a journal, requesting backup or running SQL.
+   * A rejected/uncertain admission must have no effects. Never auto-settle it.
+   */
+  beforeEffects?: (target: {
+    projectId: string;
+    organizationId: string;
+    environment: DatabaseEnvironment;
+    connectionString: string;
+  }) => Promise<void>;
+
   /** Fenêtre d'attente de l'aboutissement du backup. */
   backupTimeoutMs?: number;
   backupPollIntervalMs?: number;
@@ -224,6 +234,8 @@ const declared = (value: boolean | 'UNKNOWN' | undefined): string => (value === 
  * exécutée pour de vrai, pas seulement décrite dans un contrat.
  */
 export async function runPublishMigration(input: RunPublishMigrationInput): Promise<MigrationOutcome> {
+  // Keep the checked target and declared SQL stable across backup/admission awaits.
+  input = { ...input, migrations: input.migrations.map((migration) => ({ ...migration })) };
   /*
    * Validate and capture the target before even reading the idempotency journal.
    * A production migration must never verify a default-development backup.
@@ -272,6 +284,13 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
       error: `moteur ${engine} : pas de DDL transactionnel, un échec partiel ne serait pas annulable`,
     };
   }
+
+  await input.beforeEffects?.({
+    projectId: input.projectId,
+    organizationId: input.organizationId,
+    environment,
+    connectionString: input.connectionString,
+  });
 
   let state: MigrationState = 'PLANNED';
 
