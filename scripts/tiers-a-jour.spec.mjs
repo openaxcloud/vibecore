@@ -46,20 +46,22 @@ describe('la carte des tiers reste alignée sur le déploiement', () => {
    * DÉCLENCHERAIT-IL ce tier ». On extrait donc le motif du workflow et on lui
    * soumet chaque chemin, exactement comme le déploiement le fait.
    */
-  const MOTIFS = [...WORKFLOW.matchAll(/grep -Eq '\^\(([^']+)\)'[^\n]*?(\w+)=true/gu)].map((m) => ({
+  const MOTIFS = [...WORKFLOW.matchAll(/grep -E '\^\(([^']+)\)' > \/dev\/null && (\w+)=true/gu)].map((m) => ({
     motif: new RegExp(`^(${m[1]})`, 'u'),
     variable: m[2].toLowerCase(),
   }));
 
   it('les motifs du workflow sont bien extraits — sinon rien n’est mesuré', () => {
-    expect(MOTIFS.length, 'aucun motif `grep -Eq` trouvé dans deploy-main.yml').toBeGreaterThanOrEqual(3);
+    expect(MOTIFS.map((m) => m.variable).sort(), 'les quatre motifs doivent consommer tout le flux').toEqual(
+      Object.keys(CHEMINS_PAR_TIER).sort(),
+    );
   });
 
   it.each(Object.entries(CHEMINS_PAR_TIER))(
     'chaque chemin du tier « %s » déclencherait bien ce tier',
     (tier, chemins) => {
       for (const chemin of chemins) {
-        const declenche = MOTIFS.some((m) => m.motif.test(chemin));
+        const declenche = MOTIFS.some((m) => m.variable === tier && m.motif.test(chemin));
 
         expect(
           declenche,
@@ -77,7 +79,7 @@ describe('la carte des tiers reste alignée sur le déploiement', () => {
   });
 
   it('la base partagée et le screenshotter ne disparaissent pas de la surveillance', () => {
-    const shared = /grep -Eq '\^\(([^']+)\)'; then/u.exec(WORKFLOW);
+    const shared = /grep -E '\^\(([^']+)\)' > \/dev\/null; then/u.exec(WORKFLOW);
     expect(shared).not.toBeNull();
 
     const detector = new RegExp(`^(${shared[1]})`, 'u');
