@@ -1,3 +1,6 @@
+import { Client as PgClient } from 'pg';
+import { appPublicEnglish } from './app-public-copy.js';
+
 /**
  * Applicateur PostgreSQL des migrations de projet (P0-V3-11).
  *
@@ -18,9 +21,9 @@
  * migration déjà présente est sautée, donc republier n'exécute pas deux fois un
  * `ALTER TABLE`.
  */
-import { Client as PgClient } from 'pg';
 
-import type { DeclaredMigration } from './db-migration-execution.js';
+import { MigrationRolledBackError, type DeclaredMigration } from './db-migration-execution.js';
+import { assertMigrationOwnsNoTransaction } from './db-migration-transaction-guard.js';
 
 /** Table de registre, créée à la volée dans le schéma courant. */
 export const MIGRATION_LEDGER_TABLE = '_ecode_schema_migrations';
@@ -35,7 +38,7 @@ export interface PostgresApplierDeps {
   /** Injectable pour les tests ; par défaut un vrai client `pg`. */
   createClient?: (connectionString: string) => {
     connect(): Promise<void>;
-    query(sql: string, values?: unknown[]): Promise<{ rows: any[] }>;
+    query(sql: string, values?: unknown[]): Promise<{ rows: any[]; command?: string }>;
     end(): Promise<void>;
   };
   sha256: (value: string) => string;
@@ -47,17 +50,22 @@ export interface PostgresApplierDeps {
  * ainsi « annulé proprement » d'« état indéterminé ».
  */
 export function createPostgresMigrationApplier(deps: PostgresApplierDeps) {
-  const createClient =
-    deps.createClient ?? ((connectionString: string) => new PgClient({ connectionString }) as any);
+  const createClient = deps.createClient ?? ((connectionString: string) => new PgClient({ connectionString }) as any);
 
   return async function applyPostgresMigrations(input: {
     connectionString: string;
     migrations: DeclaredMigration[];
   }): Promise<{ committed: boolean; applied: string[] }> {
+    for (const migration of input.migrations) {
+      assertMigrationOwnsNoTransaction(migration.sql);
+    }
+
     const client = createClient(input.connectionString);
-    await client.connect();
+
+    let commitAttempted = false;
 
     try {
+      await client.connect();
       await client.query('BEGIN');
 
       try {
@@ -80,17 +88,28 @@ export function createPostgresMigrationApplier(deps: PostgresApplierDeps) {
           applied.push(migration.name);
         }
 
-        await client.query('COMMIT');
+        commitAttempted = true;
+
+        const commit = await client.query('COMMIT');
+
+        if (commit.command !== 'COMMIT') {
+          throw new Error(appPublicEnglish('MIGRATION_COMMIT_UNACKNOWLEDGED'));
+        }
 
         return { committed: true, applied };
       } catch (error) {
-        /*
-         * ROLLBACK avant de propager : la base revient à son état d'avant, y
-         * compris pour le registre. L'appelant peut alors annoncer FAILED_SAFE
-         * sans se tromper.
-         */
-        await client.query('ROLLBACK').catch(() => undefined);
-        throw error;
+        // ROLLBACK after a lost COMMIT reply cannot undo an already committed transaction.
+        if (commitAttempted) {
+          throw error;
+        }
+
+        const rollback = await client.query('ROLLBACK');
+
+        if (rollback.command !== 'ROLLBACK') {
+          throw new Error(appPublicEnglish('MIGRATION_ROLLBACK_UNACKNOWLEDGED'));
+        }
+
+        throw new MigrationRolledBackError(error instanceof Error ? error.message : String(error));
       }
     } finally {
       await client.end().catch(() => undefined);

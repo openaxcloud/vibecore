@@ -19,6 +19,7 @@ import { Client } from 'pg';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const apiRoot = resolve(root, 'services/api');
 export const requiredSpecs = [
+  'src/tests/db-migration-applier.integration.spec.ts',
   'src/tests/database-restore-repository.spec.ts',
   'src/tests/database-provisioning-transfer.prisma.spec.ts',
   'src/tests/database-restore-consumer.spec.ts',
@@ -267,6 +268,7 @@ async function main() {
       NODE_ENV: 'test',
       DATABASE_URL: target.toString(),
       RESTORE_TEST_DATABASE_URL: target.toString(),
+      V311_TEST_DATABASE_URL: target.toString(),
     };
     stage = 'migrate-dedicated-database';
     log(stage);

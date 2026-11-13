@@ -2902,5 +2902,33 @@
   "CAPACITY_FOLDER_POLICY_DISABLED": {
     "en": "folder-per-tenant disabled by policy (default); enable only on a measured contractual requirement",
     "fr": "un dossier par locataire est désactivé par défaut par la politique ; activer uniquement sur la base d’une exigence contractuelle mesurée"
+  },
+  "MIGRATION_REPLAY_UNCONFIRMED": {
+    "en": "Migration is not confirmed ({state}); no new statements were executed.",
+    "fr": "Migration non validée ({state}) ; aucune nouvelle instruction exécutée."
+  },
+  "MIGRATION_ROLLBACK_CONFIRMED": {
+    "en": "Migration rolled back; database unchanged: {message}",
+    "fr": "Migration annulée, base inchangée : {message}"
+  },
+  "MIGRATION_OUTCOME_UNCERTAIN": {
+    "en": "Migration outcome is uncertain: {message}",
+    "fr": "État de la migration incertain : {message}"
+  },
+  "MIGRATION_JOURNAL_UNCERTAIN": {
+    "en": "Final migration journal acknowledgement unavailable.",
+    "fr": "Confirmation finale du journal de migration indisponible."
+  },
+  "MIGRATION_COMMIT_UNACKNOWLEDGED": {
+    "en": "Migration COMMIT was not acknowledged as COMMIT.",
+    "fr": "Le COMMIT de migration n’a pas été confirmé comme COMMIT."
+  },
+  "MIGRATION_ROLLBACK_UNACKNOWLEDGED": {
+    "en": "Migration ROLLBACK was not acknowledged.",
+    "fr": "Le ROLLBACK de migration n’a pas été confirmé."
+  },
+  "MIGRATION_TRANSACTION_CONTROL_REFUSED": {
+    "en": "Transaction control or ambiguous SQL is not allowed in migrations.",
+    "fr": "Le contrôle de transaction ou le SQL ambigu est interdit dans les migrations."
   }
 }

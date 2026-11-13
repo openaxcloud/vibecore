@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { DatabaseProvisioner } from './database-provisioner.js';
 import {
+  MigrationRolledBackError,
   hashStatements,
   isLockConflict,
   runPublishMigration,
@@ -280,14 +281,14 @@ describe('P0-V3-11 — échec pendant l application', () => {
 
     const input = base(store, {
       applySql: vi.fn(async () => {
-        throw new Error('syntax error at or near "OOPS"');
+        throw new MigrationRolledBackError('syntax error at or near "OOPS"');
       }),
     });
 
     const result = await runPublishMigration(input as any);
 
     expect(result).toMatchObject({ ok: false, code: 'MIGRATION_FAILED_SAFE', state: 'FAILED_SAFE' });
-    expect(result.ok === false && result.error).toMatch(/base inchangée/);
+    expect(result.ok === false && result.error).toMatch(/database unchanged/);
     expect([...store.rows.values()][0].activeLock).toBeNull();
   });
 
@@ -303,7 +304,7 @@ describe('P0-V3-11 — échec pendant l application', () => {
     const result = await runPublishMigration(input as any);
 
     expect(result).toMatchObject({ ok: false, code: 'MIGRATION_MANUAL_RECOVERY', state: 'MANUAL_RECOVERY' });
-    expect([...store.rows.values()][0].activeLock).toBeNull();
+    expect([...store.rows.values()][0].activeLock).toBe('proj-1:production');
   });
 });
 
@@ -417,4 +418,67 @@ describe('publish backup environment binding', () => {
       expect(input.applySql).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('recovery remains fail closed', () => {
+  it.each(['FAILED_SAFE', 'APPLYING', 'MANUAL_RECOVERY', 'VALIDATING', 'UNKNOWN'])(
+    'never replays %s as success',
+    async (state) => {
+      const store = new FakeStore();
+      store.rows.set('old', { id: 'old', projectId: 'proj-1', idempotencyKey: 'key-1', state, appliedStatements: 0 });
+
+      const input = base(store);
+      expect(await runPublishMigration(input as any)).toMatchObject({ ok: false });
+      expect(input.applySql).not.toHaveBeenCalled();
+    },
+  );
+  it('keeps lock after unclassified apply failure and blocks another key', async () => {
+    const store = new FakeStore();
+    expect(
+      await runPublishMigration(
+        base(store, {
+          applySql: async () => {
+            throw new Error('COMMIT reply lost');
+          },
+        }) as any,
+      ),
+    ).toMatchObject({ ok: false, state: 'MANUAL_RECOVERY' });
+    expect([...store.rows.values()][0].activeLock).toBe('proj-1:production');
+    expect(await runPublishMigration(base(store, { idempotencyKey: 'second' }) as any)).toMatchObject({
+      ok: false,
+      code: 'MIGRATION_LOCK_HELD',
+    });
+  });
+  it('does not claim success or safe rollback when the post-commit journal fails', async () => {
+    const store = new FakeStore();
+    const update = store.updateMigrationExecution.bind(store);
+
+    store.updateMigrationExecution = async (id, patch) => {
+      if (patch.state === 'VALIDATING') {
+        throw new Error('journal offline');
+      }
+
+      await update(id, patch);
+    };
+    expect(await runPublishMigration(base(store) as any)).toMatchObject({ ok: false, state: 'MANUAL_RECOVERY' });
+    expect([...store.rows.values()][0].activeLock).toBe('proj-1:production');
+  });
+});
+
+it('preserves a committed journal whose acknowledgement was lost', async () => {
+  const store = new FakeStore();
+  const update = store.updateMigrationExecution.bind(store);
+  const states: string[] = [];
+
+  store.updateMigrationExecution = async (id, patch) => {
+    states.push(patch.state);
+    await update(id, patch);
+
+    if (patch.state === 'COMMITTED') {
+      throw new Error('lost journal reply');
+    }
+  };
+  expect(await runPublishMigration(base(store) as any)).toMatchObject({ ok: true, state: 'COMMITTED' });
+  expect(states).not.toContain('MANUAL_RECOVERY');
+  expect([...store.rows.values()][0].activeLock).toBeNull();
 });
