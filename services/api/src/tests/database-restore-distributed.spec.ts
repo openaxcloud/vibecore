@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { observePostgresRestoreDrain } from '../database-restore-drain.js';
 
 const url = process.env.RESTORE_TEST_DATABASE_URL;
 const run = url ? describe : describe.skip;
@@ -268,13 +269,21 @@ run('restore handoff across real local PostgreSQL participants', () => {
     }
   });
   it('does not turn a dead process or a missing acknowledgement into a fence receipt', async () => {
+    // Do not let the previous scenario's live consumers satisfy the count.
+    await Promise.all(participants.map((previousParticipant) => previousParticipant.close()));
+
     const previous = { operationId: randomUUID(), attemptToken: randomUUID() };
     const next = { ...previous, attemptToken: randomUUID() };
     const participant = await start(previous);
 
-    const pid = (
-      (await participant.call({ action: 'query', text: 'SELECT pg_backend_pid() AS pid' })) as Array<{ pid: number }>
-    )[0].pid;
+    const backend = (
+      (await participant.call({
+        action: 'query',
+        text: `SELECT pid, backend_start::text AS backend_start
+          FROM pg_stat_activity WHERE pid = pg_backend_pid()`,
+      })) as Array<{ pid: number; backend_start: string }>
+    )[0];
+    const pid = backend.pid;
 
     const lock = Math.floor(Math.random() * 1e9);
     await admin.query('SELECT pg_advisory_lock($1)', [lock]);
@@ -293,6 +302,21 @@ run('restore handoff across real local PostgreSQL participants', () => {
       participant.child.kill('SIGKILL');
       await participant.exited;
       expect(await fenced).toMatchObject({ message: 'TEST_PARTICIPANT_EXITED' });
+      const observation = await observePostgresRestoreDrain(url!, {
+        systemIdentifier: identity,
+        databaseName: new URL(url!).pathname.slice(1),
+      });
+      // Verify the exact backend incarnation is still blocked, not merely
+      // unrelated sessions (or a reused PID) contributing to a total count.
+      const orphan = await admin.query<{ backend_start: string; wait_event_type: string }>(
+        'SELECT backend_start::text, wait_event_type FROM pg_stat_activity WHERE pid = $1',
+        [pid],
+      );
+      expect(orphan.rows).toEqual([{ backend_start: backend.backend_start, wait_event_type: 'Lock' }]);
+      // Admin + this confirmed blocked orphan: process death did not drain it.
+      expect(observation.otherSessions).toBeGreaterThanOrEqual(2);
+      expect(observation.observedEmpty).toBe(false);
+      expect(observation.globalFence).toBe(false);
       await expect(participant.call({ action: 'fence', previous, next })).rejects.toThrow('TEST_PARTICIPANT_EXITED');
 
       /*

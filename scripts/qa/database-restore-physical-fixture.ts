@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { Client } from 'pg';
+import { observePostgresRestoreDrain } from '../../services/api/src/database-restore-drain.js';
 
 const execute = promisify(execFile);
 const postgresImage = 'sha256:9b05db12a35460fff0587e009f9326e414a53e9484555547f96d214a2ba98ef7';
@@ -396,6 +397,12 @@ export class PhysicalRestoreFixture {
     const response = await fetch(`${this.appUrl}/value`);
     assert.equal(response.status, 503);
     this.evidence.quiescedApplicationHttpStatus = response.status;
+    const observation = await observePostgresRestoreDrain(this.sourceUri, {
+      systemIdentifier: this.sourceSystemIdentifier,
+      databaseName: 'postgres',
+    });
+    assert.equal(observation.observedEmpty, true, 'Database sessions or prepared transactions remain');
+    this.evidence.sourceDatabaseDrainObservation = observation;
     return { receiptId: `${this.name}-quiesced` };
   }
 
