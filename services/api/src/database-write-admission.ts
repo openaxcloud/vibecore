@@ -16,7 +16,7 @@ export async function admitDatabaseWrite(
   store: ApiStore,
   project: { id: string; organizationId: string },
   connection: { key: string; value: string; kind: string; source: string; ambiguous?: boolean },
-  ownerIncarnation = randomUUID(),
+  ownerIncarnation: string = randomUUID(),
 ): Promise<void> {
   if (!admission) {
     return;
