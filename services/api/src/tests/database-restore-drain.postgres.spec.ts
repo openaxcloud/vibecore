@@ -58,20 +58,21 @@ run('database-wide drain observation on real disposable PostgreSQL', () => {
     const writer = new Client({ connectionString: url });
 
     let prepared = false;
-    await writer.connect();
 
     try {
-      await writer.query('BEGIN');
-      await writer.query('SELECT 1');
+      await writer.connect();
 
-      // Identifier is generated locally from hex only; no user SQL is accepted.
-      await writer.query(`PREPARE TRANSACTION '${gid}'`);
-      prepared = true;
-    } finally {
-      await writer.end();
-    }
+      try {
+        await writer.query('BEGIN');
+        await writer.query('SELECT 1');
 
-    try {
+        // Identifier is generated locally from hex only; no user SQL is accepted.
+        await writer.query(`PREPARE TRANSACTION '${gid}'`);
+        prepared = true;
+      } finally {
+        await writer.end();
+      }
+
       /*
        * Close the suite's control client too: neither connection may explain
        * observedEmpty=false. Only the prepared transaction survives.
@@ -93,7 +94,8 @@ run('database-wide drain observation on real disposable PostgreSQL', () => {
       expect(observation.observedEmpty).toBe(false);
       expect(observation.globalFence).toBe(false);
     } finally {
-      // Reconnect even when an assertion fails; clean only our random owned GID.
+      // Reconnect even when writer closure fails; clean only our random owned GID.
+      await client.end().catch(() => undefined);
       client = new Client({ connectionString: url });
       await client.connect();
 
