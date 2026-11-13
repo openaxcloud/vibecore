@@ -912,3 +912,17 @@ Ils sont conservés ici tels quels : une migration ne perd pas de contenu en sil
 - [BUG-SKILLS-REAL-PATH-20261030](docs/qa/skills-20261030/README.md) — Erreurs de chargement masquées en listes vides ; skill projet désactivé réinjecté via workspace ; résumé du catalogue substitué aux instructions indisponibles ; toggle contournant l'approbation de quarantaine. 📤 Dispatché : ☑ audit isolé 30/10/2026 · 💻 Codé : ☐ main, PR draft uniquement · ✅ Testé live : ☐ production ; preuves locales séparées dans le rapport.
 
 - [BUG-SKILLS-DISCLOSURE-20261030](docs/qa/skills-disclosure-20261030/README.md) — Nom court/accentué explicitement demandé ignoré par le déclenchement ; libellé L3 promettant des ressources non disponibles. 📤 Dispatché : ☑ complément isolé · 💻 Codé : ☐ main, branche séparée · ✅ Testé live : ☐ production ; tests SDK sans fournisseur et UI locale trois formats seulement.
+
+### 2026-11-13 — Publish migration recovery classification
+
+📤 Dispatché : oui · 💻 Codé/main : en attente PR · ✅ Testé live : non.
+A non-COMMITTED idempotency journal entry must not permit publication. Only an
+acknowledged rollback before COMMIT attests FAILED_SAFE. Unknown apply outcomes,
+lost COMMIT replies, and post-commit journal errors require MANUAL_RECOVERY with
+the per-environment lock retained. Focused deterministic tests cover retries and
+lock refusal; real PostgreSQL lost-COMMIT-ack coverage is required in CI. No
+restoration production gate is enabled by this change.
+The preflight is a conservative transaction-boundary filter, not a full SQL
+parser. Ordinary quoted/dollar-quoted bodies and nested comments are supported;
+ambiguous backslash quoting is refused. Command tags are verified. An uncertain
+final journal acknowledgement is reread and never blindly downgraded.

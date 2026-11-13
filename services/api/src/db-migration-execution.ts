@@ -27,15 +27,23 @@ import { createHash } from 'node:crypto';
 
 import { appPublicEnglish } from './app-public-copy.js';
 import type { DatabaseEnvironment, DatabaseProvisioner } from './database-provisioner.js';
-import { assertMigrationTransition, LifecycleError, type MigrationState } from './lifecycle-state-machines.js';
+import { assertMigrationTransition, type MigrationState } from './lifecycle-state-machines.js';
+
+/** Only the applier can attest that no transaction was committed. */
+export class MigrationRolledBackError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MigrationRolledBackError';
+  }
+}
 
 /** Résultat d'une tentative d'exécution. */
 export type MigrationOutcome =
   | { ok: true; executionId: string; state: MigrationState; replayed: boolean; appliedStatements: number }
   | { ok: false; code: MigrationFailureCode; error: string; executionId?: string; state?: MigrationState };
 
+/** Une autre migration est active sur le même (projet, environnement). */
 export type MigrationFailureCode =
-  /** Une autre migration est active sur le même (projet, environnement). */
   | 'MIGRATION_LOCK_HELD'
 
   /** Backup impossible à vérifier → on n'applique rien. */
@@ -59,7 +67,8 @@ export interface DeclaredMigration {
 
 /**
  * Applique les migrations NON ENCORE APPLIQUÉES dans UNE transaction, en tenant
- * le registre à jour dans la même transaction. Doit throw pour signaler l'échec.
+ * le registre à jour dans la même transaction. Doit throw pour signaler l'échec ; seul MigrationRolledBackError atteste
+ * un rollback confirmé avant toute tentative de COMMIT.
  */
 export interface SqlApplier {
   (input: { connectionString: string; migrations: DeclaredMigration[] }): Promise<{
@@ -260,6 +269,16 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
    */
   const existing = await input.store.getMigrationExecutionByIdempotencyKey(input.projectId, input.idempotencyKey);
 
+  if (existing && existing.state !== 'COMMITTED') {
+    return {
+      ok: false,
+      executionId: existing.id,
+      state: existing.state as MigrationState,
+      code: existing.state === 'FAILED_SAFE' ? 'MIGRATION_FAILED_SAFE' : 'MIGRATION_MANUAL_RECOVERY',
+      error: appPublicEnglish('MIGRATION_REPLAY_UNCONFIRMED', { state: existing.state }),
+    };
+  }
+
   if (existing) {
     return {
       ok: true,
@@ -293,6 +312,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
   });
 
   let state: MigrationState = 'PLANNED';
+  let finalCommitWriteAttempted = false;
 
   const statementsSha256 = hashStatements(input.migrations);
 
@@ -330,16 +350,14 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
 
   state = 'LOCK_ACQUIRED';
 
-  /** Libère le verrou : sans ça, un échec bloquerait toute migration ultérieure. */
+  /** Finalize known outcomes; retain the lock whenever recovery is uncertain. */
   const release = async (finalState: MigrationState, patch: Record<string, unknown> = {}) => {
-    await input.store
-      .updateMigrationExecution(execution.id, {
-        state: finalState,
-        activeLock: null,
-        completedAt: now().toISOString(),
-        ...patch,
-      })
-      .catch(() => undefined);
+    await input.store.updateMigrationExecution(execution.id, {
+      state: finalState,
+      activeLock: finalState === 'MANUAL_RECOVERY' ? `${input.projectId}:${environment}` : null,
+      completedAt: now().toISOString(),
+      ...patch,
+    });
   };
 
   try {
@@ -412,20 +430,19 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
       committed = result.committed;
       appliedNames = result.applied;
     } catch (error) {
-      /*
-       * L'applicateur annule la transaction avant de propager : la base est dans
-       * son état d'avant. C'est un échec SÛR, distinct d'un état incertain.
-       */
+      // A generic exception (including lost COMMIT acknowledgement) proves nothing.
+      const safe = error instanceof MigrationRolledBackError;
+      const finalState = safe ? 'FAILED_SAFE' : 'MANUAL_RECOVERY';
       const message = error instanceof Error ? error.message : String(error);
-      assertMigrationTransition(state, 'FAILED_SAFE');
-      await release('FAILED_SAFE', { error: message });
+      assertMigrationTransition(state, finalState);
+      await release(finalState, { error: message });
 
       return {
         ok: false,
-        code: 'MIGRATION_FAILED_SAFE',
-        error: `migration annulée, base inchangée : ${message}`,
+        code: safe ? 'MIGRATION_FAILED_SAFE' : 'MIGRATION_MANUAL_RECOVERY',
+        error: appPublicEnglish(safe ? 'MIGRATION_ROLLBACK_CONFIRMED' : 'MIGRATION_OUTCOME_UNCERTAIN', { message }),
         executionId: execution.id,
-        state: 'FAILED_SAFE',
+        state: finalState,
       };
     }
 
@@ -464,6 +481,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
 
     assertMigrationTransition(state, 'COMMITTED');
     state = 'COMMITTED';
+    finalCommitWriteAttempted = true;
     await release('COMMITTED', { appliedStatements: appliedNames.length });
 
     return {
@@ -475,17 +493,44 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     };
   } catch (error) {
     /*
-     * Filet de sécurité : toute erreur inattendue libère le verrou. Un verrou
-     * laissé pris bloquerait définitivement les migrations du projet.
+     * A final journal write may have committed despite a lost acknowledgement.
+     * Never downgrade/reacquire blindly: another migration may already own the lock.
      */
+    if (finalCommitWriteAttempted) {
+      const recorded = await input.store
+        .getMigrationExecutionByIdempotencyKey(input.projectId, input.idempotencyKey)
+        .catch(() => undefined);
+
+      if (recorded?.id === execution.id && recorded.state === 'COMMITTED') {
+        return {
+          ok: true,
+          executionId: execution.id,
+          state: 'COMMITTED',
+          replayed: false,
+          appliedStatements: recorded.appliedStatements,
+        };
+      }
+
+      return {
+        ok: false,
+        code: 'MIGRATION_MANUAL_RECOVERY',
+        executionId: execution.id,
+        state: 'MANUAL_RECOVERY',
+        error: appPublicEnglish('MIGRATION_JOURNAL_UNCERTAIN'),
+      };
+    }
+
+    // A journal failure after application must never release the lock or claim rollback.
     const message = error instanceof Error ? error.message : String(error);
-    await release(error instanceof LifecycleError ? 'MANUAL_RECOVERY' : 'FAILED_SAFE', { error: message });
+    const finalState = state === 'LOCK_ACQUIRED' || state === 'BACKUP_VERIFIED' ? 'FAILED_SAFE' : 'MANUAL_RECOVERY';
+    await release(finalState, { error: message }).catch(() => undefined);
 
     return {
       ok: false,
-      code: error instanceof LifecycleError ? 'MIGRATION_MANUAL_RECOVERY' : 'MIGRATION_FAILED_SAFE',
+      code: finalState === 'FAILED_SAFE' ? 'MIGRATION_FAILED_SAFE' : 'MIGRATION_MANUAL_RECOVERY',
       error: message,
       executionId: execution.id,
+      state: finalState,
     };
   }
 }

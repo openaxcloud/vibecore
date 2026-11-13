@@ -21,6 +21,7 @@ import { Client } from 'pg';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createPostgresMigrationApplier, MIGRATION_LEDGER_TABLE } from '../db-migration-applier.js';
+import { MigrationRolledBackError } from '../db-migration-execution.js';
 
 const databaseUrl = process.env.V311_TEST_DATABASE_URL;
 
@@ -74,7 +75,7 @@ describe.skipIf(!databaseUrl)('P0-V3-11 — applicateur sur vrai PostgreSQL', ()
     });
   });
 
-  it("LE POINT : un lot qui échoue à mi-parcours ne laisse AUCUNE trace — pas de schéma à moitié muté", async () => {
+  it('LE POINT : un lot qui échoue à mi-parcours ne laisse AUCUNE trace — pas de schéma à moitié muté', async () => {
     // Données existantes qui doivent survivre intactes.
     await withClient(async (client) => {
       await client.query('CREATE TABLE v311_customers (id serial PRIMARY KEY, email text)');
@@ -87,6 +88,7 @@ describe.skipIf(!databaseUrl)('P0-V3-11 — applicateur sur vrai PostgreSQL', ()
         migrations: [
           // Celle-ci réussirait isolément…
           { name: '010_ok.sql', sql: 'CREATE TABLE v311_orders (id serial PRIMARY KEY)' },
+
           // …mais celle-là échoue : tout le lot doit être défait.
           { name: '011_boom.sql', sql: 'ALTER TABLE v311_customers ADD COLUMN email text' },
         ],
@@ -96,6 +98,7 @@ describe.skipIf(!databaseUrl)('P0-V3-11 — applicateur sur vrai PostgreSQL', ()
     await withClient(async (client) => {
       // La table créée par la 1re migration a disparu avec le ROLLBACK.
       expect(await tableExists(client, 'v311_orders')).toBe(false);
+
       // Le registre n'a rien enregistré : il ne diverge pas du schéma réel.
       expect(await tableExists(client, MIGRATION_LEDGER_TABLE)).toBe(false);
 
@@ -168,6 +171,7 @@ describe.skipIf(!databaseUrl)('P0-V3-11 — publish RÉEL contre un vrai Postgre
     const { TestApiStore } = await import('./test-api-store.js');
 
     const store = new TestApiStore();
+
     const files = new Map<string, string>([
       ['migrations/001_e2e.sql', 'CREATE TABLE v311_e2e (id serial PRIMARY KEY, label text)'],
     ]);
@@ -200,6 +204,7 @@ describe.skipIf(!databaseUrl)('P0-V3-11 — publish RÉEL contre un vrai Postgre
       store,
       projectStorage,
       emailProvider: { async send() {} } as any,
+
       // Backup observé ABOUTI : la garde I-MIG-1 est franchie légitimement.
       databaseProvisioner: {
         active: true,
@@ -210,6 +215,7 @@ describe.skipIf(!databaseUrl)('P0-V3-11 — publish RÉEL contre un vrai Postgre
           return { found: true, phase: 'completed', completed: true };
         },
       } as any,
+
       // PAS de migrationApplier injecté : c'est le VRAI applicateur qui tourne.
     });
 
@@ -218,8 +224,10 @@ describe.skipIf(!databaseUrl)('P0-V3-11 — publish RÉEL contre un vrai Postgre
       name: 'E2E',
       passwordHash: hashPassword('password123'),
     });
+
     const org = await store.createOrganization({ name: 'E2E', slug: 'e2e-org', ownerUserId: user.id });
     await store.createSession({ userId: user.id, token: 'e2e-token', expiresAt: new Date(Date.now() + 3600_000) });
+
     const project = await store.createProject({ organizationId: org.id, name: 'E2E', slug: 'e2e-p' });
 
     await store.upsertProjectSecret({
@@ -259,8 +267,56 @@ describe.skipIf(!databaseUrl)('P0-V3-11 — publish RÉEL contre un vrai Postgre
 
       // La table est utilisable, pas seulement présente.
       await client.query("INSERT INTO v311_e2e (label) VALUES ('ok')");
+
       const rows = await client.query('SELECT label FROM v311_e2e');
       expect(rows.rows.map((row) => row.label)).toEqual(['ok']);
     });
+  });
+});
+
+// The server commits for real; only the acknowledgement is lost at the client boundary.
+describe.skipIf(!databaseUrl)('lost commit acknowledgement on real PostgreSQL', () => {
+  it('never claims rollback after committed DDL despite a lost reply', async () => {
+    await withClient(async (client) => {
+      await client.query('DROP TABLE IF EXISTS v311_lost_commit');
+    });
+
+    const uncertain = createPostgresMigrationApplier({
+      sha256: (sql) => createHash('sha256').update(sql).digest('hex'),
+      createClient: (connectionString) => {
+        const client = new Client({ connectionString });
+        return {
+          connect: async () => {
+            await client.connect();
+          },
+          end: () => client.end(),
+          query: async (sql, values) => {
+            const result = await client.query(sql, values);
+
+            if (sql === 'COMMIT') {
+              throw new Error('lost commit acknowledgement');
+            }
+
+            return result;
+          },
+        };
+      },
+    });
+
+    try {
+      await expect(
+        uncertain({
+          connectionString: databaseUrl!,
+          migrations: [{ name: `lost_commit_${Date.now()}`, sql: 'CREATE TABLE v311_lost_commit (id int)' }],
+        }),
+      ).rejects.not.toBeInstanceOf(MigrationRolledBackError);
+      await withClient(async (client) => {
+        expect(await tableExists(client, 'v311_lost_commit')).toBe(true);
+      });
+    } finally {
+      await withClient(async (client) => {
+        await client.query('DROP TABLE IF EXISTS v311_lost_commit');
+      });
+    }
   });
 });
