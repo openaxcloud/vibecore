@@ -13,8 +13,9 @@ La [preuve antérieure Node 22/glibc](./private-kind-evidence-2026-11-13.json),
 reste distincte. Le troisième run ajoute la compatibilité du Dockerfile agent de
 production ; il ne prouve pas qu'une image déjà déployée en production a ce digest.
 API/manager restent des images de recette. Les checks requis de PR restent séparés ;
-[la voie CI proposée](./private-kind-required-ci-next-step.md) n'a pas été exécutée
-ni mise en œuvre pour E2E.
+[le mode E2E sans fournisseur](./private-kind-required-ci-next-step.md) est désormais
+implémenté par PR926, fusionnée et intégrée à PR925. Les checks de PR925 sont
+lancés sur sa tête synchronisée ; leur résultat reste distinct de cette recette.
 
 Le [premier run 43439209442](https://github.com/openaxcloud/vibecore/actions/runs/43439209442)
 a échoué après construction du cluster et des images. Les références locales des
@@ -139,16 +140,16 @@ mais un store de métadonnées en mémoire : ne pas l'assimiler au passage de ce
 recette PostgreSQL/Kubernetes. La validation statique Docker (`build --check`) ne
 construit pas les images et ne prouve pas leur démarrage.
 
-La PR de préparation porte `[skip ci]` dans son commit pour ne pas déclencher les
-workflows push/pull_request existants qui injectent des clés IA. Les checks restent
-en attente et la PR n'est pas prête à fusionner. Le contrôle de titre existant
-`pull_request_target`, limité à la lecture des métadonnées PR avec le token GitHub
-éphémère, n'est pas couvert par ce mécanisme. Après revue et autorisation, seuls
-les trois runs de recette cités ci-dessus ont été déclenchés sur la branche dédiée,
-sans PR. L'audit des 30 workflows et les runs associés à chaque SHA confirment
-l'absence d'autre workflow déclenché par ces pushes.
+Les premiers commits de préparation portaient `[skip ci]` pour éviter les anciens
+workflows E2E injectant des clés IA. Après validation et fusion de PR926, la branche
+PR925 a été synchronisée avec main et poussée sans ce marqueur pour lancer les
+checks requis, désormais sans fournisseur. Aucun résultat vert de PR926 ou de la
+recette ne remplace leur résultat au SHA exact de PR925.
 
-Validation bootstrap permits push only on `validation/private-runtime-20261113-7b970996`, with no PR on that branch. Other pushes are refused. PR925 commits retain `[skip ci]` to prevent existing E2E workflows from receiving provider secrets. This recipe does not replace required PR checks.
+Le contrôle de titre `pull_request_target` ne fait que lire les métadonnées PR
+avec le token GitHub éphémère. La recette ne se déclenche automatiquement que sur
+`validation/private-runtime-20261113-7b970996`, sans PR sur cette branche ; cette
+synchronisation de PR925 ne relance ni recette, ni nightly, ni déploiement.
 
 L'agent utilise maintenant le Dockerfile de production inchangé. Sa base Node 24
 est tirée par digest, retaguée localement pour le `FROM` existant et les couches

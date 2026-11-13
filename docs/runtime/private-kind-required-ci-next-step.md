@@ -1,42 +1,35 @@
-# PR925 : voie de validation CI sans fournisseur non autorisé
+# PR925 : validation CI après intégration de PR926
 
-Cette note propose la suite ; elle ne change aucun workflow ni check requis.
+[PR926](https://github.com/openaxcloud/vibecore/pull/926) a été validée puis fusionnée
+sur main le 13 novembre 2026, au SHA
+`95f035df6771552e0b71f691fbd0bd62ab914b9a`. PR925 intègre cette révision.
+La proposition initiale de mode sans fournisseur est donc remplacée par son
+implémentation revue ; les clés IA ne bloquent plus les checks de PR925.
 
-## Production CI
+## Checks requis au SHA de PR925
 
-`ci.yml` possède déjà `workflow_dispatch`, ne référence aucun secret de fournisseur
-ni OIDC, et lance la suite existante sur PostgreSQL/Redis locaux. La prochaine
-exécution possible est `gh workflow run ci.yml --ref ci/private-runtime-kind-20261113`,
-après stabilisation de la tête et vérification du `head_sha` du run. Ne déclencher
-que ce workflow : retirer `[skip ci]` d'une mise à jour PR lancerait aussi E2E.
-Ce dispatch n'a pas été effectué dans cette extension de recette.
+La mise à jour de la branche PR925 sans `[skip ci]` déclenche Production CI et
+Production E2E, ainsi que les autres contrôles PR applicables. Leurs résultats
+restent attribués au `head_sha` exact, distinct des preuves de recette kind.
+La synchronisation et la mise à jour de cette note lancent ces checks ; leur
+réussite n'est pas présumée et doit être constatée dans GitHub avant fusion.
 
-Le résultat doit rester attribué au SHA exécuté. Il ne vaut ni validation E2E,
-ni autorisation de déploiement : la porte de release exige des runs `push` sur
-`main` pour son SHA exact (`scripts/release-gate/required-checks.json`).
+Production CI ne référence aucun secret de fournisseur ni OIDC ; il utilise
+PostgreSQL/Redis locaux et conserve la suite existante.
 
-## Production E2E : blocage et proposition minimale à revoir
+Production E2E n'injecte plus ANTHROPIC/OPENAI/OPENROUTER/GOOGLE. Ses deux appels à
+`preparer-pile-e2e` utilisent `provider-mode: absent`, qui refuse toute clé présente.
+La liste des tests, les tranches et le verdict bloquant sont conservés. Les E2E
+sans fournisseur validés pour PR926 ne constituent pas à eux seuls un résultat
+pour la tête de PR925, ni une validation de génération IA.
 
-`e2e.yml` injecte ANTHROPIC/OPENAI/OPENROUTER/GOOGLE dans ses jobs Playwright et
-l'action locale `preparer-pile-e2e/action.yml` refuse toute exécution sans
-`ANTHROPIC_API_KEY` avant démarrage de la pile. Le paramètre `spec` existant ne
-supprime ni les secrets ni ce préflight. Aucun dispatch E2E actuel n'est donc
-compatible avec l'interdiction d'utiliser ces credentials.
+## Périmètre conservé
 
-Une modification séparée, soumise à revue, pourrait ajouter un mode explicite
-`no-provider` au dispatch et à l'action locale, conservateur par défaut :
+Le mode par défaut de l'action composite reste `required` pour ses autres
+appelants. Le runtime nightly n'est pas déclenché par cette mise à jour : ses
+événements restent `schedule` et `workflow_dispatch`.
 
-- n'injecter aucune des quatre clés dans ce mode et refuser toute clé présente ;
-- adapter seulement le préflight des credentials à ce mode ;
-- conserver l'intégralité de la suite, les tranches, le rapport agrégé et le
-  verdict bloquant actuels, sans nouveau filtre, skip, waiver ou faux fournisseur ;
-- laisser échouer toute dépendance réelle à la génération ; corriger la couverture
-  explicitement après diagnostic, sans annoncer cette génération comme testée ;
-- vérifier par contrats le routage du mode, l'absence de secrets et la conservation
-  du dénominateur de tests avant tout lancement.
-
-Cette proposition ne garantit pas que la suite passera sans fournisseur. Si un
-scénario bloquant exige réellement une génération distante, sa validation reste
-impossible dans le périmètre présent : aucun résultat de recette kind ni check
-partiel ne doit le remplacer. Le runtime nightly reste un workflow distinct,
-non concerné par cette proposition. La politique E2E globale n'a pas été modifiée.
+Aucun check requis n'est désactivé ou exempté. La recette privée n'autorise pas le
+déploiement : la porte de release conserve ses exigences de runs `push` sur
+`main` et de SHA exact (`scripts/release-gate/required-checks.json`). L'extension
+navigateur reste sur une branche séparée et n'est pas incluse dans PR925.
