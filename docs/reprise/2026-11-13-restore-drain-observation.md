@@ -48,6 +48,13 @@ conservateur : il peut refuser un drainage, jamais les ignorer pour réussir.
 - La branche CI doit valider les tests réels avant fusion ; aucune preuve de
   restauration globale ou de plateforme achevée n'est revendiquée.
 
-Le scénario réel de transaction préparée n'est pas encore validé : le service
-PostgreSQL CI utilise `max_prepared_transactions=0`. Les compteurs préparés sont
-actuellement couverts par injection déterministe, pas par `PREPARE TRANSACTION`.
+La recette CI active désormais `max_prepared_transactions=10` uniquement dans
+son service PostgreSQL jetable, avant migrations et tests. La contre-épreuve
+obligatoire prépare une transaction, ferme son client et le client de contrôle,
+puis exige **zéro session et une transaction préparée** : `observedEmpty=false`.
+Elle annule uniquement son identifiant aléatoire et vérifie son nettoyage.
+Le test n'est pas omis lorsque PostgreSQL est fourni avec une configuration
+incompatible : il échoue. Une attente bornée vérifie la disparition effective des
+sessions, sans transformer l'expiration en preuve. Le passage réel doit être
+confirmé sur le SHA de la branche CI avant fusion. Aucune configuration production
+n'est changée et cette contre-épreuve ne constitue toujours pas un fence global.
