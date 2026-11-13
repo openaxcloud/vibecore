@@ -16,6 +16,7 @@ export async function admitDatabaseWrite(
   store: ApiStore,
   project: { id: string; organizationId: string },
   connection: { key: string; value: string; kind: string; source: string; ambiguous?: boolean },
+  ownerIncarnation = randomUUID(),
 ): Promise<void> {
   if (!admission) {
     return;
@@ -49,7 +50,7 @@ export async function admitDatabaseWrite(
       environment,
       bindingVersion: instance.bindingVersion ?? 0,
       targetRef: instance.activeTargetRef ?? null,
-      ownerIncarnation: randomUUID(),
+      ownerIncarnation,
     },
     { key: selected.key, value: selected.value },
   );

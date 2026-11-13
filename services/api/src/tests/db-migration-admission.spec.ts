@@ -5,7 +5,7 @@ import { runPublishMigration, type RunPublishMigrationInput } from '../db-migrat
 function fixture() {
   const store = {
     getMigrationExecutionByIdempotencyKey: vi.fn().mockResolvedValue(undefined),
-    createMigrationExecution: vi.fn().mockResolvedValue({ id: 'migration', state: 'LOCK_ACQUIRED' }),
+    createMigrationExecution: vi.fn(async (entry) => ({ id: entry.id ?? 'migration', state: 'LOCK_ACQUIRED' })),
     updateMigrationExecution: vi.fn().mockResolvedValue(undefined),
   };
 
@@ -70,6 +70,8 @@ describe('migration admission precedes every new external effect', () => {
         organizationId: 'organization',
         environment: 'production',
         connectionString: 'original-connection',
+        executionId: expect.any(String),
+        snapshotId: expect.any(String),
       });
       input.projectId = 'changed';
       input.connectionString = 'changed';
@@ -94,6 +96,47 @@ describe('migration admission precedes every new external effect', () => {
     expect(await runPublishMigration(input)).toMatchObject({ ok: true, replayed: true });
     expect(input.beforeEffects).not.toHaveBeenCalled();
     expect(takeSnapshot).not.toHaveBeenCalled();
+    expect(applySql).not.toHaveBeenCalled();
+  });
+  it('binds the reserved attempt to journal and snapshot identities', async () => {
+    const { input, store, takeSnapshot } = fixture();
+    input.beforeEffects = vi.fn();
+    expect(await runPublishMigration(input)).toMatchObject({ ok: true });
+    const target = vi.mocked(input.beforeEffects).mock.calls[0][0];
+    expect(store.createMigrationExecution).toHaveBeenCalledWith(expect.objectContaining({ id: target.executionId }));
+    expect(target.snapshotId).toBe(`mig_${target.executionId}`);
+    expect(takeSnapshot).toHaveBeenCalledWith(expect.objectContaining({ snapshotId: target.snapshotId }));
+  });
+  it.each(['lost journal acknowledgement', 'lock conflict', 'wrong journal identity'])(
+    'does not start provider effects after %s',
+    async (mode) => {
+      const { input, store, takeSnapshot, applySql } = fixture();
+      input.beforeEffects = vi.fn();
+      if (mode === 'wrong journal identity') {
+        store.createMigrationExecution.mockResolvedValue({ id: 'wrong', state: 'LOCK_ACQUIRED' });
+        await expect(runPublishMigration(input)).rejects.toThrow('MIGRATION_ADMISSION_ID_MISMATCH');
+      } else {
+        store.createMigrationExecution.mockRejectedValue(
+          Object.assign(new Error('uncertain'), { code: mode === 'lock conflict' ? 'P2002' : undefined }),
+        );
+        if (mode === 'lock conflict') {
+          expect(await runPublishMigration(input)).toMatchObject({ ok: false, code: 'MIGRATION_LOCK_HELD' });
+        } else {
+          await expect(runPublishMigration(input)).rejects.toThrow('uncertain');
+        }
+      }
+      expect(input.beforeEffects).toHaveBeenCalledOnce();
+      expect(takeSnapshot).not.toHaveBeenCalled();
+      expect(applySql).not.toHaveBeenCalled();
+    },
+  );
+  it('retains the reserved snapshot identity even if provider acknowledgement is lost', async () => {
+    const { input, takeSnapshot, applySql } = fixture();
+    input.beforeEffects = vi.fn();
+    takeSnapshot.mockRejectedValue(new Error('ack lost'));
+    expect(await runPublishMigration(input)).toMatchObject({ ok: false });
+    const target = vi.mocked(input.beforeEffects).mock.calls[0][0];
+    expect(takeSnapshot).toHaveBeenCalledWith(expect.objectContaining({ snapshotId: target.snapshotId }));
     expect(applySql).not.toHaveBeenCalled();
   });
 });
