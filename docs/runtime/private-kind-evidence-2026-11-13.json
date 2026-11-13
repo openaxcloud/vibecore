@@ -1,0 +1,358 @@
+{
+  "source": "GitHub Actions job 131937421072 structured stdout; no raw logs or credentials",
+  "run": "https://github.com/openaxcloud/vibecore/actions/runs/43440753492",
+  "sha": "942c4869499566cc869d8ff66fb2957fff626169",
+  "conclusion": "success",
+  "previousRun": {
+    "run": "https://github.com/openaxcloud/vibecore/actions/runs/43439209442",
+    "conclusion": "failure",
+    "observed": "Cluster and images built; subsequent Kubernetes command failed. Artifact download blocked in inspection environment; original container failure reason not independently read."
+  },
+  "scope": "Ephemeral functional-local test; no production isolation, production image parity, AI generation, paid cloud or public publication proof",
+  "archive": {
+    "check": "postgres-project-archive-readback",
+    "archiveHash": "717b798cf0c03c851b1e54a71302b771d410f66d9e1defbc53f1d9c5c51038e7",
+    "fileHash": "4d89d276ea814de9b357c99118c38bde2a3a6c7a04a896ce0e930b51765c1547",
+    "byteLength": 4726
+  },
+  "result": {
+    "ok": true,
+    "scope": "functional recipe; no AI generation, deployment, gVisor or network-isolation proof",
+    "apiBaseUrl": "http://127.0.0.1:3001",
+    "runtimeBaseUrl": "http://127.0.0.1:3001/api/runtime",
+    "workspaceManagerBaseUrl": "http://127.0.0.1:3010",
+    "namespace": "vc-private-d48d0467de0aa58d",
+    "projectId": "cmwf2busg001n1582vwgfo8cr",
+    "workspaceId": "ws-dd187496f3a5b6ed",
+    "checks": [
+      "auth/register",
+      "project/create",
+      "runtime/boot",
+      "workspace/start",
+      "file read/write/list/search",
+      "patch",
+      "command",
+      "terminal websocket",
+      "private preview HTTP content / anonymous and foreign-organization denial",
+      "runtime snapshot rejected with 503 SNAPSHOT_ARCHIVE_UNAVAILABLE",
+      "project archive manifest / restored pod bytes",
+      "PostgreSQL ZIP archive checksum and file bytes",
+      "new pod UID / same PVC UID / persistent bytes",
+      "zip export/import",
+      "workspace/stop"
+    ]
+  },
+  "workspacePods": [
+    {
+      "name": "workspace-ws-dd187496f3a5b6ed",
+      "namespace": "vc-private-d48d0467de0aa58d",
+      "images": [
+        {
+          "name": "workspace-agent",
+          "image": "vc-private-agent:vc-private-d48d0467de0aa58d"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "workspace-agent",
+          "image": "docker.io/library/vc-private-agent:vc-private-d48d0467de0aa58d",
+          "imageID": "sha256:5cc5fd3249967dc1f658662a95cf5d1212d289fab7cf6bd67b8cf53ad515667a",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "workspace-ws-dd187496f3a5b6ed",
+      "namespace": "vc-private-d48d0467de0aa58d",
+      "images": [
+        {
+          "name": "workspace-agent",
+          "image": "vc-private-agent:vc-private-d48d0467de0aa58d"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "workspace-agent",
+          "image": "docker.io/library/vc-private-agent:vc-private-d48d0467de0aa58d",
+          "imageID": "sha256:5cc5fd3249967dc1f658662a95cf5d1212d289fab7cf6bd67b8cf53ad515667a",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    }
+  ],
+  "pods": [
+    {
+      "name": "api-9c6fb9885-qgl8s",
+      "namespace": "vc-private-d48d0467de0aa58d",
+      "images": [
+        {
+          "name": "api",
+          "image": "vc-private-platform:vc-private-d48d0467de0aa58d"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "api",
+          "image": "docker.io/library/vc-private-platform:vc-private-d48d0467de0aa58d",
+          "imageID": "sha256:3a4c4a39b78bc7ee60aeb9f7e027b5adeb5b7465c71dbe13f445aca7c33ac9ca",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "manager-5f8dcb8d67-swkrt",
+      "namespace": "vc-private-d48d0467de0aa58d",
+      "images": [
+        {
+          "name": "manager",
+          "image": "vc-private-platform:vc-private-d48d0467de0aa58d"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "manager",
+          "image": "docker.io/library/vc-private-platform:vc-private-d48d0467de0aa58d",
+          "imageID": "sha256:3a4c4a39b78bc7ee60aeb9f7e027b5adeb5b7465c71dbe13f445aca7c33ac9ca",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "migrate-njsqs",
+      "namespace": "vc-private-d48d0467de0aa58d",
+      "images": [
+        {
+          "name": "migrate",
+          "image": "vc-private-platform:vc-private-d48d0467de0aa58d"
+        }
+      ],
+      "phase": "Succeeded",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "False"
+        },
+        {
+          "type": "Initialized",
+          "status": "True",
+          "reason": "PodCompleted"
+        },
+        {
+          "type": "Ready",
+          "status": "False",
+          "reason": "PodCompleted"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "False",
+          "reason": "PodCompleted"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "migrate",
+          "image": "docker.io/library/vc-private-platform:vc-private-d48d0467de0aa58d",
+          "imageID": "sha256:3a4c4a39b78bc7ee60aeb9f7e027b5adeb5b7465c71dbe13f445aca7c33ac9ca",
+          "ready": false,
+          "restartCount": 0,
+          "terminated": {
+            "reason": "Completed",
+            "exitCode": 0
+          }
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "postgres-f4d5f9ff4-gdwvw",
+      "namespace": "vc-private-d48d0467de0aa58d",
+      "images": [
+        {
+          "name": "postgres",
+          "image": "vc-private-postgres:vc-private-d48d0467de0aa58d"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "postgres",
+          "image": "docker.io/library/vc-private-postgres:vc-private-d48d0467de0aa58d",
+          "imageID": "sha256:b0108689bf51bd54d3129130967d4adf7ba58b395a9ff6653aa598b5fe7d7ba3",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    },
+    {
+      "name": "redis-77cd765969-6xd2q",
+      "namespace": "vc-private-d48d0467de0aa58d",
+      "images": [
+        {
+          "name": "redis",
+          "image": "vc-private-redis:vc-private-d48d0467de0aa58d"
+        }
+      ],
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "name": "redis",
+          "image": "docker.io/library/vc-private-redis:vc-private-d48d0467de0aa58d",
+          "imageID": "sha256:bb8953020f6597e47d5d699a9910a25d77a69608dbd58e0f722940598ed85fc0",
+          "ready": true,
+          "restartCount": 0
+        }
+      ],
+      "initContainers": []
+    }
+  ],
+  "cleanup": "Cluster deleted at 2026-11-13T14:20:05Z; cleanup step succeeded"
+}

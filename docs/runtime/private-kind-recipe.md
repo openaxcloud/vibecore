@@ -1,9 +1,23 @@
 # Recette privée kind — validation fonctionnelle uniquement
 
-État au 13 novembre 2026 : **recette complète non exécutée**. Le runtime cloud
-local refuse la création du réseau kind (`ip6tables filter` indisponible). Les
-tests de contrat, le typecheck, le lint et la validation des manifests ne sont
-pas une preuve de bon fonctionnement du parcours Kubernetes.
+État au 13 novembre 2026 : **recette fonctionnelle réelle passée sur runner GitHub**,
+[run 43440753492](https://github.com/openaxcloud/vibecore/actions/runs/43440753492),
+SHA `942c4869499566cc869d8ff66fb2957fff626169`. La preuve structurée issue des journaux
+est conservée dans [private-kind-evidence-2026-11-13.json](./private-kind-evidence-2026-11-13.json).
+Les sources exécutables de ce SHA correspondent à la PR925 ; son dernier changement
+ultérieur documente seulement la preuve. Cela ne remplace pas les checks requis de PR.
+
+Le [premier run 43439209442](https://github.com/openaxcloud/vibecore/actions/runs/43439209442)
+a échoué après construction du cluster et des images. Les références locales des
+images publiques chargées dans kind ont ensuite été rendues explicites, et les
+états expurgés publiés dans les journaux. Le deuxième run passe. L'artefact initial
+n'a pas pu être téléchargé depuis cet environnement ; sa raison de conteneur exacte
+n'a donc pas été lue indépendamment. Aucun échec n'est retiré de l'historique.
+
+L'exécution locale reste bloquée par `ip6tables filter` indisponible lors de création
+du réseau Docker kind. Aucune modification réseau/kernel n'a été faite. La preuve
+GitHub reste fonctionnelle et éphémère : aucune génération IA, publication publique,
+validation gVisor/isolation de production ou recette navigateur complète.
 
 ## Exécution après revue
 
@@ -92,7 +106,7 @@ parcours client/IDE restent hors périmètre.
 ## Résultats et nettoyage
 
 L'artefact `private-runtime-functional-<run>-<attempt>` conserve 7 jours le résultat,
-la progression par phase et, en cas d'échec, les états des pods. Les checksums des
+la progression par phase et les états/imageIDs des pods. Les checksums des
 archives peuvent être inclus, jamais les tokens, kubeconfig, manifests Secret ou
 logs bruts. Une absence de résultat `ok: true` et un job non vert ne valent pas
 validation. L'absence d'artefact n'est pas un succès.
@@ -120,8 +134,10 @@ La PR de préparation porte `[skip ci]` dans son commit pour ne pas déclencher 
 workflows push/pull_request existants qui injectent des clés IA. Les checks restent
 en attente et la PR n'est pas prête à fusionner. Le contrôle de titre existant
 `pull_request_target`, limité à la lecture des métadonnées PR avec le token GitHub
-éphémère, n'est pas couvert par ce mécanisme. Aucun workflow de recette n'a été
-déclenché pendant sa préparation.
+éphémère, n'est pas couvert par ce mécanisme. Après revue et autorisation, seuls
+les deux runs de recette cités ci-dessus ont été déclenchés sur la branche dédiée,
+sans PR. L'audit des 30 workflows et les runs associés à chaque SHA confirment
+l'absence d'autre workflow déclenché par ces pushes.
 
 Validation bootstrap permits push only on `validation/private-runtime-20261113-7b970996`, with no PR on that branch. Other pushes are refused. PR925 commits retain `[skip ci]` to prevent existing E2E workflows from receiving provider secrets. This recipe does not replace required PR checks.
 
