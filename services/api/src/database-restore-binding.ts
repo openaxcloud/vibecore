@@ -16,6 +16,12 @@ export async function guardProjectRestoreMutation(
     throw new DatabaseRestoreError('RESTORE_PROJECT_LOCKED');
   }
 
+  const work = await tx.databaseRestoreAdmittedWork.count({ where: { projectId, settledAt: null } });
+
+  if (work !== 0) {
+    throw new DatabaseRestoreError('RESTORE_WORK_DRAIN_UNCONFIRMED');
+  }
+
   if (requiresTargetLifecycle) {
     const restored = await tx.databaseInstance.findFirst({
       where: { projectId, activeTargetRef: { not: null } },
@@ -48,5 +54,11 @@ export async function guardDatabaseBindingMutation(tx: Prisma.TransactionClient,
 
   if (active) {
     throw new DatabaseRestoreError('RESTORE_BINDING_LOCKED');
+  }
+
+  const work = await tx.databaseRestoreAdmittedWork.count({ where: { projectId, environment, settledAt: null } });
+
+  if (work !== 0) {
+    throw new DatabaseRestoreError('RESTORE_WORK_DRAIN_UNCONFIRMED');
   }
 }

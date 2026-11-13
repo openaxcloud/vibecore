@@ -618,6 +618,11 @@ export type ModelConfig = $Result.DefaultSelection<Prisma.$ModelConfigPayload>
  */
 export type DatabaseInstance = $Result.DefaultSelection<Prisma.$DatabaseInstancePayload>
 /**
+ * Model DatabaseRestoreAdmittedWork
+ * Durable debt for cooperating consumers. Never expires on process/lease loss.
+ */
+export type DatabaseRestoreAdmittedWork = $Result.DefaultSelection<Prisma.$DatabaseRestoreAdmittedWorkPayload>
+/**
  * Model DatabaseBackupProvenance
  * Immutable provenance reserved before creating a CNPG Backup. Snapshot IDs also
  * cover migration/checkpoint backups that do not have DatabaseSnapshot rows.
@@ -2293,6 +2298,16 @@ export class PrismaClient<
   get databaseInstance(): Prisma.DatabaseInstanceDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.databaseRestoreAdmittedWork`: Exposes CRUD operations for the **DatabaseRestoreAdmittedWork** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DatabaseRestoreAdmittedWorks
+    * const databaseRestoreAdmittedWorks = await prisma.databaseRestoreAdmittedWork.findMany()
+    * ```
+    */
+  get databaseRestoreAdmittedWork(): Prisma.DatabaseRestoreAdmittedWorkDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.databaseBackupProvenance`: Exposes CRUD operations for the **DatabaseBackupProvenance** model.
     * Example usage:
     * ```ts
@@ -3061,6 +3076,7 @@ export namespace Prisma {
     ProviderConfig: 'ProviderConfig',
     ModelConfig: 'ModelConfig',
     DatabaseInstance: 'DatabaseInstance',
+    DatabaseRestoreAdmittedWork: 'DatabaseRestoreAdmittedWork',
     DatabaseBackupProvenance: 'DatabaseBackupProvenance',
     DatabaseSnapshot: 'DatabaseSnapshot',
     DatabaseRestore: 'DatabaseRestore',
@@ -3099,7 +3115,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseBackupProvenance" | "databaseSnapshot" | "databaseRestore" | "databaseRestoreExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseRestoreAdmittedWork" | "databaseBackupProvenance" | "databaseSnapshot" | "databaseRestore" | "databaseRestoreExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -10931,6 +10947,80 @@ export namespace Prisma {
           }
         }
       }
+      DatabaseRestoreAdmittedWork: {
+        payload: Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>
+        fields: Prisma.DatabaseRestoreAdmittedWorkFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DatabaseRestoreAdmittedWorkFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DatabaseRestoreAdmittedWorkFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload>
+          }
+          findFirst: {
+            args: Prisma.DatabaseRestoreAdmittedWorkFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DatabaseRestoreAdmittedWorkFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload>
+          }
+          findMany: {
+            args: Prisma.DatabaseRestoreAdmittedWorkFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload>[]
+          }
+          create: {
+            args: Prisma.DatabaseRestoreAdmittedWorkCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload>
+          }
+          createMany: {
+            args: Prisma.DatabaseRestoreAdmittedWorkCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DatabaseRestoreAdmittedWorkCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload>[]
+          }
+          delete: {
+            args: Prisma.DatabaseRestoreAdmittedWorkDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload>
+          }
+          update: {
+            args: Prisma.DatabaseRestoreAdmittedWorkUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload>
+          }
+          deleteMany: {
+            args: Prisma.DatabaseRestoreAdmittedWorkDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DatabaseRestoreAdmittedWorkUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DatabaseRestoreAdmittedWorkUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload>[]
+          }
+          upsert: {
+            args: Prisma.DatabaseRestoreAdmittedWorkUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreAdmittedWorkPayload>
+          }
+          aggregate: {
+            args: Prisma.DatabaseRestoreAdmittedWorkAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDatabaseRestoreAdmittedWork>
+          }
+          groupBy: {
+            args: Prisma.DatabaseRestoreAdmittedWorkGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseRestoreAdmittedWorkGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DatabaseRestoreAdmittedWorkCountArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseRestoreAdmittedWorkCountAggregateOutputType> | number
+          }
+        }
+      }
       DatabaseBackupProvenance: {
         payload: Prisma.$DatabaseBackupProvenancePayload<ExtArgs>
         fields: Prisma.DatabaseBackupProvenanceFieldRefs
@@ -12847,6 +12937,7 @@ export namespace Prisma {
     providerConfig?: ProviderConfigOmit
     modelConfig?: ModelConfigOmit
     databaseInstance?: DatabaseInstanceOmit
+    databaseRestoreAdmittedWork?: DatabaseRestoreAdmittedWorkOmit
     databaseBackupProvenance?: DatabaseBackupProvenanceOmit
     databaseSnapshot?: DatabaseSnapshotOmit
     databaseRestore?: DatabaseRestoreOmit
@@ -14308,12 +14399,14 @@ export namespace Prisma {
     snapshots: number
     restores: number
     backupProvenance: number
+    admittedWork: number
   }
 
   export type DatabaseInstanceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     snapshots?: boolean | DatabaseInstanceCountOutputTypeCountSnapshotsArgs
     restores?: boolean | DatabaseInstanceCountOutputTypeCountRestoresArgs
     backupProvenance?: boolean | DatabaseInstanceCountOutputTypeCountBackupProvenanceArgs
+    admittedWork?: boolean | DatabaseInstanceCountOutputTypeCountAdmittedWorkArgs
   }
 
   // Custom InputTypes
@@ -14346,6 +14439,13 @@ export namespace Prisma {
    */
   export type DatabaseInstanceCountOutputTypeCountBackupProvenanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DatabaseBackupProvenanceWhereInput
+  }
+
+  /**
+   * DatabaseInstanceCountOutputType without action
+   */
+  export type DatabaseInstanceCountOutputTypeCountAdmittedWorkArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseRestoreAdmittedWorkWhereInput
   }
 
 
@@ -135419,6 +135519,7 @@ export namespace Prisma {
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
     restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
     backupProvenance?: boolean | DatabaseInstance$backupProvenanceArgs<ExtArgs>
+    admittedWork?: boolean | DatabaseInstance$admittedWorkArgs<ExtArgs>
     _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["databaseInstance"]>
 
@@ -135481,6 +135582,7 @@ export namespace Prisma {
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
     restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
     backupProvenance?: boolean | DatabaseInstance$backupProvenanceArgs<ExtArgs>
+    admittedWork?: boolean | DatabaseInstance$admittedWorkArgs<ExtArgs>
     _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DatabaseInstanceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -135497,6 +135599,7 @@ export namespace Prisma {
       snapshots: Prisma.$DatabaseSnapshotPayload<ExtArgs>[]
       restores: Prisma.$DatabaseRestorePayload<ExtArgs>[]
       backupProvenance: Prisma.$DatabaseBackupProvenancePayload<ExtArgs>[]
+      admittedWork: Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -135914,6 +136017,7 @@ export namespace Prisma {
     snapshots<T extends DatabaseInstance$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     restores<T extends DatabaseInstance$restoresArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$restoresArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     backupProvenance<T extends DatabaseInstance$backupProvenanceArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$backupProvenanceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    admittedWork<T extends DatabaseInstance$admittedWorkArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$admittedWorkArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -136430,6 +136534,30 @@ export namespace Prisma {
   }
 
   /**
+   * DatabaseInstance.admittedWork
+   */
+  export type DatabaseInstance$admittedWorkArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    where?: DatabaseRestoreAdmittedWorkWhereInput
+    orderBy?: DatabaseRestoreAdmittedWorkOrderByWithRelationInput | DatabaseRestoreAdmittedWorkOrderByWithRelationInput[]
+    cursor?: DatabaseRestoreAdmittedWorkWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DatabaseRestoreAdmittedWorkScalarFieldEnum | DatabaseRestoreAdmittedWorkScalarFieldEnum[]
+  }
+
+  /**
    * DatabaseInstance without action
    */
   export type DatabaseInstanceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -136445,6 +136573,1168 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: DatabaseInstanceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DatabaseRestoreAdmittedWork
+   */
+
+  export type AggregateDatabaseRestoreAdmittedWork = {
+    _count: DatabaseRestoreAdmittedWorkCountAggregateOutputType | null
+    _avg: DatabaseRestoreAdmittedWorkAvgAggregateOutputType | null
+    _sum: DatabaseRestoreAdmittedWorkSumAggregateOutputType | null
+    _min: DatabaseRestoreAdmittedWorkMinAggregateOutputType | null
+    _max: DatabaseRestoreAdmittedWorkMaxAggregateOutputType | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkAvgAggregateOutputType = {
+    bindingVersion: number | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkSumAggregateOutputType = {
+    bindingVersion: number | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkMinAggregateOutputType = {
+    id: string | null
+    instanceId: string | null
+    projectId: string | null
+    organizationId: string | null
+    environment: string | null
+    bindingVersion: number | null
+    targetRef: string | null
+    ownerIncarnation: string | null
+    createdAt: Date | null
+    settledAt: Date | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkMaxAggregateOutputType = {
+    id: string | null
+    instanceId: string | null
+    projectId: string | null
+    organizationId: string | null
+    environment: string | null
+    bindingVersion: number | null
+    targetRef: string | null
+    ownerIncarnation: string | null
+    createdAt: Date | null
+    settledAt: Date | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkCountAggregateOutputType = {
+    id: number
+    instanceId: number
+    projectId: number
+    organizationId: number
+    environment: number
+    bindingVersion: number
+    targetRef: number
+    ownerIncarnation: number
+    createdAt: number
+    settledAt: number
+    _all: number
+  }
+
+
+  export type DatabaseRestoreAdmittedWorkAvgAggregateInputType = {
+    bindingVersion?: true
+  }
+
+  export type DatabaseRestoreAdmittedWorkSumAggregateInputType = {
+    bindingVersion?: true
+  }
+
+  export type DatabaseRestoreAdmittedWorkMinAggregateInputType = {
+    id?: true
+    instanceId?: true
+    projectId?: true
+    organizationId?: true
+    environment?: true
+    bindingVersion?: true
+    targetRef?: true
+    ownerIncarnation?: true
+    createdAt?: true
+    settledAt?: true
+  }
+
+  export type DatabaseRestoreAdmittedWorkMaxAggregateInputType = {
+    id?: true
+    instanceId?: true
+    projectId?: true
+    organizationId?: true
+    environment?: true
+    bindingVersion?: true
+    targetRef?: true
+    ownerIncarnation?: true
+    createdAt?: true
+    settledAt?: true
+  }
+
+  export type DatabaseRestoreAdmittedWorkCountAggregateInputType = {
+    id?: true
+    instanceId?: true
+    projectId?: true
+    organizationId?: true
+    environment?: true
+    bindingVersion?: true
+    targetRef?: true
+    ownerIncarnation?: true
+    createdAt?: true
+    settledAt?: true
+    _all?: true
+  }
+
+  export type DatabaseRestoreAdmittedWorkAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseRestoreAdmittedWork to aggregate.
+     */
+    where?: DatabaseRestoreAdmittedWorkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreAdmittedWorks to fetch.
+     */
+    orderBy?: DatabaseRestoreAdmittedWorkOrderByWithRelationInput | DatabaseRestoreAdmittedWorkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DatabaseRestoreAdmittedWorkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreAdmittedWorks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreAdmittedWorks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DatabaseRestoreAdmittedWorks
+    **/
+    _count?: true | DatabaseRestoreAdmittedWorkCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DatabaseRestoreAdmittedWorkAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DatabaseRestoreAdmittedWorkSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DatabaseRestoreAdmittedWorkMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DatabaseRestoreAdmittedWorkMaxAggregateInputType
+  }
+
+  export type GetDatabaseRestoreAdmittedWorkAggregateType<T extends DatabaseRestoreAdmittedWorkAggregateArgs> = {
+        [P in keyof T & keyof AggregateDatabaseRestoreAdmittedWork]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDatabaseRestoreAdmittedWork[P]>
+      : GetScalarType<T[P], AggregateDatabaseRestoreAdmittedWork[P]>
+  }
+
+
+
+
+  export type DatabaseRestoreAdmittedWorkGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseRestoreAdmittedWorkWhereInput
+    orderBy?: DatabaseRestoreAdmittedWorkOrderByWithAggregationInput | DatabaseRestoreAdmittedWorkOrderByWithAggregationInput[]
+    by: DatabaseRestoreAdmittedWorkScalarFieldEnum[] | DatabaseRestoreAdmittedWorkScalarFieldEnum
+    having?: DatabaseRestoreAdmittedWorkScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DatabaseRestoreAdmittedWorkCountAggregateInputType | true
+    _avg?: DatabaseRestoreAdmittedWorkAvgAggregateInputType
+    _sum?: DatabaseRestoreAdmittedWorkSumAggregateInputType
+    _min?: DatabaseRestoreAdmittedWorkMinAggregateInputType
+    _max?: DatabaseRestoreAdmittedWorkMaxAggregateInputType
+  }
+
+  export type DatabaseRestoreAdmittedWorkGroupByOutputType = {
+    id: string
+    instanceId: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    targetRef: string | null
+    ownerIncarnation: string
+    createdAt: Date
+    settledAt: Date | null
+    _count: DatabaseRestoreAdmittedWorkCountAggregateOutputType | null
+    _avg: DatabaseRestoreAdmittedWorkAvgAggregateOutputType | null
+    _sum: DatabaseRestoreAdmittedWorkSumAggregateOutputType | null
+    _min: DatabaseRestoreAdmittedWorkMinAggregateOutputType | null
+    _max: DatabaseRestoreAdmittedWorkMaxAggregateOutputType | null
+  }
+
+  type GetDatabaseRestoreAdmittedWorkGroupByPayload<T extends DatabaseRestoreAdmittedWorkGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DatabaseRestoreAdmittedWorkGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DatabaseRestoreAdmittedWorkGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DatabaseRestoreAdmittedWorkGroupByOutputType[P]>
+            : GetScalarType<T[P], DatabaseRestoreAdmittedWorkGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DatabaseRestoreAdmittedWorkSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    instanceId?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    bindingVersion?: boolean
+    targetRef?: boolean
+    ownerIncarnation?: boolean
+    createdAt?: boolean
+    settledAt?: boolean
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestoreAdmittedWork"]>
+
+  export type DatabaseRestoreAdmittedWorkSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    instanceId?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    bindingVersion?: boolean
+    targetRef?: boolean
+    ownerIncarnation?: boolean
+    createdAt?: boolean
+    settledAt?: boolean
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestoreAdmittedWork"]>
+
+  export type DatabaseRestoreAdmittedWorkSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    instanceId?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    bindingVersion?: boolean
+    targetRef?: boolean
+    ownerIncarnation?: boolean
+    createdAt?: boolean
+    settledAt?: boolean
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestoreAdmittedWork"]>
+
+  export type DatabaseRestoreAdmittedWorkSelectScalar = {
+    id?: boolean
+    instanceId?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    bindingVersion?: boolean
+    targetRef?: boolean
+    ownerIncarnation?: boolean
+    createdAt?: boolean
+    settledAt?: boolean
+  }
+
+  export type DatabaseRestoreAdmittedWorkOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "instanceId" | "projectId" | "organizationId" | "environment" | "bindingVersion" | "targetRef" | "ownerIncarnation" | "createdAt" | "settledAt", ExtArgs["result"]["databaseRestoreAdmittedWork"]>
+  export type DatabaseRestoreAdmittedWorkInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseRestoreAdmittedWorkIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseRestoreAdmittedWorkIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+
+  export type $DatabaseRestoreAdmittedWorkPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DatabaseRestoreAdmittedWork"
+    objects: {
+      instance: Prisma.$DatabaseInstancePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      instanceId: string
+      projectId: string
+      organizationId: string
+      environment: string
+      bindingVersion: number
+      targetRef: string | null
+      ownerIncarnation: string
+      createdAt: Date
+      settledAt: Date | null
+    }, ExtArgs["result"]["databaseRestoreAdmittedWork"]>
+    composites: {}
+  }
+
+  type DatabaseRestoreAdmittedWorkGetPayload<S extends boolean | null | undefined | DatabaseRestoreAdmittedWorkDefaultArgs> = $Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload, S>
+
+  type DatabaseRestoreAdmittedWorkCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DatabaseRestoreAdmittedWorkFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DatabaseRestoreAdmittedWorkCountAggregateInputType | true
+    }
+
+  export interface DatabaseRestoreAdmittedWorkDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DatabaseRestoreAdmittedWork'], meta: { name: 'DatabaseRestoreAdmittedWork' } }
+    /**
+     * Find zero or one DatabaseRestoreAdmittedWork that matches the filter.
+     * @param {DatabaseRestoreAdmittedWorkFindUniqueArgs} args - Arguments to find a DatabaseRestoreAdmittedWork
+     * @example
+     * // Get one DatabaseRestoreAdmittedWork
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DatabaseRestoreAdmittedWorkFindUniqueArgs>(args: SelectSubset<T, DatabaseRestoreAdmittedWorkFindUniqueArgs<ExtArgs>>): Prisma__DatabaseRestoreAdmittedWorkClient<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DatabaseRestoreAdmittedWork that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DatabaseRestoreAdmittedWorkFindUniqueOrThrowArgs} args - Arguments to find a DatabaseRestoreAdmittedWork
+     * @example
+     * // Get one DatabaseRestoreAdmittedWork
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DatabaseRestoreAdmittedWorkFindUniqueOrThrowArgs>(args: SelectSubset<T, DatabaseRestoreAdmittedWorkFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DatabaseRestoreAdmittedWorkClient<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseRestoreAdmittedWork that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreAdmittedWorkFindFirstArgs} args - Arguments to find a DatabaseRestoreAdmittedWork
+     * @example
+     * // Get one DatabaseRestoreAdmittedWork
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DatabaseRestoreAdmittedWorkFindFirstArgs>(args?: SelectSubset<T, DatabaseRestoreAdmittedWorkFindFirstArgs<ExtArgs>>): Prisma__DatabaseRestoreAdmittedWorkClient<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseRestoreAdmittedWork that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreAdmittedWorkFindFirstOrThrowArgs} args - Arguments to find a DatabaseRestoreAdmittedWork
+     * @example
+     * // Get one DatabaseRestoreAdmittedWork
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DatabaseRestoreAdmittedWorkFindFirstOrThrowArgs>(args?: SelectSubset<T, DatabaseRestoreAdmittedWorkFindFirstOrThrowArgs<ExtArgs>>): Prisma__DatabaseRestoreAdmittedWorkClient<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DatabaseRestoreAdmittedWorks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreAdmittedWorkFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DatabaseRestoreAdmittedWorks
+     * const databaseRestoreAdmittedWorks = await prisma.databaseRestoreAdmittedWork.findMany()
+     * 
+     * // Get first 10 DatabaseRestoreAdmittedWorks
+     * const databaseRestoreAdmittedWorks = await prisma.databaseRestoreAdmittedWork.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const databaseRestoreAdmittedWorkWithIdOnly = await prisma.databaseRestoreAdmittedWork.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DatabaseRestoreAdmittedWorkFindManyArgs>(args?: SelectSubset<T, DatabaseRestoreAdmittedWorkFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DatabaseRestoreAdmittedWork.
+     * @param {DatabaseRestoreAdmittedWorkCreateArgs} args - Arguments to create a DatabaseRestoreAdmittedWork.
+     * @example
+     * // Create one DatabaseRestoreAdmittedWork
+     * const DatabaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.create({
+     *   data: {
+     *     // ... data to create a DatabaseRestoreAdmittedWork
+     *   }
+     * })
+     * 
+     */
+    create<T extends DatabaseRestoreAdmittedWorkCreateArgs>(args: SelectSubset<T, DatabaseRestoreAdmittedWorkCreateArgs<ExtArgs>>): Prisma__DatabaseRestoreAdmittedWorkClient<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DatabaseRestoreAdmittedWorks.
+     * @param {DatabaseRestoreAdmittedWorkCreateManyArgs} args - Arguments to create many DatabaseRestoreAdmittedWorks.
+     * @example
+     * // Create many DatabaseRestoreAdmittedWorks
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DatabaseRestoreAdmittedWorkCreateManyArgs>(args?: SelectSubset<T, DatabaseRestoreAdmittedWorkCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DatabaseRestoreAdmittedWorks and returns the data saved in the database.
+     * @param {DatabaseRestoreAdmittedWorkCreateManyAndReturnArgs} args - Arguments to create many DatabaseRestoreAdmittedWorks.
+     * @example
+     * // Create many DatabaseRestoreAdmittedWorks
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DatabaseRestoreAdmittedWorks and only return the `id`
+     * const databaseRestoreAdmittedWorkWithIdOnly = await prisma.databaseRestoreAdmittedWork.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DatabaseRestoreAdmittedWorkCreateManyAndReturnArgs>(args?: SelectSubset<T, DatabaseRestoreAdmittedWorkCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DatabaseRestoreAdmittedWork.
+     * @param {DatabaseRestoreAdmittedWorkDeleteArgs} args - Arguments to delete one DatabaseRestoreAdmittedWork.
+     * @example
+     * // Delete one DatabaseRestoreAdmittedWork
+     * const DatabaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.delete({
+     *   where: {
+     *     // ... filter to delete one DatabaseRestoreAdmittedWork
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DatabaseRestoreAdmittedWorkDeleteArgs>(args: SelectSubset<T, DatabaseRestoreAdmittedWorkDeleteArgs<ExtArgs>>): Prisma__DatabaseRestoreAdmittedWorkClient<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DatabaseRestoreAdmittedWork.
+     * @param {DatabaseRestoreAdmittedWorkUpdateArgs} args - Arguments to update one DatabaseRestoreAdmittedWork.
+     * @example
+     * // Update one DatabaseRestoreAdmittedWork
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DatabaseRestoreAdmittedWorkUpdateArgs>(args: SelectSubset<T, DatabaseRestoreAdmittedWorkUpdateArgs<ExtArgs>>): Prisma__DatabaseRestoreAdmittedWorkClient<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DatabaseRestoreAdmittedWorks.
+     * @param {DatabaseRestoreAdmittedWorkDeleteManyArgs} args - Arguments to filter DatabaseRestoreAdmittedWorks to delete.
+     * @example
+     * // Delete a few DatabaseRestoreAdmittedWorks
+     * const { count } = await prisma.databaseRestoreAdmittedWork.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DatabaseRestoreAdmittedWorkDeleteManyArgs>(args?: SelectSubset<T, DatabaseRestoreAdmittedWorkDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseRestoreAdmittedWorks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreAdmittedWorkUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DatabaseRestoreAdmittedWorks
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DatabaseRestoreAdmittedWorkUpdateManyArgs>(args: SelectSubset<T, DatabaseRestoreAdmittedWorkUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseRestoreAdmittedWorks and returns the data updated in the database.
+     * @param {DatabaseRestoreAdmittedWorkUpdateManyAndReturnArgs} args - Arguments to update many DatabaseRestoreAdmittedWorks.
+     * @example
+     * // Update many DatabaseRestoreAdmittedWorks
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DatabaseRestoreAdmittedWorks and only return the `id`
+     * const databaseRestoreAdmittedWorkWithIdOnly = await prisma.databaseRestoreAdmittedWork.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DatabaseRestoreAdmittedWorkUpdateManyAndReturnArgs>(args: SelectSubset<T, DatabaseRestoreAdmittedWorkUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DatabaseRestoreAdmittedWork.
+     * @param {DatabaseRestoreAdmittedWorkUpsertArgs} args - Arguments to update or create a DatabaseRestoreAdmittedWork.
+     * @example
+     * // Update or create a DatabaseRestoreAdmittedWork
+     * const databaseRestoreAdmittedWork = await prisma.databaseRestoreAdmittedWork.upsert({
+     *   create: {
+     *     // ... data to create a DatabaseRestoreAdmittedWork
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DatabaseRestoreAdmittedWork we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DatabaseRestoreAdmittedWorkUpsertArgs>(args: SelectSubset<T, DatabaseRestoreAdmittedWorkUpsertArgs<ExtArgs>>): Prisma__DatabaseRestoreAdmittedWorkClient<$Result.GetResult<Prisma.$DatabaseRestoreAdmittedWorkPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DatabaseRestoreAdmittedWorks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreAdmittedWorkCountArgs} args - Arguments to filter DatabaseRestoreAdmittedWorks to count.
+     * @example
+     * // Count the number of DatabaseRestoreAdmittedWorks
+     * const count = await prisma.databaseRestoreAdmittedWork.count({
+     *   where: {
+     *     // ... the filter for the DatabaseRestoreAdmittedWorks we want to count
+     *   }
+     * })
+    **/
+    count<T extends DatabaseRestoreAdmittedWorkCountArgs>(
+      args?: Subset<T, DatabaseRestoreAdmittedWorkCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DatabaseRestoreAdmittedWorkCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DatabaseRestoreAdmittedWork.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreAdmittedWorkAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DatabaseRestoreAdmittedWorkAggregateArgs>(args: Subset<T, DatabaseRestoreAdmittedWorkAggregateArgs>): Prisma.PrismaPromise<GetDatabaseRestoreAdmittedWorkAggregateType<T>>
+
+    /**
+     * Group by DatabaseRestoreAdmittedWork.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreAdmittedWorkGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DatabaseRestoreAdmittedWorkGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DatabaseRestoreAdmittedWorkGroupByArgs['orderBy'] }
+        : { orderBy?: DatabaseRestoreAdmittedWorkGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DatabaseRestoreAdmittedWorkGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDatabaseRestoreAdmittedWorkGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DatabaseRestoreAdmittedWork model
+   */
+  readonly fields: DatabaseRestoreAdmittedWorkFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DatabaseRestoreAdmittedWork.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DatabaseRestoreAdmittedWorkClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    instance<T extends DatabaseInstanceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstanceDefaultArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DatabaseRestoreAdmittedWork model
+   */
+  interface DatabaseRestoreAdmittedWorkFieldRefs {
+    readonly id: FieldRef<"DatabaseRestoreAdmittedWork", 'String'>
+    readonly instanceId: FieldRef<"DatabaseRestoreAdmittedWork", 'String'>
+    readonly projectId: FieldRef<"DatabaseRestoreAdmittedWork", 'String'>
+    readonly organizationId: FieldRef<"DatabaseRestoreAdmittedWork", 'String'>
+    readonly environment: FieldRef<"DatabaseRestoreAdmittedWork", 'String'>
+    readonly bindingVersion: FieldRef<"DatabaseRestoreAdmittedWork", 'Int'>
+    readonly targetRef: FieldRef<"DatabaseRestoreAdmittedWork", 'String'>
+    readonly ownerIncarnation: FieldRef<"DatabaseRestoreAdmittedWork", 'String'>
+    readonly createdAt: FieldRef<"DatabaseRestoreAdmittedWork", 'DateTime'>
+    readonly settledAt: FieldRef<"DatabaseRestoreAdmittedWork", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DatabaseRestoreAdmittedWork findUnique
+   */
+  export type DatabaseRestoreAdmittedWorkFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreAdmittedWork to fetch.
+     */
+    where: DatabaseRestoreAdmittedWorkWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork findUniqueOrThrow
+   */
+  export type DatabaseRestoreAdmittedWorkFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreAdmittedWork to fetch.
+     */
+    where: DatabaseRestoreAdmittedWorkWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork findFirst
+   */
+  export type DatabaseRestoreAdmittedWorkFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreAdmittedWork to fetch.
+     */
+    where?: DatabaseRestoreAdmittedWorkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreAdmittedWorks to fetch.
+     */
+    orderBy?: DatabaseRestoreAdmittedWorkOrderByWithRelationInput | DatabaseRestoreAdmittedWorkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseRestoreAdmittedWorks.
+     */
+    cursor?: DatabaseRestoreAdmittedWorkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreAdmittedWorks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreAdmittedWorks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestoreAdmittedWorks.
+     */
+    distinct?: DatabaseRestoreAdmittedWorkScalarFieldEnum | DatabaseRestoreAdmittedWorkScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork findFirstOrThrow
+   */
+  export type DatabaseRestoreAdmittedWorkFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreAdmittedWork to fetch.
+     */
+    where?: DatabaseRestoreAdmittedWorkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreAdmittedWorks to fetch.
+     */
+    orderBy?: DatabaseRestoreAdmittedWorkOrderByWithRelationInput | DatabaseRestoreAdmittedWorkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseRestoreAdmittedWorks.
+     */
+    cursor?: DatabaseRestoreAdmittedWorkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreAdmittedWorks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreAdmittedWorks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestoreAdmittedWorks.
+     */
+    distinct?: DatabaseRestoreAdmittedWorkScalarFieldEnum | DatabaseRestoreAdmittedWorkScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork findMany
+   */
+  export type DatabaseRestoreAdmittedWorkFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreAdmittedWorks to fetch.
+     */
+    where?: DatabaseRestoreAdmittedWorkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreAdmittedWorks to fetch.
+     */
+    orderBy?: DatabaseRestoreAdmittedWorkOrderByWithRelationInput | DatabaseRestoreAdmittedWorkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DatabaseRestoreAdmittedWorks.
+     */
+    cursor?: DatabaseRestoreAdmittedWorkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreAdmittedWorks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreAdmittedWorks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestoreAdmittedWorks.
+     */
+    distinct?: DatabaseRestoreAdmittedWorkScalarFieldEnum | DatabaseRestoreAdmittedWorkScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork create
+   */
+  export type DatabaseRestoreAdmittedWorkCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DatabaseRestoreAdmittedWork.
+     */
+    data: XOR<DatabaseRestoreAdmittedWorkCreateInput, DatabaseRestoreAdmittedWorkUncheckedCreateInput>
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork createMany
+   */
+  export type DatabaseRestoreAdmittedWorkCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DatabaseRestoreAdmittedWorks.
+     */
+    data: DatabaseRestoreAdmittedWorkCreateManyInput | DatabaseRestoreAdmittedWorkCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork createManyAndReturn
+   */
+  export type DatabaseRestoreAdmittedWorkCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * The data used to create many DatabaseRestoreAdmittedWorks.
+     */
+    data: DatabaseRestoreAdmittedWorkCreateManyInput | DatabaseRestoreAdmittedWorkCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork update
+   */
+  export type DatabaseRestoreAdmittedWorkUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DatabaseRestoreAdmittedWork.
+     */
+    data: XOR<DatabaseRestoreAdmittedWorkUpdateInput, DatabaseRestoreAdmittedWorkUncheckedUpdateInput>
+    /**
+     * Choose, which DatabaseRestoreAdmittedWork to update.
+     */
+    where: DatabaseRestoreAdmittedWorkWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork updateMany
+   */
+  export type DatabaseRestoreAdmittedWorkUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DatabaseRestoreAdmittedWorks.
+     */
+    data: XOR<DatabaseRestoreAdmittedWorkUpdateManyMutationInput, DatabaseRestoreAdmittedWorkUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseRestoreAdmittedWorks to update
+     */
+    where?: DatabaseRestoreAdmittedWorkWhereInput
+    /**
+     * Limit how many DatabaseRestoreAdmittedWorks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork updateManyAndReturn
+   */
+  export type DatabaseRestoreAdmittedWorkUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * The data used to update DatabaseRestoreAdmittedWorks.
+     */
+    data: XOR<DatabaseRestoreAdmittedWorkUpdateManyMutationInput, DatabaseRestoreAdmittedWorkUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseRestoreAdmittedWorks to update
+     */
+    where?: DatabaseRestoreAdmittedWorkWhereInput
+    /**
+     * Limit how many DatabaseRestoreAdmittedWorks to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork upsert
+   */
+  export type DatabaseRestoreAdmittedWorkUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DatabaseRestoreAdmittedWork to update in case it exists.
+     */
+    where: DatabaseRestoreAdmittedWorkWhereUniqueInput
+    /**
+     * In case the DatabaseRestoreAdmittedWork found by the `where` argument doesn't exist, create a new DatabaseRestoreAdmittedWork with this data.
+     */
+    create: XOR<DatabaseRestoreAdmittedWorkCreateInput, DatabaseRestoreAdmittedWorkUncheckedCreateInput>
+    /**
+     * In case the DatabaseRestoreAdmittedWork was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DatabaseRestoreAdmittedWorkUpdateInput, DatabaseRestoreAdmittedWorkUncheckedUpdateInput>
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork delete
+   */
+  export type DatabaseRestoreAdmittedWorkDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
+    /**
+     * Filter which DatabaseRestoreAdmittedWork to delete.
+     */
+    where: DatabaseRestoreAdmittedWorkWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork deleteMany
+   */
+  export type DatabaseRestoreAdmittedWorkDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseRestoreAdmittedWorks to delete
+     */
+    where?: DatabaseRestoreAdmittedWorkWhereInput
+    /**
+     * Limit how many DatabaseRestoreAdmittedWorks to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseRestoreAdmittedWork without action
+   */
+  export type DatabaseRestoreAdmittedWorkDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreAdmittedWork
+     */
+    select?: DatabaseRestoreAdmittedWorkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreAdmittedWork
+     */
+    omit?: DatabaseRestoreAdmittedWorkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreAdmittedWorkInclude<ExtArgs> | null
   }
 
 
@@ -165518,6 +166808,22 @@ export namespace Prisma {
   export type DatabaseInstanceScalarFieldEnum = (typeof DatabaseInstanceScalarFieldEnum)[keyof typeof DatabaseInstanceScalarFieldEnum]
 
 
+  export const DatabaseRestoreAdmittedWorkScalarFieldEnum: {
+    id: 'id',
+    instanceId: 'instanceId',
+    projectId: 'projectId',
+    organizationId: 'organizationId',
+    environment: 'environment',
+    bindingVersion: 'bindingVersion',
+    targetRef: 'targetRef',
+    ownerIncarnation: 'ownerIncarnation',
+    createdAt: 'createdAt',
+    settledAt: 'settledAt'
+  };
+
+  export type DatabaseRestoreAdmittedWorkScalarFieldEnum = (typeof DatabaseRestoreAdmittedWorkScalarFieldEnum)[keyof typeof DatabaseRestoreAdmittedWorkScalarFieldEnum]
+
+
   export const DatabaseBackupProvenanceScalarFieldEnum: {
     id: 'id',
     nonce: 'nonce',
@@ -174777,6 +176083,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotListRelationFilter
     restores?: DatabaseRestoreListRelationFilter
     backupProvenance?: DatabaseBackupProvenanceListRelationFilter
+    admittedWork?: DatabaseRestoreAdmittedWorkListRelationFilter
   }
 
   export type DatabaseInstanceOrderByWithRelationInput = {
@@ -174798,6 +176105,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotOrderByRelationAggregateInput
     restores?: DatabaseRestoreOrderByRelationAggregateInput
     backupProvenance?: DatabaseBackupProvenanceOrderByRelationAggregateInput
+    admittedWork?: DatabaseRestoreAdmittedWorkOrderByRelationAggregateInput
   }
 
   export type DatabaseInstanceWhereUniqueInput = Prisma.AtLeast<{
@@ -174823,6 +176131,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotListRelationFilter
     restores?: DatabaseRestoreListRelationFilter
     backupProvenance?: DatabaseBackupProvenanceListRelationFilter
+    admittedWork?: DatabaseRestoreAdmittedWorkListRelationFilter
   }, "id" | "projectId_environment">
 
   export type DatabaseInstanceOrderByWithAggregationInput = {
@@ -174865,6 +176174,88 @@ export namespace Prisma {
     bindingVersion?: IntWithAggregatesFilter<"DatabaseInstance"> | number
     createdAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
+  }
+
+  export type DatabaseRestoreAdmittedWorkWhereInput = {
+    AND?: DatabaseRestoreAdmittedWorkWhereInput | DatabaseRestoreAdmittedWorkWhereInput[]
+    OR?: DatabaseRestoreAdmittedWorkWhereInput[]
+    NOT?: DatabaseRestoreAdmittedWorkWhereInput | DatabaseRestoreAdmittedWorkWhereInput[]
+    id?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    instanceId?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    projectId?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    organizationId?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    environment?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    bindingVersion?: IntFilter<"DatabaseRestoreAdmittedWork"> | number
+    targetRef?: StringNullableFilter<"DatabaseRestoreAdmittedWork"> | string | null
+    ownerIncarnation?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    createdAt?: DateTimeFilter<"DatabaseRestoreAdmittedWork"> | Date | string
+    settledAt?: DateTimeNullableFilter<"DatabaseRestoreAdmittedWork"> | Date | string | null
+    instance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }
+
+  export type DatabaseRestoreAdmittedWorkOrderByWithRelationInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    targetRef?: SortOrderInput | SortOrder
+    ownerIncarnation?: SortOrder
+    createdAt?: SortOrder
+    settledAt?: SortOrderInput | SortOrder
+    instance?: DatabaseInstanceOrderByWithRelationInput
+  }
+
+  export type DatabaseRestoreAdmittedWorkWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DatabaseRestoreAdmittedWorkWhereInput | DatabaseRestoreAdmittedWorkWhereInput[]
+    OR?: DatabaseRestoreAdmittedWorkWhereInput[]
+    NOT?: DatabaseRestoreAdmittedWorkWhereInput | DatabaseRestoreAdmittedWorkWhereInput[]
+    instanceId?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    projectId?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    organizationId?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    environment?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    bindingVersion?: IntFilter<"DatabaseRestoreAdmittedWork"> | number
+    targetRef?: StringNullableFilter<"DatabaseRestoreAdmittedWork"> | string | null
+    ownerIncarnation?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    createdAt?: DateTimeFilter<"DatabaseRestoreAdmittedWork"> | Date | string
+    settledAt?: DateTimeNullableFilter<"DatabaseRestoreAdmittedWork"> | Date | string | null
+    instance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }, "id">
+
+  export type DatabaseRestoreAdmittedWorkOrderByWithAggregationInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    targetRef?: SortOrderInput | SortOrder
+    ownerIncarnation?: SortOrder
+    createdAt?: SortOrder
+    settledAt?: SortOrderInput | SortOrder
+    _count?: DatabaseRestoreAdmittedWorkCountOrderByAggregateInput
+    _avg?: DatabaseRestoreAdmittedWorkAvgOrderByAggregateInput
+    _max?: DatabaseRestoreAdmittedWorkMaxOrderByAggregateInput
+    _min?: DatabaseRestoreAdmittedWorkMinOrderByAggregateInput
+    _sum?: DatabaseRestoreAdmittedWorkSumOrderByAggregateInput
+  }
+
+  export type DatabaseRestoreAdmittedWorkScalarWhereWithAggregatesInput = {
+    AND?: DatabaseRestoreAdmittedWorkScalarWhereWithAggregatesInput | DatabaseRestoreAdmittedWorkScalarWhereWithAggregatesInput[]
+    OR?: DatabaseRestoreAdmittedWorkScalarWhereWithAggregatesInput[]
+    NOT?: DatabaseRestoreAdmittedWorkScalarWhereWithAggregatesInput | DatabaseRestoreAdmittedWorkScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | string
+    instanceId?: StringWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | string
+    projectId?: StringWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | string
+    organizationId?: StringWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | string
+    environment?: StringWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | string
+    bindingVersion?: IntWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | number
+    targetRef?: StringNullableWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | string | null
+    ownerIncarnation?: StringWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | Date | string
+    settledAt?: DateTimeNullableWithAggregatesFilter<"DatabaseRestoreAdmittedWork"> | Date | string | null
   }
 
   export type DatabaseBackupProvenanceWhereInput = {
@@ -186248,6 +187639,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
     backupProvenance?: DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateInput = {
@@ -186268,6 +187660,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     backupProvenance?: DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUpdateInput = {
@@ -186288,6 +187681,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
     backupProvenance?: DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateInput = {
@@ -186308,6 +187702,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     backupProvenance?: DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceCreateManyInput = {
@@ -186358,6 +187753,96 @@ export namespace Prisma {
     bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreAdmittedWorkCreateInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    targetRef?: string | null
+    ownerIncarnation: string
+    createdAt?: Date | string
+    settledAt?: Date | string | null
+    instance: DatabaseInstanceCreateNestedOneWithoutAdmittedWorkInput
+  }
+
+  export type DatabaseRestoreAdmittedWorkUncheckedCreateInput = {
+    id?: string
+    instanceId: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    targetRef?: string | null
+    ownerIncarnation: string
+    createdAt?: Date | string
+    settledAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    targetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerIncarnation?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    instance?: DatabaseInstanceUpdateOneRequiredWithoutAdmittedWorkNestedInput
+  }
+
+  export type DatabaseRestoreAdmittedWorkUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    targetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerIncarnation?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkCreateManyInput = {
+    id?: string
+    instanceId: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    targetRef?: string | null
+    ownerIncarnation: string
+    createdAt?: Date | string
+    settledAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    targetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerIncarnation?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    targetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerIncarnation?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type DatabaseBackupProvenanceCreateInput = {
@@ -194601,6 +196086,12 @@ export namespace Prisma {
     none?: DatabaseBackupProvenanceWhereInput
   }
 
+  export type DatabaseRestoreAdmittedWorkListRelationFilter = {
+    every?: DatabaseRestoreAdmittedWorkWhereInput
+    some?: DatabaseRestoreAdmittedWorkWhereInput
+    none?: DatabaseRestoreAdmittedWorkWhereInput
+  }
+
   export type DatabaseSnapshotOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -194610,6 +196101,10 @@ export namespace Prisma {
   }
 
   export type DatabaseBackupProvenanceOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DatabaseRestoreAdmittedWorkOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -194710,6 +196205,53 @@ export namespace Prisma {
   export type DatabaseInstanceScalarRelationFilter = {
     is?: DatabaseInstanceWhereInput
     isNot?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseRestoreAdmittedWorkCountOrderByAggregateInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    targetRef?: SortOrder
+    ownerIncarnation?: SortOrder
+    createdAt?: SortOrder
+    settledAt?: SortOrder
+  }
+
+  export type DatabaseRestoreAdmittedWorkAvgOrderByAggregateInput = {
+    bindingVersion?: SortOrder
+  }
+
+  export type DatabaseRestoreAdmittedWorkMaxOrderByAggregateInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    targetRef?: SortOrder
+    ownerIncarnation?: SortOrder
+    createdAt?: SortOrder
+    settledAt?: SortOrder
+  }
+
+  export type DatabaseRestoreAdmittedWorkMinOrderByAggregateInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    targetRef?: SortOrder
+    ownerIncarnation?: SortOrder
+    createdAt?: SortOrder
+    settledAt?: SortOrder
+  }
+
+  export type DatabaseRestoreAdmittedWorkSumOrderByAggregateInput = {
+    bindingVersion?: SortOrder
   }
 
   export type DatabaseBackupProvenanceProjectIdEnvironmentSnapshotIdCompoundUniqueInput = {
@@ -202914,6 +204456,13 @@ export namespace Prisma {
     connect?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
   }
 
+  export type DatabaseRestoreAdmittedWorkCreateNestedManyWithoutInstanceInput = {
+    create?: XOR<DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput, DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput> | DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput[] | DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseRestoreAdmittedWorkCreateOrConnectWithoutInstanceInput | DatabaseRestoreAdmittedWorkCreateOrConnectWithoutInstanceInput[]
+    createMany?: DatabaseRestoreAdmittedWorkCreateManyInstanceInputEnvelope
+    connect?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
+  }
+
   export type DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput = {
     create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
     connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
@@ -202933,6 +204482,13 @@ export namespace Prisma {
     connectOrCreate?: DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput | DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput[]
     createMany?: DatabaseBackupProvenanceCreateManyInstanceInputEnvelope
     connect?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+  }
+
+  export type DatabaseRestoreAdmittedWorkUncheckedCreateNestedManyWithoutInstanceInput = {
+    create?: XOR<DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput, DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput> | DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput[] | DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseRestoreAdmittedWorkCreateOrConnectWithoutInstanceInput | DatabaseRestoreAdmittedWorkCreateOrConnectWithoutInstanceInput[]
+    createMany?: DatabaseRestoreAdmittedWorkCreateManyInstanceInputEnvelope
+    connect?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
   }
 
   export type EnumDatabaseInstanceStatusFieldUpdateOperationsInput = {
@@ -202997,6 +204553,20 @@ export namespace Prisma {
     deleteMany?: DatabaseBackupProvenanceScalarWhereInput | DatabaseBackupProvenanceScalarWhereInput[]
   }
 
+  export type DatabaseRestoreAdmittedWorkUpdateManyWithoutInstanceNestedInput = {
+    create?: XOR<DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput, DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput> | DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput[] | DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseRestoreAdmittedWorkCreateOrConnectWithoutInstanceInput | DatabaseRestoreAdmittedWorkCreateOrConnectWithoutInstanceInput[]
+    upsert?: DatabaseRestoreAdmittedWorkUpsertWithWhereUniqueWithoutInstanceInput | DatabaseRestoreAdmittedWorkUpsertWithWhereUniqueWithoutInstanceInput[]
+    createMany?: DatabaseRestoreAdmittedWorkCreateManyInstanceInputEnvelope
+    set?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
+    disconnect?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
+    delete?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
+    connect?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
+    update?: DatabaseRestoreAdmittedWorkUpdateWithWhereUniqueWithoutInstanceInput | DatabaseRestoreAdmittedWorkUpdateWithWhereUniqueWithoutInstanceInput[]
+    updateMany?: DatabaseRestoreAdmittedWorkUpdateManyWithWhereWithoutInstanceInput | DatabaseRestoreAdmittedWorkUpdateManyWithWhereWithoutInstanceInput[]
+    deleteMany?: DatabaseRestoreAdmittedWorkScalarWhereInput | DatabaseRestoreAdmittedWorkScalarWhereInput[]
+  }
+
   export type DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput = {
     create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
     connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
@@ -203037,6 +204607,34 @@ export namespace Prisma {
     update?: DatabaseBackupProvenanceUpdateWithWhereUniqueWithoutInstanceInput | DatabaseBackupProvenanceUpdateWithWhereUniqueWithoutInstanceInput[]
     updateMany?: DatabaseBackupProvenanceUpdateManyWithWhereWithoutInstanceInput | DatabaseBackupProvenanceUpdateManyWithWhereWithoutInstanceInput[]
     deleteMany?: DatabaseBackupProvenanceScalarWhereInput | DatabaseBackupProvenanceScalarWhereInput[]
+  }
+
+  export type DatabaseRestoreAdmittedWorkUncheckedUpdateManyWithoutInstanceNestedInput = {
+    create?: XOR<DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput, DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput> | DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput[] | DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseRestoreAdmittedWorkCreateOrConnectWithoutInstanceInput | DatabaseRestoreAdmittedWorkCreateOrConnectWithoutInstanceInput[]
+    upsert?: DatabaseRestoreAdmittedWorkUpsertWithWhereUniqueWithoutInstanceInput | DatabaseRestoreAdmittedWorkUpsertWithWhereUniqueWithoutInstanceInput[]
+    createMany?: DatabaseRestoreAdmittedWorkCreateManyInstanceInputEnvelope
+    set?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
+    disconnect?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
+    delete?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
+    connect?: DatabaseRestoreAdmittedWorkWhereUniqueInput | DatabaseRestoreAdmittedWorkWhereUniqueInput[]
+    update?: DatabaseRestoreAdmittedWorkUpdateWithWhereUniqueWithoutInstanceInput | DatabaseRestoreAdmittedWorkUpdateWithWhereUniqueWithoutInstanceInput[]
+    updateMany?: DatabaseRestoreAdmittedWorkUpdateManyWithWhereWithoutInstanceInput | DatabaseRestoreAdmittedWorkUpdateManyWithWhereWithoutInstanceInput[]
+    deleteMany?: DatabaseRestoreAdmittedWorkScalarWhereInput | DatabaseRestoreAdmittedWorkScalarWhereInput[]
+  }
+
+  export type DatabaseInstanceCreateNestedOneWithoutAdmittedWorkInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutAdmittedWorkInput, DatabaseInstanceUncheckedCreateWithoutAdmittedWorkInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutAdmittedWorkInput
+    connect?: DatabaseInstanceWhereUniqueInput
+  }
+
+  export type DatabaseInstanceUpdateOneRequiredWithoutAdmittedWorkNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutAdmittedWorkInput, DatabaseInstanceUncheckedCreateWithoutAdmittedWorkInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutAdmittedWorkInput
+    upsert?: DatabaseInstanceUpsertWithoutAdmittedWorkInput
+    connect?: DatabaseInstanceWhereUniqueInput
+    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutAdmittedWorkInput, DatabaseInstanceUpdateWithoutAdmittedWorkInput>, DatabaseInstanceUncheckedUpdateWithoutAdmittedWorkInput>
   }
 
   export type DatabaseInstanceCreateNestedOneWithoutBackupProvenanceInput = {
@@ -210692,6 +212290,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
     backupProvenance?: DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutProjectInput = {
@@ -210711,6 +212310,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     backupProvenance?: DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutProjectInput = {
@@ -230440,6 +232040,40 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    targetRef?: string | null
+    ownerIncarnation: string
+    createdAt?: Date | string
+    settledAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    targetRef?: string | null
+    ownerIncarnation: string
+    createdAt?: Date | string
+    settledAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkCreateOrConnectWithoutInstanceInput = {
+    where: DatabaseRestoreAdmittedWorkWhereUniqueInput
+    create: XOR<DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput, DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput>
+  }
+
+  export type DatabaseRestoreAdmittedWorkCreateManyInstanceInputEnvelope = {
+    data: DatabaseRestoreAdmittedWorkCreateManyInstanceInput | DatabaseRestoreAdmittedWorkCreateManyInstanceInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProjectUpsertWithoutDatabaseInstancesInput = {
     update: XOR<ProjectUpdateWithoutDatabaseInstancesInput, ProjectUncheckedUpdateWithoutDatabaseInstancesInput>
     create: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
@@ -230636,6 +232270,134 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"DatabaseBackupProvenance"> | Date | string
   }
 
+  export type DatabaseRestoreAdmittedWorkUpsertWithWhereUniqueWithoutInstanceInput = {
+    where: DatabaseRestoreAdmittedWorkWhereUniqueInput
+    update: XOR<DatabaseRestoreAdmittedWorkUpdateWithoutInstanceInput, DatabaseRestoreAdmittedWorkUncheckedUpdateWithoutInstanceInput>
+    create: XOR<DatabaseRestoreAdmittedWorkCreateWithoutInstanceInput, DatabaseRestoreAdmittedWorkUncheckedCreateWithoutInstanceInput>
+  }
+
+  export type DatabaseRestoreAdmittedWorkUpdateWithWhereUniqueWithoutInstanceInput = {
+    where: DatabaseRestoreAdmittedWorkWhereUniqueInput
+    data: XOR<DatabaseRestoreAdmittedWorkUpdateWithoutInstanceInput, DatabaseRestoreAdmittedWorkUncheckedUpdateWithoutInstanceInput>
+  }
+
+  export type DatabaseRestoreAdmittedWorkUpdateManyWithWhereWithoutInstanceInput = {
+    where: DatabaseRestoreAdmittedWorkScalarWhereInput
+    data: XOR<DatabaseRestoreAdmittedWorkUpdateManyMutationInput, DatabaseRestoreAdmittedWorkUncheckedUpdateManyWithoutInstanceInput>
+  }
+
+  export type DatabaseRestoreAdmittedWorkScalarWhereInput = {
+    AND?: DatabaseRestoreAdmittedWorkScalarWhereInput | DatabaseRestoreAdmittedWorkScalarWhereInput[]
+    OR?: DatabaseRestoreAdmittedWorkScalarWhereInput[]
+    NOT?: DatabaseRestoreAdmittedWorkScalarWhereInput | DatabaseRestoreAdmittedWorkScalarWhereInput[]
+    id?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    instanceId?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    projectId?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    organizationId?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    environment?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    bindingVersion?: IntFilter<"DatabaseRestoreAdmittedWork"> | number
+    targetRef?: StringNullableFilter<"DatabaseRestoreAdmittedWork"> | string | null
+    ownerIncarnation?: StringFilter<"DatabaseRestoreAdmittedWork"> | string
+    createdAt?: DateTimeFilter<"DatabaseRestoreAdmittedWork"> | Date | string
+    settledAt?: DateTimeNullableFilter<"DatabaseRestoreAdmittedWork"> | Date | string | null
+  }
+
+  export type DatabaseInstanceCreateWithoutAdmittedWorkInput = {
+    id?: string
+    organizationId: string
+    environment?: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
+    snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput
+  }
+
+  export type DatabaseInstanceUncheckedCreateWithoutAdmittedWorkInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment?: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput
+  }
+
+  export type DatabaseInstanceCreateOrConnectWithoutAdmittedWorkInput = {
+    where: DatabaseInstanceWhereUniqueInput
+    create: XOR<DatabaseInstanceCreateWithoutAdmittedWorkInput, DatabaseInstanceUncheckedCreateWithoutAdmittedWorkInput>
+  }
+
+  export type DatabaseInstanceUpsertWithoutAdmittedWorkInput = {
+    update: XOR<DatabaseInstanceUpdateWithoutAdmittedWorkInput, DatabaseInstanceUncheckedUpdateWithoutAdmittedWorkInput>
+    create: XOR<DatabaseInstanceCreateWithoutAdmittedWorkInput, DatabaseInstanceUncheckedCreateWithoutAdmittedWorkInput>
+    where?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseInstanceUpdateToOneWithWhereWithoutAdmittedWorkInput = {
+    where?: DatabaseInstanceWhereInput
+    data: XOR<DatabaseInstanceUpdateWithoutAdmittedWorkInput, DatabaseInstanceUncheckedUpdateWithoutAdmittedWorkInput>
+  }
+
+  export type DatabaseInstanceUpdateWithoutAdmittedWorkInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
+    snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateWithoutAdmittedWorkInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput
+  }
+
   export type DatabaseInstanceCreateWithoutBackupProvenanceInput = {
     id?: string
     organizationId: string
@@ -230653,6 +232415,7 @@ export namespace Prisma {
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutBackupProvenanceInput = {
@@ -230672,6 +232435,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutBackupProvenanceInput = {
@@ -230707,6 +232471,7 @@ export namespace Prisma {
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutBackupProvenanceInput = {
@@ -230726,6 +232491,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceCreateWithoutSnapshotsInput = {
@@ -230745,6 +232511,7 @@ export namespace Prisma {
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
     backupProvenance?: DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutSnapshotsInput = {
@@ -230764,6 +232531,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     backupProvenance?: DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutSnapshotsInput = {
@@ -230799,6 +232567,7 @@ export namespace Prisma {
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
     backupProvenance?: DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutSnapshotsInput = {
@@ -230818,6 +232587,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     backupProvenance?: DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceCreateWithoutRestoresInput = {
@@ -230837,6 +232607,7 @@ export namespace Prisma {
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     backupProvenance?: DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutRestoresInput = {
@@ -230856,6 +232627,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     backupProvenance?: DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutRestoresInput = {
@@ -230942,6 +232714,7 @@ export namespace Prisma {
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     backupProvenance?: DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutRestoresInput = {
@@ -230961,6 +232734,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     backupProvenance?: DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseRestoreExecutionUpsertWithoutRestoreInput = {
@@ -236713,6 +238487,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
     backupProvenance?: DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutProjectInput = {
@@ -236732,6 +238507,7 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     backupProvenance?: DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput
+    admittedWork?: DatabaseRestoreAdmittedWorkUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateManyWithoutProjectInput = {
@@ -237721,6 +239497,18 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type DatabaseRestoreAdmittedWorkCreateManyInstanceInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    targetRef?: string | null
+    ownerIncarnation: string
+    createdAt?: Date | string
+    settledAt?: Date | string | null
+  }
+
   export type DatabaseSnapshotUpdateWithoutDatabaseInstanceInput = {
     id?: StringFieldUpdateOperationsInput | string
     kind?: StringFieldUpdateOperationsInput | string
@@ -237838,6 +239626,42 @@ export namespace Prisma {
     backupName?: StringFieldUpdateOperationsInput | string
     backupUid?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreAdmittedWorkUpdateWithoutInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    targetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerIncarnation?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkUncheckedUpdateWithoutInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    targetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerIncarnation?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreAdmittedWorkUncheckedUpdateManyWithoutInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    targetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerIncarnation?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScheduledTaskRunCreateManyTaskInput = {

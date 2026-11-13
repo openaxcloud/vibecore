@@ -4,6 +4,8 @@
  * Physical archive/application behavior belongs to the separate physical harness.
  */
 import { randomUUID } from 'node:crypto';
+import { fork } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
 import { ciphertextKeyId, decryptJson, encryptJson, reencryptJson } from '@vibecore/security';
 import { Client } from 'pg';
@@ -12,6 +14,11 @@ import { buildApiApp } from '../app.js';
 import type { DatabaseRestorePorts, RestoreExecution, RestoreScope } from '../database-restore-contract.js';
 import { DatabaseRestoreCoordinator } from '../database-restore-executor.js';
 import { PrismaDatabaseRestoreRepository } from '../database-restore-repository.js';
+import {
+  PrismaRestoreWorkAdmission,
+  type RestoreWorkScope,
+  type RestoreWorkTicket,
+} from '../database-restore-work-admission.js';
 import { encryptionCorpusStatus, rotateEncryptedCorpus } from '../encryption-rotation.js';
 import { PrismaApiStore } from '../prisma-store.js';
 
@@ -91,6 +98,7 @@ run('restore repository (dedicated local PostgreSQL)', () => {
   afterEach(async () => {
     // Only the synthetic tenants created by this file, never a broad table wipe.
     for (const id of organizations.splice(0)) {
+      await prisma.databaseRestoreAdmittedWork.deleteMany({ where: { organizationId: id } });
       await prisma.project.deleteMany({ where: { organizationId: id } });
       await prisma.organization.delete({ where: { id } });
     }
@@ -637,6 +645,142 @@ run('restore repository (dedicated local PostgreSQL)', () => {
       'explicit-user-change',
     );
     expect((await store.getDatabaseInstanceByProject(input.project.id))?.status).toBe('PROVISIONING');
+  });
+
+  function workScope(input: Awaited<ReturnType<typeof seed>>): RestoreWorkScope {
+    return {
+      instanceId: input.instance.id,
+      projectId: input.project.id,
+      organizationId: input.expectedOrganizationId,
+      environment: input.instance.environment,
+      bindingVersion: input.instance.bindingVersion ?? 0,
+      targetRef: input.instance.activeTargetRef ?? null,
+      ownerIncarnation: randomUUID(),
+    };
+  }
+
+  it('keeps admitted work durable across a new owner and blocks cutover until explicitly settled', async () => {
+    const input = await seed();
+    const admission = new PrismaRestoreWorkAdmission(prisma);
+    const ticket = await admission.admit(workScope(input));
+    const execution = await repository.admit(input);
+    await prepared(execution, 'work-debt-owner');
+    await expect(new PrismaRestoreWorkAdmission(prisma).admit(workScope(input))).rejects.toMatchObject({
+      code: 'RESTORE_WORK_ADMISSION_CLOSED',
+    });
+    await expect(repository.cutover(execution.restore.id, 'work-debt-owner')).rejects.toMatchObject({
+      code: 'RESTORE_WORK_DRAIN_UNCONFIRMED',
+    });
+    expect((await prisma.databaseInstance.findUniqueOrThrow({ where: { id: input.instance.id } })).bindingVersion).toBe(
+      0,
+    );
+    for (const wrong of [
+      { ownerIncarnation: randomUUID() },
+      { bindingVersion: 100 },
+      { organizationId: randomUUID() },
+    ]) {
+      await expect(admission.acknowledgeSettledWork({ ...ticket, ...wrong })).rejects.toMatchObject({
+        code: 'RESTORE_WORK_TICKET_MISMATCH',
+      });
+    }
+    expect(
+      await prisma.databaseRestoreAdmittedWork.count({ where: { instanceId: input.instance.id, settledAt: null } }),
+    ).toBe(1);
+    // This fixture has performed no external work; its ticket can be settled.
+    await admission.acknowledgeSettledWork(ticket);
+    await admission.acknowledgeSettledWork(ticket);
+    expect(await prisma.databaseRestoreAdmittedWork.count({ where: { id: ticket.id } })).toBe(1);
+    expect(await repository.cutover(execution.restore.id, 'work-debt-owner')).toMatchObject({
+      appliedBindingVersion: 1,
+    });
+  });
+
+  it('rejects changed scope and protects mutation and deletion while work debt exists', async () => {
+    const input = await seed();
+    const admission = new PrismaRestoreWorkAdmission(prisma);
+    const scope = workScope(input);
+    for (const wrong of [{ bindingVersion: 1 }, { targetRef: 'wrong-target' }, { organizationId: randomUUID() }]) {
+      await expect(admission.admit({ ...scope, ...wrong })).rejects.toMatchObject({
+        code: 'RESTORE_WORK_BINDING_CHANGED',
+      });
+    }
+    const ticket = await admission.admit(scope);
+    await expect(
+      store.upsertProjectSecret({ projectId: input.project.id, key: 'DATABASE_URL', valueEncrypted: 'new' }),
+    ).rejects.toMatchObject({ code: 'RESTORE_WORK_DRAIN_UNCONFIRMED' });
+    await expect(prisma.databaseInstance.delete({ where: { id: input.instance.id } })).rejects.toBeDefined();
+    const independent = await seed();
+    const other = await admission.admit(workScope(independent));
+    await admission.acknowledgeSettledWork(other);
+    expect(
+      await prisma.databaseRestoreAdmittedWork.count({ where: { instanceId: input.instance.id, settledAt: null } }),
+    ).toBe(1);
+    await admission.acknowledgeSettledWork(ticket);
+  });
+
+  it('retains the committed ticket after SIGKILL of its real admitting process', async () => {
+    const input = await seed();
+    const child = fork(fileURLToPath(new URL('./restore-admitted-work-child.fixture.mts', import.meta.url)), [], {
+      execArgv: ['--import', 'tsx'],
+      stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+      env: { PATH: process.env.PATH, HOME: process.env.HOME, NODE_ENV: 'test', DATABASE_URL: dedicatedUrl },
+    });
+    const exited = new Promise<void>((resolve) => child.once('exit', () => resolve()));
+    try {
+      const ticket = await new Promise<RestoreWorkTicket>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('SYNTHETIC_ADMISSION_TIMEOUT')), 15000);
+        child.once('message', (message: { ticket?: RestoreWorkTicket }) => {
+          clearTimeout(timer);
+          if (message.ticket) resolve(message.ticket);
+          else reject(new Error('SYNTHETIC_ADMISSION_FAILED'));
+        });
+        child.once('error', () => {
+          clearTimeout(timer);
+          reject(new Error('SYNTHETIC_CHILD_FAILED'));
+        });
+        child.once('exit', () => {
+          clearTimeout(timer);
+          reject(new Error('SYNTHETIC_CHILD_EXITED'));
+        });
+        child.send(workScope(input));
+      });
+      child.kill('SIGKILL');
+      await exited;
+      expect(await prisma.databaseRestoreAdmittedWork.findUnique({ where: { id: ticket.id } })).toMatchObject({
+        settledAt: null,
+        ownerIncarnation: ticket.ownerIncarnation,
+      });
+      const execution = await repository.admit(input);
+      await prepared(execution, 'crash-debt-owner');
+      await expect(repository.cutover(execution.restore.id, 'crash-debt-owner')).rejects.toMatchObject({
+        code: 'RESTORE_WORK_DRAIN_UNCONFIRMED',
+      });
+      // No settlement inferred from the kill. Teardown removes only this fixture.
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+      await exited;
+    }
+  });
+
+  it('serializes work admission with restore admission on the same scope', async () => {
+    const input = await seed();
+    const admission = new PrismaRestoreWorkAdmission(prisma);
+    const results = await Promise.allSettled([admission.admit(workScope(input)), repository.admit(input)]);
+    // A busy lock is a refusal, never admission. If both succeed, work committed
+    // first and its durable ticket must still block the subsequent cutover.
+    const work = results[0];
+    const restore = results[1];
+    expect(results.some((result) => result.status === 'fulfilled')).toBe(true);
+    if (restore.status === 'fulfilled') {
+      await expect(admission.admit(workScope(input))).rejects.toMatchObject({ code: 'RESTORE_WORK_ADMISSION_CLOSED' });
+      if (work.status === 'fulfilled') {
+        await prepared(restore.value, 'concurrent-owner');
+        await expect(repository.cutover(restore.value.restore.id, 'concurrent-owner')).rejects.toMatchObject({
+          code: 'RESTORE_WORK_DRAIN_UNCONFIRMED',
+        });
+      }
+    }
+    if (work.status === 'fulfilled') await admission.acknowledgeSettledWork(work.value);
   });
 
   it('changes binding, encrypted secret and phase atomically, rejecting stale ownership', async () => {

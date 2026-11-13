@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { assertNoAdmittedRestoreWork } from './database-restore-work-admission.js';
 import { hashToken } from '@vibecore/auth';
 import { Prisma, type DatabaseClient } from '@vibecore/database';
 import { decryptJson } from '@vibecore/security';
@@ -307,6 +308,8 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
       ) {
         throw new DatabaseRestoreError('RESTORE_BINDING_CHANGED');
       }
+
+      await assertNoAdmittedRestoreWork(tx, instance.id);
 
       const version = instance.bindingVersion + 1;
       await tx.databaseInstance.update({
