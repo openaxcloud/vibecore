@@ -126,7 +126,7 @@ jobs:
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/health
 
       - name: Runtime preflight contracts
-        run: node --import tsx --test scripts/qa/runtime-e2e-preflight.spec.ts
+        run: pnpm exec vitest run scripts/qa/runtime-e2e-preflight.spec.ts
 
       - name: Require real local runtime services before browser tests
         run: |

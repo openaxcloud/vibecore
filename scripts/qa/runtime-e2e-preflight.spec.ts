@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile, mkdtemp, writeFile, symlink, rm } from 'node:fs/promises';
-import { test } from 'node:test';
+import { test } from 'vitest';
 import { summarizeRuntimeLog, tailLimit, collectRuntimeDiagnostics } from './runtime-e2e-diagnostics.js';
 import { checkRuntimeServices } from './runtime-e2e-preflight.js';
 
