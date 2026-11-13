@@ -34,3 +34,21 @@ La revue indépendante a identifié deux régressions du branchement QA, corrig�
 - L’adaptateur de production doit encore fournir la provenance archive/WAL, une cible attestée, l’inventaire et la quiescence de tous les consommateurs, l’exclusion des anciennes tentatives et le cycle de vie des cibles. La restauration cloud demeure refusée.
 
 La revue a également reproduit une release déjà en file qui rouvrait l’admission après une demande plus récente de suspension (contre-épreuve réelle : 1 échec, 8 succès). Une génération d’admission invalide désormais cette release périmée ; la régression conserve l’assertion de refus immédiat sans délai ajouté.
+
+## 2026-11-13 — fermeture durable au niveau du pool local après erreur idle
+
+Une erreur de socket idle fermait l'admission, mais un `release` ultérieur pouvait
+la rouvrir sur le même pool sans nouvelle vérification. Chaque pool fautif est
+maintenant invalidé pour toute sa durée de vie. L'erreur invalide également la
+génération d'admission : une libération déjà en file ou une vérification en cours
+ne peut pas rouvrir le consommateur. Le probe initial est contrôlé lui aussi.
+Pour reprendre un binding déjà libéré : `pauseVerified`, `reconnectVerified`
+(identité et readback), puis `release` sur le pool neuf. Aucun timeout ne remplace
+le drainage.
+
+Quatre tests déterministes injectent les erreurs entre les étapes asynchrones ;
+un test PostgreSQL réel tue le backend idle puis vérifie refus et reconnexion.
+Cette protection reste locale à un consommateur participant. Elle ne constitue
+pas le fencing distribué, l'admission globale ou la terminaison des sessions
+orphelines après un crash. Le coordinator de production n'est pas activé et le
+refus `503 RESTORE_APPLICATION_CUTOVER_UNAVAILABLE` reste inchangé.
