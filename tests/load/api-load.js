@@ -1,7 +1,9 @@
+import { requireLocalLoadTarget } from './local-load-guard.js';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export const options = {
+  maxRedirects: 0,
   scenarios: {
     api_baseline: {
       executor: 'constant-vus',
@@ -15,16 +17,16 @@ export const options = {
   },
 };
 
-const baseUrl = __ENV.BASE_URL || 'http://127.0.0.1:3001';
+const baseUrl = requireLocalLoadTarget(__ENV, __ENV.BASE_URL || 'http://127.0.0.1:3001');
 
 export default function apiLoad() {
-  const health = http.get(`${baseUrl}/health`);
+  const health = http.get(`${baseUrl}/health`, { redirects: 0 });
   check(health, { 'health ok': (response) => response.status === 200 });
 
-  const ready = http.get(`${baseUrl}/ready`);
+  const ready = http.get(`${baseUrl}/ready`, { redirects: 0 });
   check(ready, { 'ready ok': (response) => response.status === 200 });
 
-  const metrics = http.get(`${baseUrl}/metrics`);
+  const metrics = http.get(`${baseUrl}/metrics`, { redirects: 0 });
   check(metrics, { 'metrics ok': (response) => response.status === 200 && response.body.includes('api_request_duration_seconds') });
 
   sleep(1);

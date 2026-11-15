@@ -1,7 +1,9 @@
+import { requireLocalLoadTarget } from './local-load-guard.js';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export const options = {
+  maxRedirects: 0,
   scenarios: {
     workspace_lifecycle: {
       executor: 'ramping-vus',
@@ -18,12 +20,12 @@ export const options = {
   },
 };
 
-const baseUrl = __ENV.BASE_URL || 'http://127.0.0.1:3001';
+const baseUrl = requireLocalLoadTarget(__ENV, __ENV.BASE_URL || 'http://127.0.0.1:3001');
 const token = __ENV.AUTH_TOKEN || '';
 
 export default function workspaceLifecycleLoad() {
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const status = http.get(`${baseUrl}/api/runtime/status`, { headers });
+  const status = http.get(`${baseUrl}/api/runtime/status`, { headers, redirects: 0 });
   check(status, { 'workspace status reachable': (response) => [200, 401, 403, 404].includes(response.status) });
   sleep(1);
 }
