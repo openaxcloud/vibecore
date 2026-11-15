@@ -3153,6 +3153,8 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async createMigrationExecution(input: {
+    /** Preallocated only by dormant admission; absent preserves legacy IDs. */
+    id?: string;
     projectId: string;
     organizationId: string;
     environment: string;
@@ -3174,6 +3176,7 @@ export class PrismaApiStore implements ApiStore {
      */
     const row = await this.prisma.dBMigrationExecution.create({
       data: {
+        ...(input.id ? { id: input.id } : {}),
         projectId: input.projectId,
         organizationId: input.organizationId,
         environment: input.environment,

@@ -1,3 +1,4 @@
+import { publishMigrationOwner } from './database-migration-work-link.js';
 import { admitDatabaseWrite, type DatabaseWriteAdmission } from './database-write-admission.js';
 import { isIdeMetadataEnvKey } from './workspace-env-metadata.js';
 import { transcriptTerminalSchema, readTranscriptTerminal } from './transcript-terminal.js';
@@ -39704,11 +39705,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         createdByUserId: request.currentUser?.id,
         applySql: options.migrationApplier ?? postgresMigrationApplier,
         beforeEffects: options.databaseWriteAdmission
-          ? async ({ connectionString }) =>
-              admitDatabaseWrite(options.databaseWriteAdmission, store, project, {
-                ...prodConnection,
-                value: connectionString,
-              })
+          ? async ({ connectionString, executionId }) =>
+              admitDatabaseWrite(
+                options.databaseWriteAdmission,
+                store,
+                project,
+                { ...prodConnection, value: connectionString },
+                publishMigrationOwner(executionId),
+              )
           : undefined,
       });
 

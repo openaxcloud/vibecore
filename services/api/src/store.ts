@@ -2092,6 +2092,8 @@ export interface ApiStore {
    * pas les autres replicas de l'API.
    */
   createMigrationExecution(input: {
+    /** Preallocated only by dormant admission; absent preserves legacy IDs. */
+    id?: string;
     projectId: string;
     organizationId: string;
     environment: string;

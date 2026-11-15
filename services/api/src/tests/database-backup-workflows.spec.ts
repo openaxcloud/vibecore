@@ -1,3 +1,4 @@
+import { inspectPublishMigrationWork, publishMigrationOwner } from '../database-migration-work-link.js';
 /** Real PostgreSQL journal + real loopback manager HTTP; CNPG resources are controlled metadata only. */
 import { createHash, randomUUID } from 'node:crypto';
 import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
@@ -323,7 +324,7 @@ run('current backup workflows with durable local provenance and controlled CNPG 
             sql: mode === 'sql-error' ? 'SELECT nonexistent_admission_column' : 'CREATE TABLE admitted_probe(id int)',
           },
         ],
-        beforeEffects: async () => admitDatabaseWrite(admission, store, project, connection),
+        beforeEffects: async ({ executionId }: { executionId: string }) => admitDatabaseWrite(admission, store, project, connection, publishMigrationOwner(executionId)),
         applySql: createPostgresMigrationApplier({ sha256: (text) => createHash('sha256').update(text).digest('hex') }),
         sleep: async () => {},
         backupTimeoutMs: 1000,
@@ -335,6 +336,14 @@ run('current backup workflows with durable local provenance and controlled CNPG 
       } else {
         expect(await runPublishMigration(request)).toMatchObject({ ok: mode === 'open' });
         expect(created).toBe(backupCount + 1);
+        const ticket = await prisma.databaseRestoreAdmittedWork.findFirstOrThrow({ where: { instanceId: instance!.id } });
+        expect(await inspectPublishMigrationWork(prisma, {
+          ticketId: ticket.id, instanceId: instance!.id, projectId: project.id,
+          organizationId: organization.id, environment: 'production',
+          bindingVersion: ticket.bindingVersion, targetRef: ticket.targetRef,
+        })).toMatchObject({ kind: 'JOURNAL_OBSERVED', snapshotIntentObserved: true, canSettle: false, canResume: false });
+        expect(ticket.settledAt).toBeNull();
+
       }
       expect(
         await prisma.databaseRestoreAdmittedWork.count({ where: { instanceId: instance!.id, settledAt: null } }),
@@ -344,6 +353,35 @@ run('current backup workflows with durable local provenance and controlled CNPG 
       );
     },
   );
+
+  it('reads a durable orphan after admission acknowledgement is lost without creating journal or snapshot', async () => {
+    const { project, organization } = await seed();
+    const instance = (await store.getDatabaseInstanceByProject(project.id, 'production'))!;
+    const backupCount = created;
+    const admission = new PrismaRestoreWorkAdmission(prisma);
+    const request = {
+      store, provisioner: resolveDefaultDatabaseProvisioner(store.backupProvenance),
+      projectId: project.id, organizationId: organization.id, environment: 'production',
+      idempotencyKey: randomUUID(), connectionString: 'never-used', migrations: [],
+      applySql: async () => { throw new Error('must not run'); },
+      beforeEffects: async ({ executionId }: { executionId: string }) => {
+        await admission.admit({ instanceId: instance.id, projectId: project.id,
+          organizationId: organization.id, environment: 'production',
+          bindingVersion: instance.bindingVersion ?? 0, targetRef: instance.activeTargetRef ?? null,
+          ownerIncarnation: publishMigrationOwner(executionId) });
+        throw new Error('simulated lost admission acknowledgement');
+      },
+    };
+    await expect(runPublishMigration(request)).rejects.toThrow('simulated lost admission acknowledgement');
+    const ticket = await prisma.databaseRestoreAdmittedWork.findFirstOrThrow({ where: { instanceId: instance.id } });
+    expect(await inspectPublishMigrationWork(prisma, { ticketId: ticket.id, instanceId: instance.id,
+      projectId: project.id, organizationId: organization.id, environment: 'production',
+      bindingVersion: ticket.bindingVersion, targetRef: ticket.targetRef,
+    })).toMatchObject({ kind: 'JOURNAL_NOT_OBSERVED', snapshotIntentObserved: false, canSettle: false, canResume: false });
+    expect(ticket.settledAt).toBeNull();
+    expect(created).toBe(backupCount);
+    expect(await prisma.dBMigrationExecution.count({ where: { projectId: project.id } })).toBe(0);
+  });
 
   it('reconciles lost acknowledgement and concurrent creation, then rejects UID replacement and legacy adoption', async () => {
     const { project } = await seed();

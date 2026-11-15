@@ -167,11 +167,15 @@ describe('P0-V3-11 — migration au publish', () => {
       expect(admitted).toBe(true);
       return { applied: true };
     });
-    const { app, project, deployment, applySql } = await setup({ admission, provisioner: provider });
+    const { app, store, project, deployment, applySql } = await setup({ admission, provisioner: provider });
     try {
       const response = await publish(app, project.id, deployment.id);
       expect(response.statusCode).toBe(201);
       expect(admission.admitConnection).toHaveBeenCalledOnce();
+      const journal = [...store.migrationExecutions.values()][0];
+      expect(admission.admitConnection.mock.calls[0][0].ownerIncarnation).toBe(`publish-migration:${journal.id}`);
+      expect(snapshot).toHaveBeenCalledWith(expect.objectContaining({ snapshotId: `mig_${journal.id}` }));
+
       expect(snapshot).toHaveBeenCalledOnce();
       expect(applySql).toHaveBeenCalledOnce();
     } finally {

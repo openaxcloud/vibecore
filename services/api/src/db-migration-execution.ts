@@ -23,7 +23,7 @@
  * vaut pour Postgres et pour lui seul — MySQL committe implicitement sur DDL,
  * donc le moteur est refusé plutôt que traité comme équivalent.
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { appPublicEnglish } from './app-public-copy.js';
 import type { DatabaseEnvironment, DatabaseProvisioner } from './database-provisioner.js';
@@ -79,6 +79,8 @@ export interface SqlApplier {
 
 export interface MigrationExecutionStore {
   createMigrationExecution(input: {
+    /** Preallocated only by dormant admission; absent preserves legacy IDs. */
+    id?: string;
     projectId: string;
     organizationId: string;
     environment: string;
@@ -150,6 +152,8 @@ export interface RunPublishMigrationInput {
     organizationId: string;
     environment: DatabaseEnvironment;
     connectionString: string;
+    executionId: string;
+    snapshotId: string;
   }) => Promise<void>;
 
   /** Fenêtre d'attente de l'aboutissement du backup. */
@@ -304,11 +308,15 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     };
   }
 
+  const admittedExecutionId = input.beforeEffects ? randomUUID() : undefined;
+
   await input.beforeEffects?.({
     projectId: input.projectId,
     organizationId: input.organizationId,
     environment,
     connectionString: input.connectionString,
+    executionId: admittedExecutionId!,
+    snapshotId: `mig_${admittedExecutionId}`,
   });
 
   let state: MigrationState = 'PLANNED';
@@ -323,6 +331,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
 
   try {
     execution = await input.store.createMigrationExecution({
+      ...(admittedExecutionId ? { id: admittedExecutionId } : {}),
       projectId: input.projectId,
       organizationId: input.organizationId,
       environment,
@@ -346,6 +355,13 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     }
 
     throw error;
+  }
+
+  // An adapter that ignores the reserved identity cannot safely start effects.
+  if (admittedExecutionId && execution.id !== admittedExecutionId) {
+    throw Object.assign(new Error(appPublicEnglish('MIGRATION_ADMISSION_ID_MISMATCH')), {
+      code: 'MIGRATION_ADMISSION_ID_MISMATCH',
+    });
   }
 
   state = 'LOCK_ACQUIRED';
