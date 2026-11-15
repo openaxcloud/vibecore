@@ -13,6 +13,8 @@ export const workbenchRuntimeEn = {
   'workbenchRuntime.preview.staticCommand': 'Static HTML preview',
   'workbenchRuntime.preview.staticReady': 'Using a static HTML preview; this project does not need a dev server.',
   'workbenchRuntime.preview.reloadFailed': 'Preview files could not be reloaded.',
+  'workbenchRuntime.preview.manifestNotMaterialized':
+    'Preview paused: {file} cannot be read in the execution workspace. Retry after file synchronization completes. Reinstalling dependencies will not restore missing project files.',
   'workbenchRuntime.preview.reattached': 'Reconnected to the running dev server.',
   'workbenchRuntime.preview.reattachedResult': 'Reconnected preview server',
   'workbenchRuntime.preview.existingResult': 'Existing preview server',
@@ -158,6 +160,8 @@ export const workbenchRuntimeFr: WorkbenchRuntimeCopy = {
   'workbenchRuntime.preview.staticReady':
     'Utilisation d’un aperçu HTML statique ; ce projet ne nécessite aucun serveur de développement.',
   'workbenchRuntime.preview.reloadFailed': 'Impossible de recharger les fichiers de l’aperçu.',
+  'workbenchRuntime.preview.manifestNotMaterialized':
+    'Aperçu suspendu : {file} ne peut pas être lu dans l’espace d’exécution. Réessayez après la synchronisation des fichiers. Réinstaller les dépendances ne restaure pas les fichiers manquants du projet.',
   'workbenchRuntime.preview.reattached': 'Reconnexion au serveur de développement en cours d’exécution.',
   'workbenchRuntime.preview.reattachedResult': 'Serveur d’aperçu reconnecté',
   'workbenchRuntime.preview.existingResult': 'Serveur d’aperçu existant',

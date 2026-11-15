@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import { requireMaterializedPreviewManifest } from './preview-manifest-materialization';
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
 import { createSingleFlight } from '~/lib/ide/single-flight';
 import { requestProjectArchive, takeInitialProjectArchive } from '~/lib/ide/initial-project-archive';
@@ -1268,6 +1269,13 @@ export class WorkbenchStore {
       this.#assertPreviewRunCurrent(epoch);
     }
 
+    /*
+     * Let Project Doctor repair live sources first. An archive-visible manifest
+     * is not proof that the execution workspace contains it. Check before stop.
+     */
+    await this.#requireMaterializedPreviewManifest();
+    this.#assertPreviewRunCurrent(epoch);
+
     if (shouldInstall || forceRestart) {
       /*
        * A forced restart always tears down first, so the relaunch below reaches
@@ -1287,6 +1295,8 @@ export class WorkbenchStore {
     this.#assertPreviewRunCurrent(epoch);
 
     let command: PreviewCommand;
+
+    const previewNeedsManifest = Boolean(this.#findPackageJsonEntry());
 
     try {
       command = await this.#detectPreviewCommand(shouldInstall);
@@ -1365,6 +1375,8 @@ export class WorkbenchStore {
       // best-effort guarantee; fall through with the detected command as-is
     }
 
+    this.#assertPreviewRunCurrent(epoch);
+    await this.#requireMaterializedPreviewManifest(command, previewNeedsManifest);
     this.#assertPreviewRunCurrent(epoch);
     this.toggleTerminal(true);
 
@@ -1816,6 +1828,23 @@ export class WorkbenchStore {
     }
 
     return exitCode;
+  }
+
+  async #requireMaterializedPreviewManifest(command?: PreviewCommand, required?: boolean) {
+    const entry = this.#findPackageJsonEntry();
+
+    // Keep static / genuinely manifest-free preview paths unchanged.
+    if (!(required ?? Boolean(entry))) {
+      return;
+    }
+
+    const cwd = command ? command.cwd : entry ? this.#runtimeCwdForPackageJson(entry[0]) : undefined;
+    const path = cwd ? `${cwd}/package.json` : 'package.json';
+
+    await requireMaterializedPreviewManifest(
+      () => this.#runtime.readFile(path),
+      workbenchText('workbenchRuntime.preview.manifestNotMaterialized', { file: path }),
+    );
   }
 
   async #detectPreviewCommand(forceInstall: boolean): Promise<PreviewCommand> {
