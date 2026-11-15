@@ -1,7 +1,9 @@
+import { requireLocalLoadTarget } from './local-load-guard.js';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export const options = {
+  maxRedirects: 0,
   vus: Number(__ENV.K6_VUS || 10),
   duration: __ENV.K6_DURATION || '2m',
   thresholds: {
@@ -10,7 +12,7 @@ export const options = {
   },
 };
 
-const baseUrl = __ENV.BASE_URL || 'http://127.0.0.1:3001';
+const baseUrl = requireLocalLoadTarget(__ENV, __ENV.BASE_URL || 'http://127.0.0.1:3001');
 const token = __ENV.AUTH_TOKEN || '';
 
 export default function aiSimulatedLoad() {
@@ -21,7 +23,7 @@ export default function aiSimulatedLoad() {
   const response = http.post(
     `${baseUrl}/ai/simulate`,
     JSON.stringify({ prompt: 'load-test simulated request', maxTokens: 128 }),
-    { headers },
+    { headers, redirects: 0 },
   );
   check(response, { 'ai endpoint controlled': (r) => [200, 202, 401, 403, 404].includes(r.status) });
   sleep(2);
