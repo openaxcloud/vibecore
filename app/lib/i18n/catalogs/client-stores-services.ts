@@ -69,6 +69,7 @@ export const clientStoresServicesEn = {
   'clientRuntime.workspace.exportFailed': 'The project archive could not be exported (HTTP {status}).',
   'clientRuntime.workspace.exportEmpty': 'The exported project archive is empty.',
   'clientRuntime.workspace.startFailed': 'The workspace could not be started.',
+  'clientRuntime.workspace.scopeExpired': 'This workspace operation is no longer current.',
   'clientRuntime.workspace.quota.generic.warning': 'Workspace quota exceeded',
   'clientRuntime.workspace.quota.generic.upgrade': 'Upgrade your plan to start more workspaces.',
   'clientRuntime.workspace.quota.activeWorkspaces.warning': 'You have reached your active workspace limit.',
@@ -196,6 +197,7 @@ export const clientStoresServicesFr: ClientStoresServicesCopy = {
   'clientRuntime.workspace.exportFailed': 'Impossible d’exporter l’archive du projet (HTTP {status}).',
   'clientRuntime.workspace.exportEmpty': 'L’archive du projet exportée est vide.',
   'clientRuntime.workspace.startFailed': 'Impossible de démarrer l’espace de travail.',
+  'clientRuntime.workspace.scopeExpired': 'Cette opération ne concerne plus l’espace de travail courant.',
   'clientRuntime.workspace.quota.generic.warning': 'Quota d’espaces de travail dépassé',
   'clientRuntime.workspace.quota.generic.upgrade':
     'Passez à une offre supérieure pour démarrer davantage d’espaces de travail.',

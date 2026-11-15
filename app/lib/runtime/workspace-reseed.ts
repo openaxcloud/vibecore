@@ -26,9 +26,9 @@
  *     stockage canonique ne les porte pas, les supprimer ne « synchronise »
  *     rien, cela détruit le travail de `npm install`.
  *
- * Si l'archive est illisible ou le parcours du pod échoue, on retombe sur le
- * comportement historique (wipe complet) : le repli est l'ancien code, jamais
- * un état nouveau.
+ * Une archive illisible ou un parcours incomplet bloque le reseed avant toute
+ * mutation. Une archive vide ne peut confirmer qu’un workspace déjà vide.
+ * Un échec pendant les suppressions/import valides reste non atomique.
  */
 import type { FileNode, RuntimeAdapter } from '@vibecore/runtime-contract';
 import JSZip from 'jszip';
@@ -63,10 +63,9 @@ export function normalizeReseedPath(path: string): string {
 /**
  * Liste les chemins de FICHIERS d'une archive zip canonique.
  *
- * Rend `undefined` quand l'archive est illisible OU ne contient aucun fichier :
- * dans les deux cas l'appelant retombe sur le wipe historique plutôt que de
- * « converger » vers un ensemble vide (ce qui équivaudrait à tout supprimer sur
- * la foi d'une archive corrompue).
+ * Rend `undefined` si le ZIP est illisible.
+ * Un ensemble vide désigne une archive valide sans fichiers, pas une permission
+ * de supprimer le contenu du workspace.
  */
 export async function archiveFilePaths(archive: Uint8Array): Promise<ReadonlySet<string> | undefined> {
   try {
@@ -85,7 +84,7 @@ export async function archiveFilePaths(archive: Uint8Array): Promise<ReadonlySet
       }
     });
 
-    return paths.size > 0 ? paths : undefined;
+    return paths;
   } catch {
     return undefined;
   }
@@ -97,7 +96,7 @@ export interface PodTreeNode {
   children?: PodTreeNode[];
 }
 
-/** Bornes du parcours : au-delà, on préfère le repli historique à un plan partiel. */
+/** Bornes du parcours : au-delà, on refuse toute mutation sur un plan partiel. */
 const POD_TREE_MAX_DEPTH = 12;
 const POD_TREE_MAX_ENTRIES = 5000;
 
@@ -197,47 +196,102 @@ export function planReseedDeletions(tree: readonly PodTreeNode[], archivePaths: 
 }
 
 export interface ReseedClearOutcome {
-  mode: 'selective' | 'full';
+  mode: 'selective' | 'empty';
   deleted: number;
 }
 
-/**
- * Étape `clearTree` du reseed (voir `reseedWorkspacePreservingOnFailure`).
- *
- * Sélective quand les chemins de l'archive sont connus ; repli sur le wipe
- * historique quand ils ne le sont pas ou quand le parcours du pod échoue. Les
- * erreurs de SUPPRESSION, elles, se propagent à l'appelant dans les deux modes
- * — exactement comme avant — pour qu'un pod à moitié nettoyé soit journalisé,
- * jamais silencieux.
- */
+/** A refusal before mutations; preserve the running workspace and preview. */
+export class ReseedPreflightError extends Error {
+  constructor(message: string, cause?: unknown) {
+    super(message, { cause });
+    this.name = 'ReseedPreflightError';
+  }
+}
+
+async function prepareReseedPlan(
+  runtime: Pick<RuntimeAdapter, 'listFiles'>,
+  archivePaths: ReadonlySet<string> | undefined,
+): Promise<{ mode: ReseedClearOutcome['mode']; deletions: string[] }> {
+  if (archivePaths === undefined) {
+    throw new ReseedPreflightError('workspace-reseed: archive paths could not be validated');
+  }
+
+  let tree: PodTreeNode[];
+
+  try {
+    tree = await collectPodTree(runtime);
+  } catch (cause) {
+    throw new ReseedPreflightError('workspace-reseed: incomplete runtime tree', cause);
+  }
+
+  if (archivePaths.size === 0) {
+    if (tree.length > 0) {
+      throw new ReseedPreflightError('workspace-reseed: empty archive cannot replace an existing tree');
+    }
+
+    return { mode: 'empty', deletions: [] };
+  }
+
+  return { mode: 'selective', deletions: planReseedDeletions(tree, archivePaths) };
+}
+
+/** Complete the read-only plan before any deletion; never fall back to a wipe. */
 export async function clearProjectTreeForReseed(
   runtime: Pick<RuntimeAdapter, 'listFiles' | 'deleteFile'>,
   archivePaths: ReadonlySet<string> | undefined,
 ): Promise<ReseedClearOutcome> {
-  if (archivePaths !== undefined && archivePaths.size > 0) {
-    let plan: string[] | undefined;
+  const plan = await prepareReseedPlan(runtime, archivePaths);
 
-    try {
-      plan = planReseedDeletions(await collectPodTree(runtime), archivePaths);
-    } catch (error) {
-      console.error('Selective reseed clear failed; falling back to the historical full clear:', error);
-    }
-
-    if (plan !== undefined) {
-      for (const path of plan) {
-        await runtime.deleteFile(path);
-      }
-
-      return { mode: 'selective', deleted: plan.length };
-    }
+  for (const path of plan.deletions) {
+    await runtime.deleteFile(path);
   }
 
-  // Comportement historique : wipe du premier niveau (le serveur supprime récursivement).
-  const nodes = await runtime.listFiles('.').catch(() => [] as FileNode[]);
+  return { mode: plan.mode, deleted: plan.deletions.length };
+}
 
-  for (const node of nodes) {
-    await runtime.deleteFile(node.path);
+/**
+ * Shared provider flow: read-only preflight, then preview stop and mutations.
+ * ZIP paths are inspected without eager decompression; CRC/import integrity is
+ * not proven. Valid imports and concurrent writers are not made atomic here.
+ */
+export async function reseedProjectTree(steps: {
+  runtime: Pick<RuntimeAdapter, 'listFiles' | 'deleteFile'>;
+  fetchArchive: () => Promise<Uint8Array>;
+  beforeMutation: () => Promise<void>;
+  assertCurrent?: () => void;
+  applyArchive: (archive: Uint8Array) => Promise<void>;
+}): Promise<ReseedClearOutcome> {
+  let archive: Uint8Array;
+  let plan: Awaited<ReturnType<typeof prepareReseedPlan>>;
+
+  try {
+    archive = await steps.fetchArchive();
+    plan = await prepareReseedPlan(steps.runtime, await archiveFilePaths(archive));
+  } catch (cause) {
+    if (cause instanceof ReseedPreflightError) {
+      throw cause;
+    }
+
+    throw new ReseedPreflightError('workspace-reseed: archive preflight failed', cause);
   }
 
-  return { mode: 'full', deleted: nodes.length };
+  steps.assertCurrent?.();
+
+  if (plan.mode === 'empty') {
+    return { mode: 'empty', deleted: 0 };
+  }
+
+  await steps.beforeMutation();
+  steps.assertCurrent?.();
+
+  for (const path of plan.deletions) {
+    steps.assertCurrent?.();
+    await steps.runtime.deleteFile(path);
+  }
+
+  steps.assertCurrent?.();
+  await steps.applyArchive(archive);
+  steps.assertCurrent?.();
+
+  return { mode: plan.mode, deleted: plan.deletions.length };
 }

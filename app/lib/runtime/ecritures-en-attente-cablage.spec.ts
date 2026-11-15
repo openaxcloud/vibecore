@@ -31,7 +31,7 @@ describe('câblage des écritures en attente', () => {
   it('le rejeu vient APRÈS le reseed (sinon il est effacé) et AVANT l’aperçu', () => {
     const rejeu = position(fournisseur, 'await rejouerDansLeWorkspace(projectId, runtime)');
 
-    expect(rejeu).toBeGreaterThan(position(fournisseur, 'await reseedWorkspacePreservingOnFailure('));
+    expect(rejeu).toBeGreaterThan(position(fournisseur, 'await reseedProjectTree('));
     expect(rejeu).toBeGreaterThan(position(fournisseur, "await workbenchStore.loadRuntimeFiles('.')"));
     expect(rejeu).toBeLessThan(position(fournisseur, 'void workbenchStore.startPreviewServer()'));
   });

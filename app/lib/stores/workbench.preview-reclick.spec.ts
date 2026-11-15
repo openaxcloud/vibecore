@@ -349,4 +349,43 @@ describe('startPreviewServer — re-click / redundant start against a serving pr
       );
     });
   });
+  it('refuses an obsolete owner before opening a stop epoch on project B', async () => {
+    const store = new WorkbenchStore();
+    store.configureProject('A');
+
+    const isCurrent = store.captureRuntimeScope();
+    store.configureProject('B');
+    store.previewServerState.set({ status: 'running' });
+
+    const before = store.previewServerState.get();
+    await store.stopPreviewServer({ raison: 'reseed', isCurrent });
+    expect(runtimeAdapterMock.listProcesses).not.toHaveBeenCalled();
+    expect(runtimeAdapterMock.killProcess).not.toHaveBeenCalled();
+    expect(store.previewServerState.get()).toBe(before);
+  });
+
+  it('does not publish stop completion into B when ownership changes during stop', async () => {
+    const store = new WorkbenchStore();
+    store.configureProject('A');
+
+    const isCurrent = store.captureRuntimeScope();
+
+    let release!: () => void;
+    runtimeAdapterMock.listProcesses.mockImplementationOnce(
+      () =>
+        new Promise<never[]>((resolve) => {
+          release = () => resolve([]);
+        }),
+    );
+
+    const stopping = store.stopPreviewServer({ raison: 'reseed', isCurrent });
+    store.configureProject('B');
+    store.previewServerState.set({ status: 'running' });
+
+    const before = store.previewServerState.get();
+    release();
+    await stopping;
+    expect(runtimeAdapterMock.killProcess).not.toHaveBeenCalled();
+    expect(store.previewServerState.get()).toBe(before);
+  });
 });
