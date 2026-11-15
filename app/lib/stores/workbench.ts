@@ -583,6 +583,15 @@ export class WorkbenchStore {
     this.projectFilesPanelRequest.set({ open, requestId: Date.now() });
   }
 
+  /** Capture the existing binding, including same-adapter project switches. */
+  captureRuntimeScope() {
+    const binding = this.#projectStorageBinding;
+    const runtime = this.#runtime;
+    const projectId = this.#projectId;
+
+    return () => binding === this.#projectStorageBinding && runtime === this.#runtime && projectId === this.#projectId;
+  }
+
   configureRuntime(runtime: RuntimeAdapter, projectId?: string) {
     // Restore before binding: a reload must not open a watcher for a stopped preview.
     if (projectId && projectId !== this.#previewIntentProject) {
@@ -1558,7 +1567,13 @@ export class WorkbenchStore {
     return Boolean(this.#previewStartPromise) || this.#previewCommandRunning;
   }
 
-  async stopPreviewServer(options: { raison?: RaisonArretPreview } = {}) {
+  async stopPreviewServer(options: { raison?: RaisonArretPreview; isCurrent?: () => boolean } = {}) {
+    const isCurrent = options.isCurrent ?? (() => true);
+
+    if (!isCurrent()) {
+      return 0;
+    }
+
     if (!doitArreterLePreview(options.raison)) {
       console.info(JSON.stringify({ event: 'preview.arret.refuse', raison: options.raison ?? 'inconnue' }));
       return 0;
@@ -1576,19 +1591,19 @@ export class WorkbenchStore {
     this.#previewCommandRunning = false;
     this.previewServerState.set({ status: 'stopping', command: this.previewServerState.get().command });
 
-    const stopping = this.#stopPreviewProcesses(epoch, options.raison ?? 'historique');
+    const stopping = this.#stopPreviewProcesses(epoch, options.raison ?? 'historique', isCurrent);
     this.#previewStopPromise = stopping;
 
     try {
       const count = await stopping;
 
-      if (epoch === this.#previewRunEpoch) {
+      if (isCurrent() && epoch === this.#previewRunEpoch) {
         this.previewServerState.set({ status: 'idle' });
       }
 
       return count;
     } catch (error) {
-      if (epoch === this.#previewRunEpoch) {
+      if (isCurrent() && epoch === this.#previewRunEpoch) {
         this.previewServerState.set({ status: 'error', error: error instanceof Error ? error.message : String(error) });
       }
 
@@ -1600,11 +1615,11 @@ export class WorkbenchStore {
     }
   }
 
-  async #stopPreviewProcesses(epoch: number, raison = 'redemarrage') {
+  async #stopPreviewProcesses(epoch: number, raison = 'redemarrage', isCurrent = () => true) {
     const runtime = this.#runtime;
     const processes = await runtime.listProcesses();
 
-    if (epoch !== this.#previewRunEpoch) {
+    if (!isCurrent() || epoch !== this.#previewRunEpoch) {
       return 0;
     }
 
@@ -1623,7 +1638,7 @@ export class WorkbenchStore {
     let failure: unknown;
 
     for (const process of previewProcesses) {
-      if (epoch !== this.#previewRunEpoch) {
+      if (!isCurrent() || epoch !== this.#previewRunEpoch) {
         return 0;
       }
 
@@ -1642,7 +1657,10 @@ export class WorkbenchStore {
       );
       await runtime.killProcess(process.id).catch((error) => {
         failure ??= error;
-        this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
+
+        if (isCurrent() && epoch === this.#previewRunEpoch) {
+          this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
+        }
       });
     }
 
@@ -1650,7 +1668,7 @@ export class WorkbenchStore {
       throw failure;
     }
 
-    if (epoch === this.#previewRunEpoch) {
+    if (isCurrent() && epoch === this.#previewRunEpoch) {
       await this.refreshRuntimePorts().catch(() => undefined);
     }
 

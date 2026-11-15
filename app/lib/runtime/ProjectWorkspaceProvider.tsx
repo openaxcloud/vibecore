@@ -14,12 +14,8 @@ import {
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { fetchAnyPortServing } from '~/lib/runtime/serving-ports';
 import { isWorkspaceQuotaError, workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
-import {
-  hasAdoptablePreviewPort,
-  reseedWorkspacePreservingOnFailure,
-  shouldReattachWarmWorkspace,
-} from '~/lib/runtime/workspace-reattach';
-import { archiveFilePaths, clearProjectTreeForReseed } from '~/lib/runtime/workspace-reseed';
+import { hasAdoptablePreviewPort, shouldReattachWarmWorkspace } from '~/lib/runtime/workspace-reattach';
+import { reseedProjectTree, ReseedPreflightError } from '~/lib/runtime/workspace-reseed';
 import { readSeedMarker, writeSeedMarker } from '~/lib/runtime/workspace-seed-marker';
 import { workbenchStore } from '~/lib/stores/workbench';
 
@@ -90,6 +86,14 @@ export function ProjectWorkspaceProvider({
 
   useEffect(() => {
     let cancelled = false;
+    let isCurrent = () => !cancelled;
+
+    const assertCurrent = () => {
+      if (!isCurrent()) {
+        throw new Error(clientStoresServicesText('clientRuntime.workspace.scopeExpired'));
+      }
+    };
+
     let stopLogs: (() => void) | undefined;
     let activeWorkspaceId: string | undefined;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
@@ -97,6 +101,9 @@ export function ProjectWorkspaceProvider({
     async function startWorkspace() {
       workbenchStore.configureRuntime(runtime, projectId);
       workbenchStore.configureProject(projectId);
+
+      const ownsRuntime = workbenchStore.captureRuntimeScope();
+      isCurrent = () => !cancelled && ownsRuntime();
 
       /*
        * BUG-QA0928-RUNTIME-ID-PROJET — recharger ce qui attendait pour CE projet :
@@ -148,8 +155,7 @@ export function ProjectWorkspaceProvider({
         });
         activeWorkspaceId = session.id;
 
-        if (cancelled) {
-          await stopRemoteWorkspace(runtime, session.id);
+        if (!isCurrent()) {
           return;
         }
 
@@ -197,8 +203,7 @@ export function ProjectWorkspaceProvider({
           console.error('Runtime port probe failed before the reattach decision:', error);
         }
 
-        if (cancelled) {
-          await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
+        if (!isCurrent()) {
           return;
         }
 
@@ -211,8 +216,7 @@ export function ProjectWorkspaceProvider({
          */
         const currentRevision = await fetchPersistedProjectRevision(projectId);
 
-        if (cancelled) {
-          await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
+        if (!isCurrent()) {
           return;
         }
 
@@ -279,69 +283,37 @@ export function ProjectWorkspaceProvider({
         if (reattachWarmWorkspace) {
           workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.reattached'));
         } else {
-          await workbenchStore.stopPreviewServer({ raison: 'reseed' }).catch((error) => {
-            console.error('Previous preview cleanup failed:', error);
-            workbenchStore.appendWorkspaceLog(
-              clientStoresServicesText('clientRuntime.workspace.previewCleanupSkipped'),
-            );
-          });
-
           try {
             await persistedFilesHydration;
 
-            /*
-             * Non-destructive reseed: fetch + VALIDATE the storage archive BEFORE
-             * clearing the pod, so a failed export/import never leaves the pod
-             * wiped-but-unseeded (a reopen that momentarily destroyed the user's
-             * files). The wipe already preserves node_modules/.git (excluded from
-             * the runtime listing), so the whole path is now safe on failure.
-             *
-             * The agent can be briefly unreachable right after a (re)provision —
-             * slow gVisor startup under node CPU contention, or Service Endpoints
-             * lag — so each remote step retries through that window instead of
-             * failing on the first error (which previously tore the pod down).
-             */
-            /*
-             * BUG-CREATE-010 — un reseed (typiquement : réouverture sur un
-             * appareil qui n'a pas de marqueur de seed) ne WIPE plus l'arbre.
-             * Les chemins de l'archive canonique sont extraits une fois dans
-             * fetchArchive, puis clearTree ne supprime QUE ce que l'archive ne
-             * couvre pas, en préservant lockfiles/node_modules/.git. Archive
-             * illisible => `undefined` => wipe historique (repli inchangé).
-             */
-            let canonicalArchivePaths: ReadonlySet<string> | undefined;
-
-            await reseedWorkspacePreservingOnFailure({
-              fetchArchive: async () => {
-                const archive = await withRuntimeRetry(() => fetchProjectStorageArchive(projectId), {
+            const outcome = await reseedProjectTree({
+              runtime,
+              assertCurrent,
+              fetchArchive: () =>
+                withRuntimeRetry(() => fetchProjectStorageArchive(projectId), {
                   attempts: 5,
                   baseDelayMs: 1500,
+                }),
+              beforeMutation: async () => {
+                assertCurrent();
+                await workbenchStore.stopPreviewServer({ raison: 'reseed', isCurrent }).catch((error) => {
+                  assertCurrent();
+                  console.error('Previous preview cleanup failed:', error);
+                  workbenchStore.appendWorkspaceLog(
+                    clientStoresServicesText('clientRuntime.workspace.previewCleanupSkipped'),
+                  );
                 });
-
-                canonicalArchivePaths = await archiveFilePaths(archive);
-
-                return archive;
               },
-              clearTree: () =>
-                clearProjectTreeForReseed(runtime, canonicalArchivePaths)
-                  .then((outcome) => {
-                    // Trace permanente : même rôle que la trace de la décision de reattach.
-                    console.info('[workspace] reseed clear', outcome);
-                  })
-                  .catch((error) => {
-                    console.error('Project workspace cleanup failed:', error);
-                    workbenchStore.appendWorkspaceLog(
-                      clientStoresServicesText('clientRuntime.workspace.cleanupSkipped'),
-                    );
-                  }),
               applyArchive: (archive) =>
-                withRuntimeRetry(() => applyProjectStorageArchive(runtime, archive), {
+                withRuntimeRetry(() => applyProjectStorageArchive(runtime, archive, assertCurrent), {
                   attempts: 5,
                   baseDelayMs: 1500,
                 }),
             });
+            assertCurrent();
+            console.info('[workspace] reseed clear', outcome);
           } catch (error) {
-            if (cancelled) {
+            if (!isCurrent()) {
               return;
             }
 
@@ -359,7 +331,7 @@ export function ProjectWorkspaceProvider({
              * retry without a cold start — genuine orphans are still reaped by the
              * inactivity GC.
              */
-            if (activeWorkspaceId && !isTransientRuntimeError(error)) {
+            if (activeWorkspaceId && !(error instanceof ReseedPreflightError) && !isTransientRuntimeError(error)) {
               await stopRemoteWorkspace(runtime, activeWorkspaceId).catch(() => undefined);
               activeWorkspaceId = undefined;
             }
@@ -383,6 +355,7 @@ export function ProjectWorkspaceProvider({
            */
           const seededRevisionNow = (await fetchPersistedProjectRevision(projectId)) ?? currentRevision;
 
+          assertCurrent();
           writeSeedMarker(sessionId, seededRevisionNow, Date.now());
         }
 
@@ -390,12 +363,12 @@ export function ProjectWorkspaceProvider({
          * The workspace switched/unmounted while we were seeding — don't wire the
          * previous project's files/preview/log-watcher into the new workspace.
          */
-        if (cancelled) {
-          await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
+        if (!isCurrent()) {
           return;
         }
 
         await workbenchStore.loadRuntimeFiles('.');
+        assertCurrent();
 
         /*
          * BUG-QA0928-RUNTIME-ID-PROJET — écrire ce que l'agent avait produit
@@ -404,6 +377,7 @@ export function ProjectWorkspaceProvider({
          */
         if (ecrituresEnAttenteStore.get().ecritures.length > 0) {
           const bilan = await rejouerDansLeWorkspace(projectId, runtime);
+          assertCurrent();
 
           if (bilan.ecrites.length > 0) {
             const copy = getEcrituresEnAttenteCopy(languageRef.current);
@@ -419,6 +393,7 @@ export function ProjectWorkspaceProvider({
           }
         }
 
+        assertCurrent();
         await workbenchStore.refreshRuntimePorts().catch(() => undefined);
 
         /*
@@ -429,12 +404,15 @@ export function ProjectWorkspaceProvider({
          * undefined), so they leak for the life of the page and the heartbeat
          * keeps the abandoned workspace billable.
          */
-        if (cancelled) {
-          await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id).catch(() => undefined);
+        if (!isCurrent()) {
           return;
         }
 
         void workbenchStore.startPreviewServer().catch((error) => {
+          if (!isCurrent()) {
+            return;
+          }
+
           console.error('Preview auto-start failed:', error);
           workbenchStore.appendWorkspaceLog(
             clientStoresServicesText('clientRuntime.workspace.previewAutoStartSkipped'),
@@ -442,13 +420,16 @@ export function ProjectWorkspaceProvider({
         });
 
         if ('watchLogs' in runtime && typeof runtime.watchLogs === 'function') {
-          stopLogs = await runtime.watchLogs((event: CommandEvent) => workbenchStore.appendWorkspaceLog(event));
+          stopLogs = await runtime.watchLogs((event: CommandEvent) => {
+            if (isCurrent()) {
+              workbenchStore.appendWorkspaceLog(event);
+            }
+          });
 
           // watchLogs opens a socket; if cleanup raced this await, tear it down now.
-          if (cancelled) {
+          if (!isCurrent()) {
             stopLogs?.();
             stopLogs = undefined;
-            await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id).catch(() => undefined);
 
             return;
           }
@@ -476,7 +457,7 @@ export function ProjectWorkspaceProvider({
           }, 60_000);
         }
       } catch (error) {
-        if (cancelled) {
+        if (!isCurrent()) {
           return;
         }
 
@@ -506,7 +487,7 @@ export function ProjectWorkspaceProvider({
           workbenchStore.billingUpgradePrompt.set(quotaPrompt.upgrade);
         }
       } finally {
-        if (!cancelled) {
+        if (isCurrent()) {
           workbenchStore.workspaceLoading.set(false);
         }
       }
@@ -565,7 +546,7 @@ export function ProjectWorkspaceProvider({
 /**
  * Fetch + VALIDATE the authoritative project-storage archive. Throws on a failed
  * export or an empty archive so the caller can bail BEFORE wiping the pod (see
- * reseedWorkspacePreservingOnFailure) — a corrupt/empty archive must never be
+ * reseedProjectTree) — a corrupt/empty archive must never be
  * treated as "the project has no files" and used to blank the workspace.
  */
 async function fetchProjectStorageArchive(projectId: string): Promise<Uint8Array> {
@@ -591,8 +572,10 @@ async function fetchProjectStorageArchive(projectId: string): Promise<Uint8Array
   return archive;
 }
 
-async function applyProjectStorageArchive(runtime: RuntimeAdapter, archive: Uint8Array) {
+async function applyProjectStorageArchive(runtime: RuntimeAdapter, archive: Uint8Array, assertCurrent: () => void) {
+  assertCurrent();
   await runtime.importZip(archive, '.');
+  assertCurrent();
   workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.filesSynced'));
 }
 
