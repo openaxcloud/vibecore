@@ -142,8 +142,8 @@ export async function collectPodTree(runtime: Pick<RuntimeAdapter, 'listFiles'>,
  *
  *   - fichier du pod présent dans l'archive  -> conservé (l'import l'écrase) ;
  *   - fichier du pod absent de l'archive     -> supprimé (parité avec le wipe) ;
- *   - répertoire sans AUCUN fichier d'archive -> supprimé d'un bloc ;
- *   - répertoire partiellement couvert        -> on descend, suppression fine ;
+ *   - répertoire, même sans fichier d'archive -> conservé, suppression des feuilles ;
+ *   - conflit répertoire vers fichier         -> refus avant toute mutation ;
  *   - noms préservés (`RESEED_PRESERVED_NAMES`) -> jamais supprimés.
  */
 export function planReseedDeletions(tree: readonly PodTreeNode[], archivePaths: ReadonlySet<string>): string[] {
@@ -157,9 +157,21 @@ export function planReseedDeletions(tree: readonly PodTreeNode[], archivePaths: 
         continue;
       }
 
-      const name = relative.split('/').pop() ?? relative;
+      // Listings omit node_modules/.git. Even an apparently empty directory may
+      // contain protected descendants, so never issue a recursive parent delete.
+      // A file at the same archive path cannot be imported without removing that
+      // directory: refuse the complete plan before preview stop or any mutation.
+      if (node.type === 'directory' && archivePaths.has(relative)) {
+        throw new ReseedPreflightError('workspace-reseed: archive file conflicts with a runtime directory');
+      }
 
-      if (RESEED_PRESERVED_NAMES.has(name)) {
+      const preserved = relative.split('/').some((name) => RESEED_PRESERVED_NAMES.has(name));
+
+      if (preserved) {
+        if (node.type === 'file' && [...archivePaths].some((path) => path.startsWith(`${relative}/`))) {
+          throw new ReseedPreflightError('workspace-reseed: archive directory conflicts with a preserved file');
+        }
+
         continue;
       }
 
@@ -171,22 +183,7 @@ export function planReseedDeletions(tree: readonly PodTreeNode[], archivePaths: 
         continue;
       }
 
-      const prefix = `${relative}/`;
-
-      let archiveHasFileUnder = false;
-
-      for (const archivePath of archivePaths) {
-        if (archivePath.startsWith(prefix)) {
-          archiveHasFileUnder = true;
-          break;
-        }
-      }
-
-      if (archiveHasFileUnder) {
-        visit(node.children ?? []);
-      } else {
-        deletions.push(node.path);
-      }
+      visit(node.children ?? []);
     }
   };
 

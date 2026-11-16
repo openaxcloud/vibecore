@@ -2,6 +2,9 @@
  * @vitest-environment node
  */
 import { readFileSync } from 'node:fs';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import type { FileNode } from '@vibecore/runtime-contract';
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
@@ -138,7 +141,7 @@ describe('planReseedDeletions — convergence, pas destruction', () => {
     expect(plan).toEqual(['src/Old.tsx']);
   });
 
-  it('supprime d’un bloc un répertoire que l’archive ne couvre plus', async () => {
+  it('supprime les feuilles obsolètes sans supprimer leur répertoire parent', async () => {
     const listing: Record<string, FileNode[]> = {
       '.': [...LIVE_POD_LISTING['.'], { path: 'legacy', name: 'legacy', type: 'directory' }],
       src: LIVE_POD_LISTING.src,
@@ -147,7 +150,7 @@ describe('planReseedDeletions — convergence, pas destruction', () => {
 
     const plan = planReseedDeletions(await collectPodTree(fakeRuntime(listing)), archive);
 
-    expect(plan).toEqual(['legacy']);
+    expect(plan).toEqual(['legacy/old.js']);
   });
 
   it('ne touche jamais node_modules ni .git, à aucune profondeur', () => {
@@ -446,4 +449,134 @@ describe('reseed preflight preservation', () => {
       expect(events).toEqual(phase === 'during-stop' ? ['stop-A'] : []);
     },
   );
+});
+
+describe('orphan directory preservation', () => {
+  it('preserves nested lockfiles even when no archive entry covers their parent', () => {
+    const plan = planReseedDeletions(
+      [
+        {
+          path: 'old',
+          type: 'directory',
+          children: [
+            { path: 'old/package-lock.json', type: 'file' },
+            { path: 'old/pnpm-lock.yaml', type: 'file' },
+            { path: 'old/yarn.lock', type: 'file' },
+            { path: 'old/bun.lockb', type: 'file' },
+            { path: 'old/stale.ts', type: 'file' },
+          ],
+        },
+      ],
+      new Set(['keep.txt']),
+    );
+    expect(plan).toEqual(['old/stale.ts']);
+  });
+
+  it('preserves an apparently empty directory whose protected descendants may be hidden', () => {
+    expect(planReseedDeletions([{ path: 'old', type: 'directory', children: [] }], new Set(['keep.txt']))).toEqual([]);
+  });
+
+  it.each(['old', 'old/node_modules', 'old/.git'])(
+    'refuses an archive file replacing directory %s before any mutation',
+    async (path) => {
+      const runtime = fakeRuntime({
+        '.': [
+          { path: 'obsolete.txt', name: 'obsolete.txt', type: 'file' },
+          { path, name: path.split('/').pop()!, type: 'directory', children: [] },
+        ],
+      });
+      const events: string[] = [];
+      await expect(
+        reseedProjectTree({
+          runtime,
+          fetchArchive: () => zipOf({ [path]: 'new file' }),
+          beforeMutation: async () => {
+            events.push('stop');
+          },
+          applyArchive: async () => {
+            events.push('import');
+          },
+        }),
+      ).rejects.toBeInstanceOf(ReseedPreflightError);
+      expect(runtime.deleted).toEqual([]);
+      expect(events).toEqual([]);
+    },
+  );
+
+  it('allows replacing an ordinary file by a directory through selective leaf deletion', () => {
+    expect(planReseedDeletions([{ path: 'old', type: 'file' }], new Set(['old/new.txt']))).toEqual(['old']);
+  });
+
+  it('refuses replacing a preserved lockfile with an archive directory', () => {
+    expect(() =>
+      planReseedDeletions([{ path: 'package-lock.json', type: 'file' }], new Set(['package-lock.json/new.txt'])),
+    ).toThrow(ReseedPreflightError);
+  });
+
+  it('preserves hidden installation and VCS bytes on a real disposable filesystem', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'vibecore-reseed-orphan-'));
+    const before = {
+      'old/package-lock.json': 'lock-before',
+      'old/node_modules/sentinel': 'dependencies-before',
+      'old/.git/sentinel': 'git-before',
+      'old/deep/yarn.lock': 'nested-lock-before',
+      'old/stale.ts': 'obsolete',
+      'keep.txt': 'before',
+    };
+    const deleted: string[] = [];
+    const events: string[] = [];
+    try {
+      for (const [path, bytes] of Object.entries(before)) {
+        await mkdir(dirname(join(root, path)), { recursive: true });
+        await writeFile(join(root, path), bytes);
+      }
+      const runtime = {
+        listFiles: async (path = '.'): Promise<FileNode[]> => {
+          const entries = await readdir(join(root, path), { withFileTypes: true });
+          return entries
+            .filter((entry) => !['node_modules', '.git'].includes(entry.name))
+            .map((entry) => ({
+              name: entry.name,
+              path: path === '.' ? entry.name : `${path}/${entry.name}`,
+              type: entry.isDirectory() ? ('directory' as const) : ('file' as const),
+            }));
+        },
+        deleteFile: async (path: string) => {
+          deleted.push(path);
+          await rm(join(root, path), { recursive: true, force: true });
+        },
+      };
+      const outcome = await reseedProjectTree({
+        runtime,
+        fetchArchive: () => zipOf({ 'keep.txt': 'after' }),
+        beforeMutation: async () => {
+          events.push('stop');
+        },
+        applyArchive: async (archive) => {
+          events.push('import');
+          const zip = await JSZip.loadAsync(archive);
+          for (const entry of Object.values(zip.files)) {
+            if (entry.dir) continue;
+            await mkdir(dirname(join(root, entry.name)), { recursive: true });
+            await writeFile(join(root, entry.name), await entry.async('nodebuffer'));
+          }
+        },
+      });
+      expect(outcome).toEqual({ mode: 'selective', deleted: 1 });
+      expect(deleted).toEqual(['old/stale.ts']);
+      expect(events).toEqual(['stop', 'import']);
+      for (const path of [
+        'old/package-lock.json',
+        'old/node_modules/sentinel',
+        'old/.git/sentinel',
+        'old/deep/yarn.lock',
+      ] as const) {
+        expect(await readFile(join(root, path), 'utf8')).toBe(before[path]);
+      }
+      await expect(readFile(join(root, 'old/stale.ts'))).rejects.toMatchObject({ code: 'ENOENT' });
+      expect(await readFile(join(root, 'keep.txt'), 'utf8')).toBe('after');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
