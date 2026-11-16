@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 2,
+  "collectedAt": "2026-11-16T05:25:01.343Z",
+  "cadence": "daily",
+  "cadenceNote": "Replit changelog publishes on ARBITRARY weekdays (llms.txt index includes Sunday 2025-11-16 and Wednesday 2025-11-26). Friday-keyed automation is forbidden.",
+  "families": [
+    "docs",
+    "launch-channel",
+    "product-route"
+  ],
+  "watchTerms": [
+    "Community Profiles",
+    "Community Profile",
+    "Claim your profile",
+    "Buildathons",
+    "Submit your App"
+  ],
+  "watchHits": {
+    "Submit your App": [
+      "llms-full-txt"
+    ]
+  },
+  "sources": {
+    "llms-txt": {
+      "url": "https://docs.replit.com/llms.txt",
+      "family": "docs",
+      "sourceType": "docs",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "llms.txt",
+      "sha256": "43ee34d7db06be9f8fabc5bb717458d2dee8198c8ac687fb8e07fa7dd37fbc36",
+      "bytes": 66318,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-11-16T05:25:01.343Z",
+      "linkCount": 258,
+      "watchTerms": []
+    },
+    "llms-full-txt": {
+      "url": "https://docs.replit.com/llms-full.txt",
+      "family": "docs",
+      "sourceType": "docs",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "llms-full.txt",
+      "sha256": "caf07f4b678356990006035640b74f77f9c9c3ff8148c9adc415db247a427013",
+      "bytes": 2372416,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-11-16T05:25:01.343Z",
+      "linkCount": 0,
+      "watchTerms": [
+        "Submit your App"
+      ]
+    },
+    "sitemap-xml": {
+      "url": "https://docs.replit.com/sitemap.xml",
+      "family": "docs",
+      "sourceType": "docs",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "sitemap.xml",
+      "sha256": "b1fb3d70e07c611e671408fb2d035fd4e29c82da4f3cae7cc92a10df38c77740",
+      "bytes": 375266,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-11-16T05:25:01.343Z",
+      "linkCount": 2689,
+      "watchTerms": []
+    },
+    "changelog-index": {
+      "url": "https://docs.replit.com/updates",
+      "family": "launch-channel",
+      "sourceType": "launch-channel",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "changelog-index.html",
+      "sha256": "95e52f1387738e81db78683b03921c094e05adcc2059aca40026a93f5ffc3194",
+      "bytes": 217534,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-11-16T05:25:01.343Z",
+      "linkCount": 8,
+      "watchTerms": []
+    },
+    "product-blog": {
+      "url": "https://blog.replit.com/",
+      "family": "launch-channel",
+      "sourceType": "launch-channel",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "product-blog.html",
+      "sha256": "70e7aea517f30d99bb1f3c2926fa93d4dc1fe959f6bc1737d7a5cc67ce05033d",
+      "bytes": 259136,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-11-16T05:25:01.343Z",
+      "linkCount": 15,
+      "watchTerms": []
+    },
+    "status": {
+      "url": "https://status.replit.com/",
+      "family": "status",
+      "status": "FAILED",
+      "httpStatus": 403,
+      "error": null
+    },
+    "trust-safety": {
+      "url": "https://docs.replit.com/legal-and-security-info/misuse-and-trust-safety-policies",
+      "family": "trust-safety",
+      "status": "FAILED",
+      "httpStatus": 404,
+      "error": null
+    },
+    "security": {
+      "url": "https://docs.replit.com/legal-and-security-info/security",
+      "family": "security",
+      "sourceType": "security",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "security.html",
+      "sha256": "560870fb7b2cf57d804315c7ee749262d16ff768bc7313837c9b3f396fcb1306",
+      "bytes": 148199,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-11-16T05:25:01.343Z",
+      "linkCount": 13,
+      "watchTerms": []
+    },
+    "legal-terms": {
+      "url": "https://replit.com/site/terms",
+      "family": "legal",
+      "sourceType": "legal",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "legal-terms.html",
+      "sha256": "afa97a5224d32238fe5e63edf2c30fbd3c00f427670904e9b13eca4b94472f16",
+      "bytes": 158456,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-11-16T05:25:01.343Z",
+      "linkCount": 24,
+      "watchTerms": []
+    },
+    "pricing": {
+      "url": "https://replit.com/pricing",
+      "family": "product-route",
+      "status": "RENDER_UNAVAILABLE",
+      "httpStatus": 0,
+      "error": "playwright not installed (rendered families need a browser)"
+    },
+    "gallery": {
+      "url": "https://replit.com/gallery",
+      "family": "product-route",
+      "status": "RENDER_UNAVAILABLE",
+      "httpStatus": 0,
+      "error": "playwright not installed (rendered families need a browser)"
+    },
+    "community": {
+      "url": "https://replit.com/community",
+      "family": "product-route",
+      "status": "RENDER_UNAVAILABLE",
+      "httpStatus": 0,
+      "error": "playwright not installed (rendered families need a browser)"
+    }
+  }
+}
