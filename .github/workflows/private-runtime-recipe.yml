@@ -15,13 +15,15 @@ permissions:
 
 jobs:
   private-runtime:
-    runs-on: ubuntu-latest
+    # The dedicated baseline ref must never allocate a runner on push or in the full recipe mode.
+    if: ${{ github.ref != 'refs/heads/qa/aster-browser-baseline-20261115' || (github.event_name == 'workflow_dispatch' && inputs.browser_baseline) }}
+    # Keep the runner compatible with the pinned Playwright browser binaries.
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       HUSKY: '0'
       CI: 'true'
       E2E_PROVIDER_MODE: absent
-      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/aster-playwright
       PRIVATE_RUNTIME_BROWSER_BASELINE: ${{ inputs.browser_baseline && '1' || '0' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -52,7 +54,10 @@ jobs:
           echo "$RUNNER_TEMP/private-runtime-bin" >> "$GITHUB_PATH"
       - name: Install Chromium for the optional browser baseline
         if: inputs.browser_baseline
-        run: pnpm exec playwright install --with-deps chromium
+        run: |
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/aster-playwright"
+          printf 'PLAYWRIGHT_BROWSERS_PATH=%s\n' "$PLAYWRIGHT_BROWSERS_PATH" >> "$GITHUB_ENV"
+          pnpm exec playwright install --with-deps chromium
       - name: Validate recipe contracts
         run: |
           pnpm exec vitest run scripts/private-runtime-recipe/checks.test.ts

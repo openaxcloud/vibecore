@@ -16,7 +16,7 @@ The non-baseline upload condition remains effectively always(): missing/false br
 
 At this local source revision:
 
-- Exactly one job, private-runtime, runs on ubuntu-latest, timeout90minutes. No matrix, reusable workflow, job container or extra service VM is configured. Docker/kind containers stay inside that one machine.
+- Exactly one job, private-runtime, runs on ubuntu-24.04, timeout90minutes. No matrix, reusable workflow, job container or extra service VM is configured. Docker/kind containers stay inside that one machine.
 - A branch push to qa/aster-browser-baseline-20261115 (without a tag or PR) matches no workflow push trigger. The private recipe's old exact push branch remains unchanged. No PR or tag creation is included.
 - One workflow_dispatch of the existing private-runtime-recipe.yml with browser_baseline=true selects only that job. The only workflow_run consumer in the repository listens for Production Docker on stable, not this recipe. Scheduled workflows are independent, not children of this dispatch. No deployment workflow is invoked.
 - The three executed setup actions are pinned Node20 actions, not composites/reusable workflows: checkout11d5960a..., setup-node49933ea..., pnpm/action-setupb906affc.... Their pinned action.yml files were read from the official public repositories. setup-node's input cache is unset; its main saves cache state only when that input is nonempty and its post skips caching without that state. pnpm's pinned cache input defaults to false and is not overridden. upload-artifactea165f8... remains listed but its condition is false in baseline mode. No shared-cache write is configured.
