@@ -157,10 +157,12 @@ export function planReseedDeletions(tree: readonly PodTreeNode[], archivePaths: 
         continue;
       }
 
-      // Listings omit node_modules/.git. Even an apparently empty directory may
-      // contain protected descendants, so never issue a recursive parent delete.
-      // A file at the same archive path cannot be imported without removing that
-      // directory: refuse the complete plan before preview stop or any mutation.
+      /*
+       * Listings omit node_modules/.git. Even an apparently empty directory may
+       * contain protected descendants, so never issue a recursive parent delete.
+       * A file at the same archive path cannot be imported without removing that
+       * directory: refuse the complete plan before preview stop or any mutation.
+       */
       if (node.type === 'directory' && archivePaths.has(relative)) {
         throw new ReseedPreflightError('workspace-reseed: archive file conflicts with a runtime directory');
       }

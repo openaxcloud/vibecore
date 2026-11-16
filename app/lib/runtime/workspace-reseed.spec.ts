@@ -485,6 +485,7 @@ describe('orphan directory preservation', () => {
           { path, name: path.split('/').pop()!, type: 'directory', children: [] },
         ],
       });
+
       const events: string[] = [];
       await expect(
         reseedProjectTree({
@@ -515,6 +516,7 @@ describe('orphan directory preservation', () => {
 
   it('preserves hidden installation and VCS bytes on a real disposable filesystem', async () => {
     const root = await mkdtemp(join(tmpdir(), 'vibecore-reseed-orphan-'));
+
     const before = {
       'old/package-lock.json': 'lock-before',
       'old/node_modules/sentinel': 'dependencies-before',
@@ -523,13 +525,16 @@ describe('orphan directory preservation', () => {
       'old/stale.ts': 'obsolete',
       'keep.txt': 'before',
     };
+
     const deleted: string[] = [];
     const events: string[] = [];
+
     try {
       for (const [path, bytes] of Object.entries(before)) {
         await mkdir(dirname(join(root, path)), { recursive: true });
         await writeFile(join(root, path), bytes);
       }
+
       const runtime = {
         listFiles: async (path = '.'): Promise<FileNode[]> => {
           const entries = await readdir(join(root, path), { withFileTypes: true });
@@ -554,9 +559,14 @@ describe('orphan directory preservation', () => {
         },
         applyArchive: async (archive) => {
           events.push('import');
+
           const zip = await JSZip.loadAsync(archive);
+
           for (const entry of Object.values(zip.files)) {
-            if (entry.dir) continue;
+            if (entry.dir) {
+              continue;
+            }
+
             await mkdir(dirname(join(root, entry.name)), { recursive: true });
             await writeFile(join(root, entry.name), await entry.async('nodebuffer'));
           }
@@ -565,6 +575,7 @@ describe('orphan directory preservation', () => {
       expect(outcome).toEqual({ mode: 'selective', deleted: 1 });
       expect(deleted).toEqual(['old/stale.ts']);
       expect(events).toEqual(['stop', 'import']);
+
       for (const path of [
         'old/package-lock.json',
         'old/node_modules/sentinel',
