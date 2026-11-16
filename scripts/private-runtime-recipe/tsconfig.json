@@ -7,8 +7,26 @@
     "noEmit": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "types": ["node"],
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "baseUrl": "../..",
+    "paths": {
+      "~/*": [
+        "app/*"
+      ],
+      "@recipe/*": [
+        "scripts/*"
+      ]
+    }
   },
-  "include": ["./*.ts", "../validate-runtime-api-kubernetes.ts"]
+  "include": [
+    "./*.ts",
+    "../validate-runtime-api-kubernetes.ts"
+  ]
 }

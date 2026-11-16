@@ -1,0 +1,296 @@
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import JSZip from 'jszip';
+import { browserDestinationAllowed } from './baseline-policy.js';
+import { openHost, sha, validateProviderAbsent, type Identity } from './contracts.js';
+import { localOrigin } from './gateway.js';
+
+async function confine(context: BrowserContext, origin: string, violations: string[], previewOrigin?: string) {
+  await context.route('**/*', async (route) => {
+    const url = new URL(route.request().url());
+
+    if (!browserDestinationAllowed(url.href, origin, previewOrigin)) {
+      violations.push(`${url.origin}${url.pathname}`);
+      await route.abort('blockedbyclient');
+
+      return;
+    }
+
+    await route.continue();
+  });
+  await context.routeWebSocket('**/*', (socket) => {
+    const url = new URL(socket.url());
+
+    if (!browserDestinationAllowed(url.href, origin, previewOrigin)) {
+      violations.push(`${url.origin}${url.pathname}`);
+      socket.close();
+
+      return;
+    }
+
+    socket.connectToServer();
+  });
+}
+
+async function login(page: Page, origin: string, email: string, password: string) {
+  await page.goto(`${origin}/login?lang=en`);
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill(password);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/dashboard(?:\?|$)/);
+}
+
+function observe(page: Page, evidence: Record<string, unknown>[], phase: () => string) {
+  const pending: Promise<void>[] = [];
+  page.on('console', (message) => {
+    if (!message.text().startsWith('[workspace] reattach decision')) {
+      return;
+    }
+
+    const observedPhase = phase();
+    pending.push(
+      (async () => {
+        const value = await message.args()[1]?.jsonValue();
+        assert.ok(value && ['reseed', 'reattach'].includes(value.decision));
+
+        const fields = [
+          'reused',
+          'seededThisSession',
+          'hasLivePort',
+          'portProbeSucceeded',
+          'portsFromStore',
+          'portsFromServer',
+          'storeSnapshot',
+          'seededRevision',
+          'currentRevision',
+          'decision',
+        ];
+        evidence.push({ phase: observedPhase, decision: Object.fromEntries(fields.map((key) => [key, value[key]])) });
+      })(),
+    );
+  });
+
+  return () => Promise.all(pending);
+}
+
+async function marker(page: Page, workspaceId: string) {
+  return page.evaluate((key) => localStorage.getItem(key), `vc:ws-seed:${workspaceId}`);
+}
+
+async function preview(page: Page, expected: string) {
+  await page.getByRole('button', { name: 'Webview', exact: true }).click();
+  await expect(page.locator('iframe[title="preview"]').first()).toBeVisible({ timeout: 180_000 });
+  await expect(page.frameLocator('iframe[title="preview"]').locator('#proof')).toHaveText(expected, {
+    timeout: 180_000,
+  });
+}
+
+test('real contexts: baseline, warm reopen on new volume, clean reopen on another new volume', async ({
+  browser,
+}, testInfo) => {
+  validateProviderAbsent(process.env);
+
+  const baselineOnly = process.env.ASTER_BROWSER_BASELINE_ONLY === '1';
+  const assertions = { registration: false, preview: false };
+
+  const recordAssertion = (name?: keyof typeof assertions) => {
+    if (!baselineOnly) {
+      return;
+    }
+
+    if (name) {
+      assertions[name] = true;
+    }
+
+    mkdirSync('private-runtime-evidence', { recursive: true });
+    writeFileSync('private-runtime-evidence/browser-assertions.json', JSON.stringify(assertions));
+  };
+  recordAssertion();
+
+  const directory = process.env.ASTER_BROWSER_HOST_DIRECTORY;
+  assert.ok(
+    baselineOnly || directory,
+    'HOST_ORCHESTRATOR_REQUIRED: no kind or simulated receipts are started by this test',
+  );
+
+  const host = baselineOnly ? undefined : await openHost(directory!);
+  const origin = host?.descriptor.origin ?? process.env.ASTER_BROWSER_ORIGIN!;
+  localOrigin(origin);
+
+  const previewOrigin = baselineOnly ? process.env.ASTER_BROWSER_PREVIEW_ORIGIN : undefined;
+
+  if (previewOrigin) {
+    localOrigin(previewOrigin);
+    assert.notEqual(previewOrigin, origin);
+  }
+
+  const suffix = randomBytes(16).toString('hex');
+  const email = `aster-${suffix}@local.test`;
+  const password = `Aster-${randomBytes(16).toString('hex')}!`;
+  const proof = `aster-ui-${suffix}`;
+
+  const files = {
+    'package.json':
+      JSON.stringify({ private: true, scripts: { dev: 'node server.cjs', start: 'node server.cjs' } }) + '\n',
+    'aster-marker.txt': proof,
+    'server.cjs': `const fs=require('node:fs');require('node:http').createServer((q,s)=>{s.setHeader('content-type','text/html');s.end('<!doctype html><main id="proof">'+fs.readFileSync('aster-marker.txt','utf8')+'</main>')}).listen(5173,'0.0.0.0');\n`,
+  };
+
+  const expectedHashes = Object.fromEntries(Object.entries(files).map(([path, bytes]) => [path, sha(bytes)]));
+  const violations: string[] = [];
+  const evidence: Record<string, unknown>[] = [];
+
+  let phase = 'baseline';
+
+  const warm = await browser.newContext({
+    serviceWorkers: 'block',
+    locale: 'en-US',
+    viewport: { width: 1440, height: 1000 },
+  });
+  const cold = await browser.newContext({
+    serviceWorkers: 'block',
+    locale: 'en-US',
+    viewport: { width: 1440, height: 1000 },
+  });
+  await confine(warm, origin, violations, previewOrigin);
+  await confine(cold, origin, violations, previewOrigin);
+
+  const page = await warm.newPage();
+  const clean = await cold.newPage();
+  const flushWarm = observe(page, evidence, () => phase);
+  const flushCold = observe(clean, evidence, () => phase);
+
+  try {
+    await page.goto(`${origin}/register?lang=en`);
+    await page.locator('input[name="email"]').fill(email);
+    await page.locator('input[name="password"]').fill(password);
+    await page.locator('input[name="confirmPassword"]').fill(password);
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL(/\/dashboard(?:\?|$)/);
+
+    recordAssertion('registration');
+
+    // The second context authenticates through UI only; it never visits this IDE yet.
+    await login(clean, origin, email, password);
+
+    const zip = new JSZip();
+
+    for (const [path, bytes] of Object.entries(files)) {
+      zip.file(path, bytes);
+    }
+    await page.goto(`${origin}/import-zip?lang=en`);
+    await page.locator('input[type="file"]').setInputFiles({
+      name: `aster-${suffix}.zip`,
+      mimeType: 'application/zip',
+      buffer: await zip.generateAsync({ type: 'nodebuffer' }),
+    });
+    await page.locator('input[name="name"]').fill(`Aster fixture ${suffix}`);
+
+    const started = page.waitForResponse(
+      (r) =>
+        new URL(r.url()).origin === origin &&
+        new URL(r.url()).pathname === '/api/runtime/workspaces' &&
+        r.request().method() === 'POST' &&
+        r.ok(),
+    );
+    await page.locator('button[type="submit"]').click();
+
+    const response = await started;
+    const body = response.request().postDataJSON();
+    const session = await response.json();
+    const identity: Identity = { projectId: body.metadata?.projectId, workspaceId: session.id };
+    assert.ok(identity.projectId && identity.workspaceId && identity.projectId !== identity.workspaceId);
+
+    await expect(page).not.toHaveURL(/\/import-zip(?:\?|$)/);
+
+    const ideUrl = page.url();
+    assert.equal(new URL(ideUrl).origin, origin);
+    await preview(page, proof);
+    recordAssertion('preview');
+
+    if (baselineOnly) {
+      const seedMarker = await marker(page, identity.workspaceId);
+      assert.ok(seedMarker, 'Baseline did not produce a real seed marker');
+      await flushWarm();
+      expect(violations).toEqual([]);
+      evidence.push({
+        phase: 'baseline-only',
+        identity,
+        seedMarker: JSON.parse(seedMarker),
+        iframeRendered: true,
+        podBytes: 'not-inspected',
+        volumeReplacement: 'not-requested',
+        reopen: 'not-tested',
+      });
+
+      return;
+    }
+
+    assert.ok(host);
+
+    let current = (await host.request({ action: 'inspect', ...identity })).pod!;
+    expect(current.hashes).toMatchObject(expectedHashes);
+
+    const realMarker = await marker(page, identity.workspaceId);
+    assert.ok(realMarker, 'Baseline did not produce a real seed marker');
+    expect(await marker(clean, identity.workspaceId)).toBeNull();
+    evidence.push({ phase, identity, pod: current, seedMarker: JSON.parse(realMarker) });
+    await flushWarm();
+    await page.goto(`${origin}/dashboard`);
+
+    for (const [arm, target] of [
+      ['warm', page],
+      ['clean', clean],
+    ] as const) {
+      phase = arm;
+
+      const beforeMarker = await marker(target, identity.workspaceId);
+
+      if (arm === 'warm') {
+        expect(beforeMarker).toBe(realMarker);
+      } else {
+        expect(beforeMarker).toBeNull();
+      }
+
+      // Both pages are outside IDE, so no active provider may repopulate the volume during replacement.
+      expect(new URL(page.url()).pathname).toBe('/dashboard');
+      expect(new URL(clean.url()).pathname).toBe('/dashboard');
+
+      const replacement = await host.request({ action: 'replace-empty', ...identity, expected: current });
+      evidence.push({
+        phase,
+        beforeMarker: beforeMarker ? JSON.parse(beforeMarker) : null,
+        replacement: replacement.replaced,
+      });
+
+      const errors: string[] = [];
+      await target.goto(ideUrl);
+
+      try {
+        await preview(target, proof);
+      } catch {
+        errors.push('IFRAME_MARKER_NOT_RENDERED');
+      }
+      current = (await host.request({ action: 'inspect', ...identity })).pod!;
+      evidence.push({ phase, pod: current, errors, afterMarker: await marker(target, identity.workspaceId) });
+      expect(current.pvcUid).toBe(replacement.replaced!.newPvcUid);
+      expect.soft(current.hashes).toMatchObject(expectedHashes);
+      expect.soft(errors).toEqual([]);
+      await (arm === 'warm' ? flushWarm() : flushCold());
+      expect.soft(evidence.some((entry) => entry.phase === arm && entry.decision)).toBe(true);
+      await target.goto(`${origin}/dashboard`);
+    }
+    expect(violations).toEqual([]);
+  } finally {
+    await flushWarm();
+    await flushCold();
+    await testInfo.attach('aster-context-evidence', {
+      body: Buffer.from(JSON.stringify({ scope: 'real-browser-only-if-executed', evidence, violations }, null, 2)),
+      contentType: 'application/json',
+    });
+    await warm.close();
+    await cold.close();
+  }
+});

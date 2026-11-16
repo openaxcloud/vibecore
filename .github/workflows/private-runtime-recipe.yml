@@ -2,6 +2,11 @@ name: Private Runtime Recipe (functional only)
 
 on:
   workflow_dispatch:
+    inputs:
+      browser_baseline:
+        description: 'Run the non-destructive authenticated browser baseline only'
+        type: boolean
+        default: false
   push:
     branches: [validation/private-runtime-20261113-7b970996]
 
@@ -15,6 +20,9 @@ jobs:
     env:
       HUSKY: '0'
       CI: 'true'
+      E2E_PROVIDER_MODE: absent
+      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/aster-playwright
+      PRIVATE_RUNTIME_BROWSER_BASELINE: ${{ inputs.browser_baseline && '1' || '0' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -42,23 +50,43 @@ jobs:
           echo "$(cat kubectl.sha256)  kubectl" | sha256sum -c -
           chmod 0755 kind kubectl
           echo "$RUNNER_TEMP/private-runtime-bin" >> "$GITHUB_PATH"
+      - name: Install Chromium for the optional browser baseline
+        if: inputs.browser_baseline
+        run: pnpm exec playwright install --with-deps chromium
       - name: Validate recipe contracts
         run: |
           pnpm exec vitest run scripts/private-runtime-recipe/checks.test.ts
           pnpm exec tsc -p scripts/private-runtime-recipe/tsconfig.json
+          pnpm exec vitest run scripts/aster-browser/stack.spec.ts scripts/aster-browser/baseline-policy.spec.ts scripts/aster-browser/environment.spec.ts
       - name: Real API to manager to pod recipe
+        id: recipe
         run: pnpm exec tsx scripts/private-runtime-recipe/run.ts
       - name: Remove only the generated local cluster (also on cancellation)
+        id: cleanup
         if: always()
         run: |
           if test -f "$RUNNER_TEMP/vibecore-private-runtime-state.json"; then
             node_modules/.bin/tsx scripts/private-runtime-recipe/run.ts --cleanup
           fi
+      - name: Bounded browser baseline summary
+        if: always() && inputs.browser_baseline
+        env:
+          BASELINE_JOB_STATUS: ${{ job.status }}
+          BASELINE_RECIPE_OUTCOME: ${{ steps.recipe.outcome }}
+          BASELINE_CLEANUP_OUTCOME: ${{ steps.cleanup.outcome }}
+        run: |
+          if test -f scripts/aster-browser/job_summary.py; then
+            python3 scripts/aster-browser/job_summary.py
+          else
+            printf '%s\n' 'Browser baseline: summary unavailable because checkout is incomplete.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Upload sanitized evidence
-        if: always()
+        if: always() && !inputs.browser_baseline
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: private-runtime-functional-${{ github.run_id }}-${{ github.run_attempt }}
-          path: private-runtime-evidence/
+          path: |
+            private-runtime-evidence/
+            scripts/aster-browser/aster-browser-results/
           if-no-files-found: ignore
           retention-days: 7
