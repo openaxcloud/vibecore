@@ -3,6 +3,11 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { validateProviderAbsent } from '@recipe/aster-browser/contracts.js';
+import { assertNoLocalEnvFiles, baselineEnvironments } from '@recipe/aster-browser/environment.js';
+import { startGateway } from '@recipe/aster-browser/gateway.js';
+import { browserStack } from '@recipe/aster-browser/stack.js';
+import { attestSamePvcSources } from '@recipe/aster-browser/source-attestation.mjs';
 import { assertRecipeClusterName, assertRecipeKubeconfig, assertRecipeEvent } from './checks.js';
 import { podEvidence, type EvidencePod } from './evidence.js';
 import { dependencyImages, recipeManifests } from './manifests.js';
@@ -23,6 +28,12 @@ type State = { name: string; directory: string; kubeconfig: string };
 let state: State;
 
 const forwards: ChildProcess[] = [];
+const browserBaseline = process.env.PRIVATE_RUNTIME_BROWSER_BASELINE === '1';
+const samePvc = process.env.PRIVATE_RUNTIME_SAME_PVC === '1';
+assert.ok(!samePvc || browserBaseline, 'Same-PVC requires the real browser stack');
+const sourceAttestation = samePvc ? attestSamePvcSources(process.env, process.cwd(), process.argv.includes('--cleanup')) : undefined;
+
+let closeGateway: (() => void) | undefined;
 
 function childEnv(): NodeJS.ProcessEnv {
   const result: NodeJS.ProcessEnv = {
@@ -41,10 +52,10 @@ function childEnv(): NodeJS.ProcessEnv {
 async function run(
   command: string,
   args: string[],
-  options: { input?: string; stream?: boolean; timeout?: number; progressFile?: string } = {},
+  options: { input?: string; stream?: boolean; timeout?: number; progressFile?: string; env?: NodeJS.ProcessEnv } = {},
 ): Promise<string> {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, { env: childEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(command, args, { env: options.env ?? childEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
 
     let stdout = '';
     let outputBytes = 0;
@@ -130,6 +141,7 @@ async function assertLocalCluster() {
 }
 
 async function cleanup() {
+  closeGateway?.();
   forwards.forEach((child) => child.kill());
 
   if (!existsSync(statePath)) {
@@ -200,6 +212,12 @@ async function main() {
     return;
   }
 
+  if (browserBaseline) {
+    validateProviderAbsent(process.env);
+    assertNoLocalEnvFiles(process.cwd());
+    assert.equal(process.env.PLAYWRIGHT_BROWSERS_PATH, join(temp, 'aster-playwright'));
+  }
+
   const name = `vc-private-${randomBytes(8).toString('hex')}`;
   const directory = mkdtempSync(join(temp, 'vc-private-'));
   state = { name, directory, kubeconfig: join(directory, 'kubeconfig') };
@@ -208,6 +226,20 @@ async function main() {
   writeFileSync(statePath, JSON.stringify(state), { flag: 'wx', mode: 0o600 });
 
   let stage = 'create-local-cluster';
+
+  const startedAt = new Date().toISOString();
+
+  const setStage = (value: string) => {
+    stage = value;
+
+    if (browserBaseline) {
+      writeFileSync(
+        join(evidence, 'baseline-stage.json'),
+        JSON.stringify({ stage, startedAt, updatedAt: new Date().toISOString() }),
+      );
+    }
+  };
+  setStage(stage);
 
   try {
     await run(
@@ -228,7 +260,7 @@ async function main() {
     );
     await assertLocalCluster();
     await kubectl(['get', 'storageclass', 'standard']);
-    stage = 'build-local-images';
+    setStage('build-local-images');
     await docker(
       [
         'build',
@@ -322,15 +354,23 @@ async function main() {
       ],
       { stream: true, timeout: 600_000 },
     );
-    stage = 'start-local-dependencies';
+    setStage('start-local-dependencies');
 
-    const resources = recipeManifests(
+    const baseResources = recipeManifests(
       name,
       ...(Array.from({ length: 4 }, () => randomBytes(32).toString('hex')) as [string, string, string, string]),
     );
+
+    const tenantKey = randomBytes(32).toString('hex');
+
+    const resources = browserBaseline
+      ? browserStack(baseResources, tenantKey, randomBytes(32).toString('hex'))
+      : baseResources;
+
     const late = resources.filter(
       (resource) =>
-        ['api', 'manager', 'migrate'].includes(resource.metadata.name) && ['Deployment', 'Job'].includes(resource.kind),
+        ['api', 'manager', 'migrate', 'preview'].includes(resource.metadata.name) &&
+        ['Deployment', 'Job'].includes(resource.kind),
     );
 
     const early = resources.filter((resource) => !late.includes(resource));
@@ -340,13 +380,13 @@ async function main() {
     for (const service of ['postgres', 'redis']) {
       await kubectl(['-n', name, 'rollout', 'status', `deployment/${service}`, '--timeout=180s']);
     }
-    stage = 'migrate-local-postgres';
+    setStage('migrate-local-postgres');
     await kubectl(
       ['apply', '-f', '-'],
       JSON.stringify({ apiVersion: 'v1', kind: 'List', items: late.filter((resource) => resource.kind === 'Job') }),
     );
     await kubectl(['-n', name, 'wait', '--for=condition=complete', 'job/migrate', '--timeout=600s']);
-    stage = 'start-real-api-and-manager';
+    setStage('start-real-api-and-manager');
     await kubectl(
       ['apply', '-f', '-'],
       JSON.stringify({
@@ -361,7 +401,104 @@ async function main() {
     }
     await forward('api', 3001);
     await forward('manager', 3010);
-    stage = 'real-api-manager-agent-validation';
+
+    if (browserBaseline) {
+      setStage('browser-baseline');
+      await kubectl(['-n', name, 'rollout', 'status', 'deployment/preview', '--timeout=180s']);
+      await forward('preview', 3020);
+      await assertLocalCluster();
+      assertNoLocalEnvFiles(process.cwd());
+
+      const privateHome = mkdtempSync(join(state.directory, 'browser-home-'));
+
+      const environments = baselineEnvironments(
+        process.env.PATH!,
+        privateHome,
+        join(temp, 'aster-playwright'),
+        tenantKey,
+      );
+
+      const web = spawn('node_modules/.bin/react-router', ['dev', '--mode', 'development'], {
+        env: environments.web,
+        stdio: ['ignore', 'ignore', 'ignore'],
+      });
+      forwards.push(web);
+
+      let webError = false;
+      web.on('error', () => {
+        webError = true;
+      });
+
+      let ready = false;
+
+      for (let attempt = 0; attempt < 120; attempt++) {
+        assert.ok(!webError && web.exitCode === null, 'Local web process exited');
+
+        try {
+          const response = await fetch('http://127.0.0.1:5173/login', {
+            redirect: 'manual',
+            signal: AbortSignal.timeout(1000),
+          });
+          ready = response.status === 200;
+          await response.body?.cancel();
+        } catch {
+          /* Startup connection refused; bounded readiness retry. */
+        }
+
+        if (ready) {
+          break;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      assert.ok(ready, 'Local web did not become ready');
+
+      const gateway = await startGateway('http://127.0.0.1:5173', 'http://127.0.0.1:3001');
+
+      closeGateway = () => {
+        gateway.server.closeAllConnections();
+        gateway.server.close();
+      };
+      const samePvcDescriptor = join(state.directory, 'same-pvc-controller.json');
+      if (samePvc) {
+        assert.ok(sourceAttestation);
+        await assertLocalCluster();
+        writeFileSync(samePvcDescriptor, JSON.stringify({ name, context: `kind-${name}`,
+          kubeconfig: state.kubeconfig, productSha: sourceAttestation.productSha }), { mode: 0o600 });
+      }
+      await run('node_modules/.bin/playwright', ['test', '--config', 'scripts/aster-browser/playwright.config.ts'], {
+        timeout: 900_000,
+        progressFile: join(evidence, 'browser-progress.txt'),
+        env: {
+          ...environments.playwright,
+          ...(samePvc ? { ASTER_SAME_PVC_DESCRIPTOR: samePvcDescriptor } : {}),
+          ASTER_BROWSER_ORIGIN: gateway.origin,
+          ASTER_BROWSER_PREVIEW_ORIGIN: 'http://127.0.0.1:3020',
+        },
+      });
+      writeFileSync(
+        join(evidence, 'result.json'),
+        JSON.stringify(
+          {
+            ok: true,
+            stage,
+            cluster: name,
+            commit: process.env.GITHUB_SHA,
+            ...(sourceAttestation ? { sourceAttestation } : {}),
+            scope: samePvc ? 'authenticated-browser-same-pvc-reseed' : 'authenticated-browser-baseline-only',
+            volumeReplacement: samePvc ? 'same-pvc-new-pod' : 'not-tested',
+            podBytes: samePvc ? 'canonical-and-orphan-witnesses-checked' : 'not-inspected',
+            aiGeneration: 'not-tested',
+          },
+          null,
+          2,
+        ),
+      );
+
+      return;
+    }
+
+    setStage('real-api-manager-agent-validation');
     await assertLocalCluster();
     process.env.PRIVATE_RUNTIME_RECIPE_ID = name;
     process.env.RUNTIME_API_E2E_PRIVATE_RECIPE = '1';
@@ -383,6 +520,7 @@ async function main() {
           stage,
           cluster: name,
           commit: process.env.GITHUB_SHA,
+            ...(sourceAttestation ? { sourceAttestation } : {}),
           scope: 'functional-local-only',
           aiGeneration: 'not-tested',
           productionIsolation: 'not-tested',

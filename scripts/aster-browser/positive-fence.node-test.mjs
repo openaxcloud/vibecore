@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {newPositiveCompletion,positiveTreeFence,successMessage} from './positive-fence.mjs';
+const identity={workspaceId:'w',projectId:'p'},processIdentity={uid:'api',restartCount:0,containerId:'c'};
+const entry=(extra={})=>JSON.stringify({msg:successMessage,...identity,missing:1,diverged:0,...extra})+'\n';
+const snapshot=(logs='',process=processIdentity)=>({logs,process});
+test('new exact positive event accepted',()=>assert.equal(newPositiveCompletion(snapshot(),snapshot(entry()),identity).missing,1));
+test('old event never satisfies fence',()=>assert.equal(newPositiveCompletion(snapshot(entry()),snapshot(entry()),identity),null));
+test('other identity cannot satisfy fence',()=>{for(const extra of [{workspaceId:'other'},{projectId:'other'}])assert.equal(newPositiveCompletion(snapshot(),snapshot(entry(extra)),identity),null);});
+test('wrong counts rejected',()=>{for(const extra of [{missing:0},{missing:2},{diverged:1}])assert.throws(()=>newPositiveCompletion(snapshot(),snapshot(entry(extra)),identity));});
+test('rotation/restart/partial cursor rejected',()=>{assert.throws(()=>newPositiveCompletion(snapshot('old\n'),snapshot(entry()),identity));assert.throws(()=>newPositiveCompletion(snapshot(),snapshot(entry(),{...processIdentity,restartCount:1}),identity));assert.throws(()=>newPositiveCompletion(snapshot('partial'),snapshot('partial'+entry()),identity));});
+test('multiple completions rejected',()=>assert.throws(()=>newPositiveCompletion(snapshot(),snapshot(entry()+entry()),identity)));
+test('one tree then positive log and exact bytes',async()=>{const calls=[];let logs=0;const expected={podUid:'pod',pvcUid:'pvc'};const result=await positiveTreeFence({identity,proof:'nonce',expected,inspect:async()=>{calls.push('inspect');return expected;},snapshot:async()=>{calls.push('logs');return snapshot(logs++?entry():'');},removeMarker:async()=>calls.push('remove'),fetchTree:async()=>calls.push('tree')});assert.deepEqual(calls,['inspect','logs','remove','tree','logs','inspect']);assert.equal(result.markerRestored,true);});
+test('silence inconclusive without retrying tree',async()=>{let trees=0;const expected={podUid:'pod'};await assert.rejects(positiveTreeFence({identity,proof:'nonce',expected,deadlineMs:0,inspect:async()=>expected,snapshot:async()=>snapshot(),removeMarker:async()=>{},fetchTree:async()=>{trees++;}}),/INCONCLUSIVE_NO_POSITIVE/);assert.equal(trees,1);});
+test('tree failure cannot pass',async()=>{const expected={podUid:'pod'};await assert.rejects(positiveTreeFence({identity,proof:'nonce',expected,inspect:async()=>expected,snapshot:async()=>snapshot(),removeMarker:async()=>{},fetchTree:async()=>{throw Error('403');}}),/403/);});
+test('pod change cannot pass',async()=>{let reads=0,logs=0;const expected={podUid:'pod'};await assert.rejects(positiveTreeFence({identity,proof:'nonce',expected,inspect:async()=>reads++?{podUid:'other'}:expected,snapshot:async()=>snapshot(logs++?entry():''),removeMarker:async()=>{},fetchTree:async()=>{}}),/POD_IDENTITY_CHANGED/);});
