@@ -1,5 +1,8 @@
-import { recipeManifests } from '@recipe/private-runtime-recipe/manifests.js';
+import { spawnSync } from 'node:child_process';
+
 import { expect, it } from 'vitest';
+// eslint-disable-next-line no-restricted-imports -- QA overlays must resolve without changing the exact product tsconfig.
+import { recipeManifests } from '../private-runtime-recipe/manifests.js';
 import { browserStack } from './stack.js';
 
 it('adds the real proxy with all ownership gates and changes no original manifests', () => {
@@ -8,9 +11,11 @@ it('adds the real proxy with all ownership gates and changes no original manifes
   const before = JSON.stringify(original);
   const result = browserStack(original, 'a'.repeat(64), 'b'.repeat(64));
   expect(JSON.stringify(original)).toBe(before);
-  expect(result.every((r) => (r.kind === 'Namespace' ? r.metadata.name === name : ('namespace' in r.metadata && r.metadata.namespace === name)))).toBe(
-    true,
-  );
+  expect(
+    result.every((r) =>
+      r.kind === 'Namespace' ? r.metadata.name === name : 'namespace' in r.metadata && r.metadata.namespace === name,
+    ),
+  ).toBe(true);
   expect(result.length).toBe(original.length + 2);
 
   const proxy = result.find((r) => r.kind === 'Deployment' && r.metadata.name === 'preview');
@@ -37,3 +42,22 @@ it('adds the real proxy with all ownership gates and changes no original manifes
   expect(() => browserStack(original, 'bad', 'b'.repeat(64))).toThrow();
   expect(() => browserStack(original, 'a'.repeat(64), 'a'.repeat(64))).toThrow();
 });
+
+it.each([{ args: [] }, { args: ['--cleanup'] }])(
+  'loads the default tsx loader then fails closed outside Actions (%j)',
+  ({ args }) => {
+    const result = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/private-runtime-recipe/run.ts', ...args], {
+      cwd: process.cwd(),
+      env: { PATH: process.env.PATH },
+      encoding: 'utf8',
+      timeout: 30_000,
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('AssertionError');
+    expect(result.stderr).toContain('undefined');
+    expect(result.stderr).toContain("'true'");
+    expect(result.stderr).not.toContain('ERR_MODULE_NOT_FOUND');
+    expect(result.stderr).not.toContain('Cannot find');
+  },
+);

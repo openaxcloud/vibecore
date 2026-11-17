@@ -6,5 +6,5 @@ try {
 } catch { /* Absent proof cannot pass. */ }
 const passed=process.env.RECIPE_OUTCOME==='success'&&process.env.CLEANUP_OUTCOME==='success'&&evidence;
 const outcome=passed?'PASS: same-PVC selective reseed regression verified':'NOT VERIFIED: failed, cancelled, skipped, or incomplete evidence';
-const text=`## Vibecore #932 isolated regression\n${outcome}\n\nCanonical file kept intact on browser reopen. No durable-manifest or fresh-volume claim. No production deployment.\n`;
+const text=`## Vibecore #932 isolated regression\n${outcome}\n\n${passed?'Canonical file kept intact on browser reopen.':'Canonical preservation was not verified.'} No durable-manifest or fresh-volume claim. No production deployment.\n`;
 console.log(text);if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,text);if(!passed)process.exitCode=1;

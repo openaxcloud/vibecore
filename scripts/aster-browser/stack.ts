@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { recipeManifests } from '@recipe/private-runtime-recipe/manifests.js';
+// eslint-disable-next-line no-restricted-imports -- QA overlays must resolve without changing the exact product tsconfig.
+import { recipeManifests } from '../private-runtime-recipe/manifests.js';
 
 type Deployment = {
   apiVersion: string;

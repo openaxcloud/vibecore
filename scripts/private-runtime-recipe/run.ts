@@ -3,21 +3,29 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { validateProviderAbsent } from '@recipe/aster-browser/contracts.js';
-import { assertNoLocalEnvFiles, baselineEnvironments } from '@recipe/aster-browser/environment.js';
-import { startGateway } from '@recipe/aster-browser/gateway.js';
-import { browserStack } from '@recipe/aster-browser/stack.js';
-import { attestSamePvcSources } from '@recipe/aster-browser/source-attestation.mjs';
+// eslint-disable-next-line no-restricted-imports -- QA overlays must resolve without changing the exact product tsconfig.
+import { validateProviderAbsent } from '../aster-browser/contracts.js';
+// eslint-disable-next-line no-restricted-imports -- QA overlays must resolve without changing the exact product tsconfig.
+import { assertNoLocalEnvFiles, baselineEnvironments } from '../aster-browser/environment.js';
+// eslint-disable-next-line no-restricted-imports -- QA overlays must resolve without changing the exact product tsconfig.
+import { startGateway } from '../aster-browser/gateway.js';
+// eslint-disable-next-line no-restricted-imports -- QA overlays must resolve without changing the exact product tsconfig.
+import { attestSamePvcSources } from '../aster-browser/source-attestation.mjs';
+// eslint-disable-next-line no-restricted-imports -- QA overlays must resolve without changing the exact product tsconfig.
+import { browserStack } from '../aster-browser/stack.js';
+
 import { assertRecipeClusterName, assertRecipeKubeconfig, assertRecipeEvent } from './checks.js';
 import { podEvidence, type EvidencePod } from './evidence.js';
 import { dependencyImages, recipeManifests } from './manifests.js';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
+
 // Same-PVC has its own stricter payload/parent attestation below; preserve the historical gate otherwise.
 if (process.env.PRIVATE_RUNTIME_SAME_PVC !== '1') {
   assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
 }
+
 assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
 assert.equal(process.env.RUNNER_OS, 'Linux');
 assert.ok(process.env.RUNNER_TEMP);
@@ -34,7 +42,10 @@ const forwards: ChildProcess[] = [];
 const browserBaseline = process.env.PRIVATE_RUNTIME_BROWSER_BASELINE === '1';
 const samePvc = process.env.PRIVATE_RUNTIME_SAME_PVC === '1';
 assert.ok(!samePvc || browserBaseline, 'Same-PVC requires the real browser stack');
-const sourceAttestation = samePvc ? attestSamePvcSources(process.env, process.cwd(), process.argv.includes('--cleanup')) : undefined;
+
+const sourceAttestation = samePvc
+  ? attestSamePvcSources(process.env, process.cwd(), process.argv.includes('--cleanup'))
+  : undefined;
 
 let closeGateway: (() => void) | undefined;
 
@@ -462,13 +473,24 @@ async function main() {
         gateway.server.closeAllConnections();
         gateway.server.close();
       };
+
       const samePvcDescriptor = join(state.directory, 'same-pvc-controller.json');
+
       if (samePvc) {
         assert.ok(sourceAttestation);
         await assertLocalCluster();
-        writeFileSync(samePvcDescriptor, JSON.stringify({ name, context: `kind-${name}`,
-          kubeconfig: state.kubeconfig, productSha: sourceAttestation.productSha }), { mode: 0o600 });
+        writeFileSync(
+          samePvcDescriptor,
+          JSON.stringify({
+            name,
+            context: `kind-${name}`,
+            kubeconfig: state.kubeconfig,
+            productSha: sourceAttestation.productSha,
+          }),
+          { mode: 0o600 },
+        );
       }
+
       await run('node_modules/.bin/playwright', ['test', '--config', 'scripts/aster-browser/playwright.config.ts'], {
         timeout: 900_000,
         progressFile: join(evidence, 'browser-progress.txt'),
@@ -523,7 +545,7 @@ async function main() {
           stage,
           cluster: name,
           commit: process.env.GITHUB_SHA,
-            ...(sourceAttestation ? { sourceAttestation } : {}),
+          ...(sourceAttestation ? { sourceAttestation } : {}),
           scope: 'functional-local-only',
           aiGeneration: 'not-tested',
           productionIsolation: 'not-tested',
