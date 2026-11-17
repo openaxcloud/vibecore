@@ -14,7 +14,10 @@ import { dependencyImages, recipeManifests } from './manifests.js';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
-assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+// Same-PVC has its own stricter payload/parent attestation below; preserve the historical gate otherwise.
+if (process.env.PRIVATE_RUNTIME_SAME_PVC !== '1') {
+  assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+}
 assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
 assert.equal(process.env.RUNNER_OS, 'Linux');
 assert.ok(process.env.RUNNER_TEMP);

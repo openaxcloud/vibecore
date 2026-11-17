@@ -3,7 +3,7 @@ name: Private Runtime Recipe (functional only)
 on:
   workflow_dispatch:
   push:
-    branches: [validation/private-runtime-20261113-7b970996]
+    branches: [validation/private-runtime-20261113-7b970996, qa/vibecore-same-pvc-932]
 
 permissions:
   contents: read
@@ -65,7 +65,7 @@ jobs:
           retention-days: 7
 
   same-pvc-932:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/qa/vibecore-same-pvc-932' }}
+    if: ${{ github.event_name == 'push' && github.repository == 'openaxcloud/vibecore' && github.ref == 'refs/heads/qa/vibecore-same-pvc-932' && github.run_attempt == 1 && github.event.before == 'cbcfbdb171ce733699ab0ac06b8545b1ee50edb9' && github.event.after == github.sha && github.event.forced == false && github.event.created == false && github.event.deleted == false && github.event.repository.private == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -86,6 +86,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.workflow_sha }}
+          fetch-depth: 2
           path: qa-source
           persist-credentials: false
       - name: Checkout exact detached product
