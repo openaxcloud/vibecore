@@ -15,8 +15,11 @@ import { attestSamePvcSources } from '../aster-browser/source-attestation.mjs';
 import { browserStack } from '../aster-browser/stack.js';
 
 import { assertRecipeClusterName, assertRecipeKubeconfig, assertRecipeEvent } from './checks.js';
+import { diagnostic } from './diagnostics.mjs';
 import { podEvidence, type EvidencePod } from './evidence.js';
 import { dependencyImages, recipeManifests } from './manifests.js';
+
+diagnostic.stage('initialization');
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
@@ -107,6 +110,7 @@ async function run(
       // Buffered commands may carry Secret manifests. Never print their stderr.
     });
     child.on('error', (error) => {
+      diagnostic.status('command-spawn');
       clearTimeout(timer);
       clearTimeout(killTimer);
       reject(error);
@@ -118,6 +122,9 @@ async function run(
       if (!timedOut && code === 0 && outputBytes <= 16 * 1024 * 1024) {
         resolvePromise(stdout);
       } else {
+        diagnostic.status(
+          timedOut ? 'command-timeout' : outputBytes > 16 * 1024 * 1024 ? 'output-limit' : 'command-exit',
+        );
         reject(
           new Error(`${command} ${args.slice(0, 3).join(' ')} failed (exit ${code}); see recipe stage/status evidence`),
         );
@@ -155,10 +162,12 @@ async function assertLocalCluster() {
 }
 
 async function cleanup() {
+  diagnostic.stage('cleanup');
   closeGateway?.();
   forwards.forEach((child) => child.kill());
 
   if (!existsSync(statePath)) {
+    diagnostic.status('no-state');
     return;
   }
 
@@ -173,6 +182,7 @@ async function cleanup() {
   ).trim();
 
   if (!nodes) {
+    diagnostic.status('no-owned-node');
     return;
   }
 
@@ -180,6 +190,7 @@ async function cleanup() {
 
   // kind delete touches only this generated local Docker node, never a remote kube context.
   await run('kind', ['delete', 'cluster', '--name', state.name, '--kubeconfig', state.kubeconfig], { stream: true });
+  diagnostic.status('owned-node-deleted');
 }
 
 async function forward(service: string, port: number) {
@@ -245,6 +256,7 @@ async function main() {
 
   const setStage = (value: string) => {
     stage = value;
+    diagnostic.stage(value);
 
     if (browserBaseline) {
       writeFileSync(
@@ -289,6 +301,8 @@ async function main() {
       true,
     );
 
+    setStage('build-production-agent');
+
     // Build the unchanged production Dockerfile, with a pinned local FROM image.
     const agentBase = 'node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5';
     await docker(['pull', agentBase], true);
@@ -297,6 +311,8 @@ async function main() {
       ['build', '--pull=false', '-f', 'services/workspace-agent/Dockerfile', '-t', `vc-private-agent:${name}`, '.'],
       true,
     );
+
+    setStage('inspect-production-agent');
 
     const baseLayers = JSON.parse(
       await docker(['image', 'inspect', '--format', '{{json .RootFS.Layers}}', agentBase]),
@@ -339,6 +355,8 @@ async function main() {
     console.log(JSON.stringify({ productionAgentBuild: agentBuild }));
     process.env.PRIVATE_RUNTIME_EXPECTED_AGENT_IMAGE_ID = agentImageID;
 
+    setStage('pull-dependency-images');
+
     for (const [service, image] of Object.entries(dependencyImages)) {
       await docker(['pull', image], true);
 
@@ -355,6 +373,7 @@ async function main() {
         }),
       );
     }
+    setStage('load-local-images');
     await run(
       'kind',
       [
@@ -467,6 +486,8 @@ async function main() {
       }
       assert.ok(ready, 'Local web did not become ready');
 
+      setStage('browser-web-ready');
+
       const gateway = await startGateway('http://127.0.0.1:5173', 'http://127.0.0.1:3001');
 
       closeGateway = () => {
@@ -491,6 +512,7 @@ async function main() {
         );
       }
 
+      setStage('browser-journey');
       await run('node_modules/.bin/playwright', ['test', '--config', 'scripts/aster-browser/playwright.config.ts'], {
         timeout: 900_000,
         progressFile: join(evidence, 'browser-progress.txt'),
@@ -519,6 +541,8 @@ async function main() {
           2,
         ),
       );
+
+      diagnostic.status('completed');
 
       return;
     }
@@ -556,7 +580,9 @@ async function main() {
       ),
     );
     console.log(result);
+    diagnostic.status('completed');
   } catch (error) {
+    diagnostic.status('failed');
     console.log(JSON.stringify({ ok: false, stage, cluster: name }));
     writeFileSync(
       join(evidence, 'result.json'),

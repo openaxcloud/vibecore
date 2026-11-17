@@ -20,5 +20,5 @@ test('historical event gate unchanged and dedicated attestation occurs before la
  assert.ok(run.includes('assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF)'));
  const attestation=run.search(/const sourceAttestation = samePvc\s*\? attestSamePvcSources\(/);
  assert.ok(attestation>=0&&attestation<run.indexOf('async function main'));
- assert.deepEqual([...launchPaths].sort(),['.github/workflows/private-runtime-recipe.yml', 'scripts/aster-browser/baseline-policy.spec.ts', 'scripts/aster-browser/same-pvc-summary.mjs', 'scripts/aster-browser/source-attestation.mjs', 'scripts/aster-browser/source-attestation.node-test.mjs', 'scripts/aster-browser/stack.spec.ts', 'scripts/aster-browser/stack.ts', 'scripts/private-runtime-recipe/run.ts']);
+ assert.deepEqual([...launchPaths].sort(),['.github/workflows/private-runtime-recipe.yml', 'scripts/aster-browser/diagnostics.node-test.mjs', 'scripts/aster-browser/overlay-files.json', 'scripts/aster-browser/source-attestation.mjs', 'scripts/aster-browser/source-attestation.node-test.mjs', 'scripts/private-runtime-recipe/diagnostics.d.mts', 'scripts/private-runtime-recipe/diagnostics.mjs', 'scripts/private-runtime-recipe/run.ts']);
 });

@@ -65,7 +65,7 @@ jobs:
           retention-days: 7
 
   same-pvc-932:
-    if: ${{ github.event_name == 'push' && github.repository == 'openaxcloud/vibecore' && github.ref == 'refs/heads/qa/vibecore-same-pvc-932' && github.run_attempt == 1 && github.event.before == '4ffeb67533f0f317ff1e3d07dbe4abba2e686691' && github.event.after == github.sha && github.event.forced == false && github.event.created == false && github.event.deleted == false && github.event.repository.private == false }}
+    if: ${{ github.event_name == 'push' && github.repository == 'openaxcloud/vibecore' && github.ref == 'refs/heads/qa/vibecore-same-pvc-932' && github.run_attempt == 1 && github.event.before == '686f1f7c9ff767d0cc8fdcef43697cb70c3f882a' && github.event.after == github.sha && github.event.forced == false && github.event.created == false && github.event.deleted == false && github.event.repository.private == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -136,7 +136,7 @@ jobs:
         id: recipe932
         run: |
           set -euo pipefail
-          if pnpm exec tsx scripts/private-runtime-recipe/run.ts > "$RUNNER_TEMP/same-pvc-private-run.log" 2>&1; then
+          if pnpm exec tsx scripts/private-runtime-recipe/run.ts > "$RUNNER_TEMP/same-pvc-private-run.log" 2>&1 3> "$RUNNER_TEMP/same-pvc-diagnostics.jsonl"; then
             echo 'Recipe finished; verified outcome follows after cleanup.'
           else
             echo '::error::Same-PVC recipe did not complete. Raw logs withheld; no regression pass.'
@@ -148,10 +148,12 @@ jobs:
         run: |
           set -euo pipefail
           if test -f "$RUNNER_TEMP/vibecore-private-runtime-state.json"; then
-            if ! node_modules/.bin/tsx scripts/private-runtime-recipe/run.ts --cleanup > "$RUNNER_TEMP/same-pvc-private-cleanup.log" 2>&1; then
+            if ! node_modules/.bin/tsx scripts/private-runtime-recipe/run.ts --cleanup > "$RUNNER_TEMP/same-pvc-private-cleanup.log" 2>&1 3> "$RUNNER_TEMP/same-pvc-cleanup-diagnostics.jsonl"; then
               echo '::error::Owned-cluster cleanup failed; result is not a pass.'
               exit 1
             fi
+          else
+            printf '["cleanup","no-state"]\n' > "$RUNNER_TEMP/same-pvc-cleanup-diagnostics.jsonl"
           fi
           echo 'Owned-cluster cleanup completed or no cluster state was created.'
       - name: Sanitized regression verdict only
@@ -160,6 +162,12 @@ jobs:
           RECIPE_OUTCOME: ${{ steps.recipe932.outcome }}
           CLEANUP_OUTCOME: ${{ steps.cleanup932.outcome }}
         run: |
+          if test -f scripts/private-runtime-recipe/diagnostics.mjs; then
+            echo 'Recipe checkpoints (not a verdict):'
+            node scripts/private-runtime-recipe/diagnostics.mjs "$RUNNER_TEMP/same-pvc-diagnostics.jsonl"
+            echo 'Cleanup checkpoints (not a verdict):'
+            node scripts/private-runtime-recipe/diagnostics.mjs "$RUNNER_TEMP/same-pvc-cleanup-diagnostics.jsonl"
+          fi
           if test -f scripts/aster-browser/same-pvc-summary.mjs; then
             node scripts/aster-browser/same-pvc-summary.mjs
           else
