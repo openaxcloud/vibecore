@@ -1,0 +1,51 @@
+name: Temporary manager pod structural read
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temporary-manager-pod-structural-read
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    if: github.repository == 'openaxcloud/vibecore' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Check fixed target and expiry before authentication
+        run: python3 .github/diagnostics/manager-pod-structure.py --preflight
+      - name: Authenticate with existing production WIF identity
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          install_components: gke-gcloud-auth-plugin,kubectl
+      - name: Select fixed existing Connect Gateway membership
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gcloud container fleet memberships get-credentials vibecore-prod-app \
+            --project="${GCP_PROJECT_ID}" --location=europe-west9 >/dev/null 2>&1; then
+            echo 'MANAGER_DIAGNOSTIC_CONTEXT_FAILED' >&2
+            exit 1
+          fi
+      - name: Collect one sanitized structural observation
+        run: python3 .github/diagnostics/manager-pod-structure.py
