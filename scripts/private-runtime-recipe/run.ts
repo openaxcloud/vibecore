@@ -6,10 +6,21 @@ import { dirname, join, resolve } from 'node:path';
 import { assertRecipeClusterName, assertRecipeKubeconfig, assertRecipeEvent } from './checks.js';
 import { podEvidence, type EvidencePod } from './evidence.js';
 import { dependencyImages, recipeManifests } from './manifests.js';
+import { attestStaticSources } from '../static-publication-acceptance/source-attestation.mjs';
+import { exactProduct } from '../static-publication-acceptance/policy.mjs';
+import { staticEvent, staticResources, runStaticAcceptance } from '../static-publication-acceptance/hook.mjs';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
-assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+const staticAcceptance = process.env.VC_STATIC_ACCEPTANCE === '1';
+
+if (staticAcceptance) {
+  staticEvent(process.env);
+  exactProduct();
+  attestStaticSources(process.env, process.cwd(), process.argv.includes('--cleanup'));
+} else {
+  assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+}
 assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
 assert.equal(process.env.RUNNER_OS, 'Linux');
 assert.ok(process.env.RUNNER_TEMP);
@@ -156,7 +167,7 @@ async function cleanup() {
   await run('kind', ['delete', 'cluster', '--name', state.name, '--kubeconfig', state.kubeconfig], { stream: true });
 }
 
-async function forward(service: string, port: number) {
+async function forward(service: string, port: number, remotePort = port) {
   const child = spawn(
     'kubectl',
     [
@@ -169,7 +180,7 @@ async function forward(service: string, port: number) {
       'port-forward',
       '--address=127.0.0.1',
       `service/${service}`,
-      `${port}:${port}`,
+      `${port}:${remotePort}`,
     ],
     { env: childEnv(), stdio: ['ignore', 'pipe', 'pipe'] },
   );
@@ -324,10 +335,11 @@ async function main() {
     );
     stage = 'start-local-dependencies';
 
-    const resources = recipeManifests(
-      name,
-      ...(Array.from({ length: 4 }, () => randomBytes(32).toString('hex')) as [string, string, string, string]),
-    );
+    const credentials = Array.from({ length: 4 }, () => randomBytes(32).toString('hex')) as [
+      string, string, string, string,
+    ];
+    const baseResources = recipeManifests(name, ...credentials);
+    const resources: ReturnType<typeof recipeManifests> = staticAcceptance ? staticResources(baseResources) : baseResources;
     const late = resources.filter(
       (resource) =>
         ['api', 'manager', 'migrate'].includes(resource.metadata.name) && ['Deployment', 'Job'].includes(resource.kind),
@@ -361,6 +373,16 @@ async function main() {
     }
     await forward('api', 3001);
     await forward('manager', 3010);
+    if (staticAcceptance) {
+      stage = 'static-publication-acceptance';
+      await assertLocalCluster();
+      await forward('redis', 56379, 6379);
+      await runStaticAcceptance({
+        name, directory, kubeconfig: state.kubeconfig, managerSecret: credentials[2],
+        browsers: join(temp, 'aster-playwright'), path: process.env.PATH!,
+      });
+      return;
+    }
     stage = 'real-api-manager-agent-validation';
     await assertLocalCluster();
     process.env.PRIVATE_RUNTIME_RECIPE_ID = name;
