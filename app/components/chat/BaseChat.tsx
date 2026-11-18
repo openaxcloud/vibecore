@@ -369,6 +369,7 @@ import { useFocusTrap } from '~/lib/use-focus-trap';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { DeploymentHistoryDetails } from '~/components/deploy/DeploymentHistoryDetails';
 import { DeployPublishCard } from '~/components/deploy/DeployPublishCard';
+import { publicationSaveTarget } from '~/components/deploy/publication-save-target';
 import { useDeploymentSubmit } from '~/components/deploy/useDeploymentSubmit';
 import {
   DEPLOY_POLL_INTERVAL_MS,
@@ -12216,11 +12217,25 @@ function ProjectIdeApiServicePanel({
 
     const intent = String(formData.get('intent') ?? 'default');
 
+    let savingForPublication = false;
+
     try {
-      const response = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
-        method: 'POST',
-        body: formData,
-      });
+      const sendRequest = () => {
+        savingForPublication = false;
+
+        return fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
+          method: 'POST',
+          body: formData,
+        });
+      };
+
+      savingForPublication = panel === 'deployments' && ['default', 'redeploy'].includes(intent);
+
+      const saveTarget = publicationSaveTarget(panel, formData, payload?.data?.deployments);
+
+      const response = saveTarget
+        ? await workbenchStore.withSavedFilesForPublication(projectId, sendRequest, saveTarget)
+        : await sendRequest();
 
       const result = (await response.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -12286,7 +12301,11 @@ function ProjectIdeApiServicePanel({
     } catch (requestError) {
       console.error('IDE panel action request failed', { panel, intent, requestError });
 
-      const message = t('baseChatAst.panel.actionFailed');
+      const message = savingForPublication
+        ? requestError instanceof Error && requestError.message === 'PUBLICATION_SAVE_LEGACY_TARGET'
+          ? t('baseChatAst.panel.publicationLegacyTarget')
+          : t('baseChatAst.panel.publicationSaveFailed')
+        : t('baseChatAst.panel.actionFailed');
 
       setError(message);
       setActionNotice(undefined);

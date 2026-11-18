@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FilesStore } from './files';
 import { WorkbenchStore } from './workbench';
+import { publicationSaveTarget } from '~/components/deploy/publication-save-target';
 
 const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
   const runtimeFiles = new Map<string, string>();
@@ -115,6 +116,208 @@ describe('runtime listing against a newer successful save', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  async function publicationDraft() {
+    const store = new WorkbenchStore();
+    store.configureProject('project-a');
+    runtimeFiles.set('audit.txt', 'ORIGINAL');
+    await store.loadRuntimeFiles();
+    store.setCurrentDocumentContent('DRAFT');
+
+    return store;
+  }
+
+  it('publication waits for the save receipt before sending the request', async () => {
+    const store = await publicationDraft();
+
+    let finishWrite!: () => void;
+    runtimeAdapterMock.writeFile.mockImplementationOnce(async (filePath, content) => {
+      await new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      });
+      runtimeFiles.set(filePath, content);
+    });
+
+    const publish = vi.fn(async () => {
+      expect(runtimeFiles.get('audit.txt')).toBe('DRAFT');
+      expect(store.unsavedFiles.get().size).toBe(0);
+
+      return 'REQUEST_SENT';
+    });
+
+    const publishing = store.withSavedFilesForPublication('project-a', publish);
+    await vi.waitFor(() => expect(finishWrite).toBeDefined());
+    expect(publish).not.toHaveBeenCalled();
+    finishWrite();
+    await expect(publishing).resolves.toBe('REQUEST_SENT');
+    expect(publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('publication does not send after a rejected save and keeps the draft dirty', async () => {
+    const store = await publicationDraft();
+    runtimeAdapterMock.writeFile.mockRejectedValueOnce(new Error('READ_ONLY'));
+
+    const publish = vi.fn(async () => undefined);
+    await expect(store.withSavedFilesForPublication('project-a', publish)).rejects.toThrow('READ_ONLY');
+    expect(publish).not.toHaveBeenCalled();
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+    expect(store.currentDocument.get()?.value).toBe('DRAFT');
+  });
+
+  it('publication refuses a newer edit made while a save is pending', async () => {
+    const store = await publicationDraft();
+
+    let finishWrite!: () => void;
+    runtimeAdapterMock.writeFile.mockImplementationOnce(async (filePath, content) => {
+      await new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      });
+      runtimeFiles.set(filePath, content);
+    });
+
+    const publish = vi.fn(async () => undefined);
+    const publishing = store.withSavedFilesForPublication('project-a', publish);
+    const rejected = expect(publishing).rejects.toThrow('PUBLICATION_FILES_NOT_SAVED');
+    await vi.waitFor(() => expect(finishWrite).toBeDefined());
+    store.setCurrentDocumentContent('NEWER_DRAFT');
+    finishWrite();
+    await rejected;
+    expect(publish).not.toHaveBeenCalled();
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+    expect(store.currentDocument.get()?.value).toBe('NEWER_DRAFT');
+  });
+
+  it('publication refuses a mismatched project before writing anything', async () => {
+    const store = await publicationDraft();
+    const publish = vi.fn(async () => undefined);
+    await expect(store.withSavedFilesForPublication('project-b', publish)).rejects.toThrow(
+      'PUBLICATION_SAVE_SCOPE_CHANGED',
+    );
+    expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('publication stops after project navigation without saving the next file', async () => {
+    const store = await publicationDraft();
+    runtimeFiles.set('second.txt', 'SECOND');
+    await store.loadRuntimeFiles();
+    store.setDocumentContent('/home/project/second.txt', 'SECOND_DRAFT');
+
+    let finishWrite!: () => void;
+    runtimeAdapterMock.writeFile.mockImplementationOnce(async (filePath, content) => {
+      await new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      });
+      runtimeFiles.set(filePath, content);
+    });
+
+    const publish = vi.fn(async () => undefined);
+    const publishing = store.withSavedFilesForPublication('project-a', publish);
+    const rejected = expect(publishing).rejects.toMatchObject({ code: 'FILE_SAVE_SCOPE_CHANGED' });
+    await vi.waitFor(() => expect(finishWrite).toBeDefined());
+    store.configureProject('project-b');
+    finishWrite();
+    await rejected;
+    expect(publish).not.toHaveBeenCalled();
+    expect(runtimeAdapterMock.writeFile).toHaveBeenCalledTimes(1);
+  });
+
+  it('publication refuses a runtime rebind even when the project stays the same', async () => {
+    const store = await publicationDraft();
+
+    let finishWrite!: () => void;
+    runtimeAdapterMock.writeFile.mockImplementationOnce(async (filePath, content) => {
+      await new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      });
+      runtimeFiles.set(filePath, content);
+    });
+
+    const publish = vi.fn(async () => undefined);
+    const publishing = store.withSavedFilesForPublication('project-a', publish);
+    const rejected = expect(publishing).rejects.toMatchObject({ code: 'FILE_SAVE_SCOPE_CHANGED' });
+    await vi.waitFor(() => expect(finishWrite).toBeDefined());
+    store.configureRuntime(
+      { ...runtimeAdapterMock } as unknown as Parameters<WorkbenchStore['configureRuntime']>[0],
+      'project-a',
+    );
+    finishWrite();
+    await rejected;
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it.each(['wrong-before', 'wrong-after', 'missing-target'])(
+    'publication rejects remote workspace mismatch: %s',
+    async (scenario) => {
+      const store = await publicationDraft();
+
+      const status = vi
+        .fn()
+        .mockResolvedValueOnce({ id: scenario === 'wrong-before' ? 'other-workspace' : 'workspace-a' })
+        .mockResolvedValue({ id: scenario === 'wrong-after' ? 'other-workspace' : 'workspace-a' });
+      store.configureRuntime(
+        { ...runtimeAdapterMock, mode: 'remote-kubernetes', getWorkspaceStatus: status } as unknown as Parameters<
+          WorkbenchStore['configureRuntime']
+        >[0],
+        'project-a',
+      );
+      await store.loadRuntimeFiles();
+      store.setCurrentDocumentContent('DRAFT');
+
+      const publish = vi.fn(async () => undefined);
+      await expect(
+        store.withSavedFilesForPublication(
+          'project-a',
+          publish,
+          scenario === 'missing-target' ? undefined : 'workspace-a',
+        ),
+      ).rejects.toThrow('PUBLICATION_SAVE_WORKSPACE_CHANGED');
+      expect(publish).not.toHaveBeenCalled();
+
+      if (scenario !== 'wrong-after') {
+        expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('Overview redeploy saves and checks the exact persisted remote workspace before sending', async () => {
+    const store = await publicationDraft();
+    const status = vi.fn(async () => ({ id: 'workspace-a' }));
+    store.configureRuntime(
+      { ...runtimeAdapterMock, mode: 'remote-kubernetes', getWorkspaceStatus: status } as unknown as Parameters<
+        WorkbenchStore['configureRuntime']
+      >[0],
+      'project-a',
+    );
+    await store.loadRuntimeFiles();
+    store.setCurrentDocumentContent('DRAFT');
+
+    const publish = vi.fn(async () => 'REMOTE_RESPONSE');
+    const form = new FormData();
+    form.set('intent', 'redeploy');
+    form.set('deploymentId', 'deployment-a');
+
+    const target = publicationSaveTarget('deployments', form, [
+      { id: 'deployment-a', provider: 'static', workspaceId: 'workspace-a' },
+    ]);
+    expect(target).toBe('workspace-a');
+    await expect(store.withSavedFilesForPublication('project-a', publish, target!)).resolves.toBe('REMOTE_RESPONSE');
+    expect(status).toHaveBeenCalledTimes(2);
+    expect(status).toHaveBeenCalledWith();
+    expect(runtimeFiles.get('audit.txt')).toBe('DRAFT');
+    expect(publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('publication of already clean files does not write and preserves the response', async () => {
+    const store = await publicationDraft();
+    await store.saveFile(path);
+    runtimeAdapterMock.writeFile.mockClear();
+
+    const publish = vi.fn(async () => 'RESPONSE');
+    await expect(store.withSavedFilesForPublication('project-a', publish)).resolves.toBe('RESPONSE');
+    expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+    expect(publish).toHaveBeenCalledTimes(1);
   });
 
   it('preserves the draft when an optimistic save echo precedes a rejected write', async () => {

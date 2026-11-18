@@ -1,3 +1,4 @@
+import { requireDeploymentWorkspaceId } from './deployment-workspace.js';
 import { publishMigrationOwner } from './database-migration-work-link.js';
 import { admitDatabaseWrite, type DatabaseWriteAdmission } from './database-write-admission.js';
 import { isIdeMetadataEnvKey } from './workspace-env-metadata.js';
@@ -622,7 +623,13 @@ export type WorkspacePodBuildRefusal =
 export type WorkspacePodStaticBuild = (
   request: any,
   project: { id: string; organizationId: string },
-  body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
+  body: {
+    buildCommand: string;
+    outputDirectory: string;
+    timeoutSeconds: number;
+    artifactSizeLimitMb?: number;
+    workspaceId?: string;
+  },
   deploymentId: string,
   progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
 ) => Promise<
@@ -16311,7 +16318,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { handled: false, refusal: 'NO_WEBSOCKET_RUNTIME' };
     }
 
-    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
+    const workspaceId = body.workspaceId
+      ? await requireDeploymentWorkspaceId(store, project.id, body.workspaceId)
+      : await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     /*
@@ -37555,7 +37564,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } else if (!userId || !WebSocketCtor) {
         serverError = 'Open the project workspace before deploying a server.';
       } else {
-        const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
+        const workspaceId = body.workspaceId
+          ? await requireDeploymentWorkspaceId(store, project.id, body.workspaceId)
+          : await resolveProjectWorkspaceId(store, project.id, userId);
         const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
         try {
@@ -40127,6 +40138,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * in-process API-pod build only when the pod is unreachable.
        */
       const redeployBody = {
+        workspaceId: source.workspaceId ?? undefined,
         buildCommand: source.buildCommand ?? 'npm run build',
         outputDirectory: source.outputDirectory ?? 'dist',
         timeoutSeconds: sourceTimeoutSeconds,
