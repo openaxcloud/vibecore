@@ -12232,7 +12232,8 @@ function ProjectIdeApiServicePanel({
 
       savingForPublication = panel === 'deployments' && ['default', 'redeploy'].includes(intent);
 
-      const saveTarget = publicationSaveTarget(panel, formData, payload?.data?.deployments);
+      const saveTarget =
+        panel === 'deployments' ? publicationSaveTarget(panel, formData, payload?.data?.deployments) : undefined;
 
       const response = saveTarget
         ? await workbenchStore.withSavedFilesForPublication(projectId, sendRequest, saveTarget)
