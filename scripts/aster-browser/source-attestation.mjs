@@ -3,8 +3,8 @@ import {execFileSync} from 'node:child_process';
 import {readFileSync,lstatSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 import {createHash} from 'node:crypto';
-export const launchBase='686f1f7c9ff767d0cc8fdcef43697cb70c3f882a';
-export const launchPaths=['.github/workflows/private-runtime-recipe.yml', 'scripts/aster-browser/diagnostics.node-test.mjs', 'scripts/aster-browser/overlay-files.json', 'scripts/aster-browser/source-attestation.mjs', 'scripts/aster-browser/source-attestation.node-test.mjs', 'scripts/private-runtime-recipe/diagnostics.d.mts', 'scripts/private-runtime-recipe/diagnostics.mjs', 'scripts/private-runtime-recipe/run.ts'];
+export const launchBase='29630e63f8ea8ddacca11bdd2bd216194f21e85a';
+export const launchPaths=[".github/workflows/private-runtime-recipe.yml", "scripts/aster-browser/diagnostics.node-test.mjs", "scripts/aster-browser/source-attestation.mjs", "scripts/aster-browser/source-attestation.node-test.mjs"];
 export const productSha='5d352aaf354b6098b0a2ad4283b4ba48d76f9ad7';
 export const proposedRef='refs/heads/qa/vibecore-same-pvc-932';
 const workflow='openaxcloud/vibecore/.github/workflows/private-runtime-recipe.yml';
@@ -53,3 +53,4 @@ export function attestSamePvcSources(env=process.env,cwd=process.cwd(),cleanup=f
   }
   return {productSha,workflowSha:env.GITHUB_WORKFLOW_SHA,workflowRef:env.GITHUB_WORKFLOW_REF,harnessManifestHash:hash(JSON.stringify(paths))};
 }
+
