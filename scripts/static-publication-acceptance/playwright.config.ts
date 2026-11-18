@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'.',testMatch:'publication.pw.ts',workers:1,retries:0,timeout:15*60_000,globalTimeout:20*60_000,reporter:[['./reporter.ts']],use:{headless:true,actionTimeout:30_000,navigationTimeout:90_000,trace:'off',screenshot:'off',video:'off'},outputDir:process.env.VC_STATIC_PRIVATE_RESULTS??'/tmp/vc-static-acceptance-results'});
