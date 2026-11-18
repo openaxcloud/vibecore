@@ -1,3 +1,4 @@
+import { failBrowserCheckpoint, writeBrowserCheckpoint as checkpoint } from './browser-diagnostics.mjs';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -36,9 +37,12 @@ async function confine(context: BrowserContext, origin: string, violations: stri
 }
 
 async function login(page: Page, origin: string, email: string, password: string) {
+  checkpoint('browser-login');
   await page.goto(`${origin}/login?lang=en`);
+  checkpoint('browser-login-page');
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
+  checkpoint('browser-login-form');
   await page.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/dashboard(?:\?|$)/);
 }
@@ -81,6 +85,7 @@ async function marker(page: Page, workspaceId: string) {
 }
 
 async function preview(page: Page, expected: string) {
+  checkpoint('browser-preview');
   await page.getByRole('button', { name: 'Webview', exact: true }).click();
   await expect(page.locator('iframe[title="preview"]').first()).toBeVisible({ timeout: 180_000 });
   await expect(page.frameLocator('iframe[title="preview"]').locator('#proof')).toHaveText(expected, {
@@ -91,6 +96,7 @@ async function preview(page: Page, expected: string) {
 test('real contexts: baseline, warm reopen on new volume, clean reopen on another new volume', async ({
   browser,
 }, testInfo) => {
+  checkpoint('browser-contexts');
   validateProviderAbsent(process.env);
 
   const baselineOnly = process.env.ASTER_BROWSER_BASELINE_ONLY === '1';
@@ -164,10 +170,13 @@ test('real contexts: baseline, warm reopen on new volume, clean reopen on anothe
   const flushCold = observe(clean, evidence, () => phase);
 
   try {
+    checkpoint('browser-register');
     await page.goto(`${origin}/register?lang=en`);
+    checkpoint('browser-register-page');
     await page.locator('input[name="email"]').fill(email);
     await page.locator('input[name="password"]').fill(password);
     await page.locator('input[name="confirmPassword"]').fill(password);
+    checkpoint('browser-register-form');
     await page.locator('button[type="submit"]').click();
     await expect(page).toHaveURL(/\/dashboard(?:\?|$)/);
 
@@ -181,6 +190,7 @@ test('real contexts: baseline, warm reopen on new volume, clean reopen on anothe
     for (const [path, bytes] of Object.entries(files)) {
       zip.file(path, bytes);
     }
+    checkpoint('browser-import');
     await page.goto(`${origin}/import-zip?lang=en`);
     await page.locator('input[type="file"]').setInputFiles({
       name: `aster-${suffix}.zip`,
@@ -189,12 +199,14 @@ test('real contexts: baseline, warm reopen on new volume, clean reopen on anothe
     });
     await page.locator('input[name="name"]').fill(`Aster fixture ${suffix}`);
 
+    checkpoint('browser-runtime-start');
     const started = page.waitForResponse(
       (r) =>
         new URL(r.url()).origin === origin &&
         new URL(r.url()).pathname === '/api/runtime/workspaces' &&
         r.request().method() === 'POST' &&
         r.ok(),
+      { timeout: 180_000 },
     );
     await page.locator('button[type="submit"]').click();
 
@@ -213,6 +225,7 @@ test('real contexts: baseline, warm reopen on new volume, clean reopen on anothe
 
     if (process.env.ASTER_SAME_PVC_DESCRIPTOR) {
       assert.ok(baselineOnly, 'Same-PVC never uses replace-empty protocol');
+      checkpoint('browser-pvc-restart');
       const controller = await samePvcController(process.env.ASTER_SAME_PVC_DESCRIPTOR);
       await page.goto(`${origin}/dashboard`);
       expect(new URL(clean.url()).pathname).toBe('/dashboard');
@@ -233,12 +246,14 @@ test('real contexts: baseline, warm reopen on new volume, clean reopen on anothe
       const after = await controller.inspect(identity.workspaceId, proof);
       controller.assertSameVolume(before, after);
       evidence.push({ phase: 'same-pvc-restart', identity, before, after });
+      checkpoint('browser-positive-fence');
       const fence = await controller.positiveFence(identity, proof, after, async () => {
         const tree = await warm.request.get(`${origin}/api/runtime/workspaces/${identity.workspaceId}/files/tree?path=.`, { headers: auth });
         expect(tree.ok()).toBe(true);
       });
       evidence.push({ phase: 'positive-first-tree-fence', identity, fence });
       // Keep canonical content intact. New browser start may reset the first-tree gate.
+      checkpoint('browser-witnesses');
       const witnessBefore = await controller.seedWitnesses(identity.workspaceId, proof);
       expect(witnessBefore['aster-marker.txt']).toBe(sha(proof));
       for (const path of ['orphan/package-lock.json', 'orphan/node_modules/sentinel', 'orphan/.git/sentinel', 'orphan/stale.txt']) {
@@ -281,10 +296,12 @@ test('real contexts: baseline, warm reopen on new volume, clean reopen on anothe
         }
         if ([`${root}/stop`, `${root}/restart`].includes(url.pathname)) forbiddenLifecycle.push(url.pathname);
       });
+      checkpoint('browser-reopen');
       phase = 'same-pvc-reseed';
       expect(await marker(clean, identity.workspaceId)).toBeNull();
       await clean.goto(ideUrl);
       await preview(clean, proof);
+      checkpoint('browser-assertions');
       await flushCold();
       await Promise.all(requests);
       expect(starts).toEqual(['same-workspace-start']);
@@ -346,6 +363,7 @@ test('real contexts: baseline, warm reopen on new volume, clean reopen on anothe
       ['warm', page],
       ['clean', clean],
     ] as const) {
+      checkpoint('browser-reopen');
       phase = arm;
 
       const beforeMarker = await marker(target, identity.workspaceId);
@@ -385,7 +403,11 @@ test('real contexts: baseline, warm reopen on new volume, clean reopen on anothe
       await target.goto(`${origin}/dashboard`);
     }
     expect(violations).toEqual([]);
+  } catch (error) {
+    failBrowserCheckpoint();
+    throw error;
   } finally {
+    checkpoint('browser-close');
     await flushWarm();
     await flushCold();
     await testInfo.attach('aster-context-evidence', {

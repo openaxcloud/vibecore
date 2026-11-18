@@ -20,6 +20,19 @@ test('historical event gate unchanged and dedicated attestation occurs before la
  assert.ok(run.includes('assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF)'));
  const attestation=run.search(/const sourceAttestation = samePvc\s*\? attestSamePvcSources\(/);
  assert.ok(attestation>=0&&attestation<run.indexOf('async function main'));
- assert.deepEqual([...launchPaths].sort(),[".github/workflows/private-runtime-recipe.yml", "scripts/aster-browser/diagnostics.node-test.mjs", "scripts/aster-browser/source-attestation.mjs", "scripts/aster-browser/source-attestation.node-test.mjs"]);
+ assert.deepEqual([...launchPaths].sort(),[".github/workflows/private-runtime-recipe.yml", "scripts/aster-browser/browser-diagnostics.d.mts", "scripts/aster-browser/browser-diagnostics.mjs", "scripts/aster-browser/browser-diagnostics.node-test.mjs", "scripts/aster-browser/browser-reporter.ts", "scripts/aster-browser/diagnostics.node-test.mjs", "scripts/aster-browser/journey.pw.ts", "scripts/aster-browser/overlay-files.json", "scripts/aster-browser/playwright.config.ts", "scripts/aster-browser/source-attestation.mjs", "scripts/aster-browser/source-attestation.node-test.mjs", "scripts/private-runtime-recipe/diagnostics.mjs", "scripts/private-runtime-recipe/run.ts"]);
 });
 
+
+test('one-shot browser diagnostic staging preserves isolated job envelope',()=>{
+ const source=readFileSync(process.env.PRIVATE_RUNTIME_QA_SOURCE_ROOT ? join(process.env.PRIVATE_RUNTIME_QA_SOURCE_ROOT,'.github/workflows/private-runtime-recipe.yml') : new URL('../../.github/workflows/private-runtime-recipe.yml',import.meta.url),'utf8');
+ const job=source.slice(source.indexOf('  same-pvc-932:'));
+ assert.ok(job.includes(`github.event.before == '${launchBase}'`));
+ for(const text of ['runs-on: ubuntu-24.04','timeout-minutes: 90','github.run_attempt == 1','github.event.forced == false','github.event.created == false','github.event.deleted == false','github.event.repository.private == false','E2E_PROVIDER_MODE: absent','persist-credentials: false'])assert.ok(job.includes(text));
+ assert.ok(!job.includes('upload-artifact'));
+ assert.ok(job.includes('ref: '+productSha));
+ const preflight=job.indexOf('node --test --test-concurrency=1 scripts/aster-browser/*.node-test.mjs');
+ assert.ok(preflight>=0&&preflight<job.indexOf('Real disposable same-PVC browser regression'));
+ const config=readFileSync(new URL('./playwright.config.ts',import.meta.url),'utf8');
+ assert.ok(config.includes('workers: 1')&&config.includes('retries: 0'));
+});

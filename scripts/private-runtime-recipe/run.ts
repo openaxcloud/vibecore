@@ -1,3 +1,5 @@
+// eslint-disable-next-line no-restricted-imports -- QA-only enum checkpoint relay.
+import { relayBrowserCheckpoint } from '../aster-browser/browser-diagnostics.mjs';
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -512,17 +514,24 @@ async function main() {
         );
       }
 
+      const browserCheckpoint = join(evidence, 'browser-checkpoint.json');
+      writeFileSync(browserCheckpoint, '', { mode: 0o600, flag: 'wx' });
       setStage('browser-journey');
-      await run('node_modules/.bin/playwright', ['test', '--config', 'scripts/aster-browser/playwright.config.ts'], {
-        timeout: 900_000,
-        progressFile: join(evidence, 'browser-progress.txt'),
-        env: {
-          ...environments.playwright,
-          ...(samePvc ? { ASTER_SAME_PVC_DESCRIPTOR: samePvcDescriptor } : {}),
-          ASTER_BROWSER_ORIGIN: gateway.origin,
-          ASTER_BROWSER_PREVIEW_ORIGIN: 'http://127.0.0.1:3020',
-        },
-      });
+      try {
+        await run('node_modules/.bin/playwright', ['test', '--config', 'scripts/aster-browser/playwright.config.ts'], {
+          timeout: 900_000,
+          progressFile: join(evidence, 'browser-progress.txt'),
+          env: {
+            ...environments.playwright,
+            ASTER_BROWSER_DIAGNOSTICS_FILE: browserCheckpoint,
+            ...(samePvc ? { ASTER_SAME_PVC_DESCRIPTOR: samePvcDescriptor } : {}),
+            ASTER_BROWSER_ORIGIN: gateway.origin,
+            ASTER_BROWSER_PREVIEW_ORIGIN: 'http://127.0.0.1:3020',
+          },
+        });
+      } finally {
+        relayBrowserCheckpoint(browserCheckpoint, diagnostic);
+      }
       writeFileSync(
         join(evidence, 'result.json'),
         JSON.stringify(

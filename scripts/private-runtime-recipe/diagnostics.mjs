@@ -1,3 +1,4 @@
+import { browserStages } from '../aster-browser/browser-diagnostics.mjs';
 import { lstatSync, readFileSync, writeSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,11 +8,11 @@ export const stages = Object.freeze([
   'inspect-production-agent', 'pull-dependency-images', 'load-local-images',
   'start-local-dependencies', 'migrate-local-postgres', 'start-real-api-and-manager',
   'browser-baseline', 'browser-web-ready', 'browser-journey', 'real-api-manager-agent-validation',
-  'cleanup',
+  ...browserStages, 'cleanup',
 ]);
 export const statuses = Object.freeze([
   'begin', 'completed', 'failed', 'command-timeout', 'command-exit', 'command-spawn',
-  'output-limit', 'no-state', 'no-owned-node', 'owned-node-deleted',
+  'test-timeout', 'browser-checkpoint-unavailable', 'output-limit', 'no-state', 'no-owned-node', 'owned-node-deleted',
 ]);
 const valid = (record) => Array.isArray(record) && record.length === 2 &&
   stages.includes(record[0]) && statuses.includes(record[1]);

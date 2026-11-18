@@ -97,5 +97,6 @@ test('workflow uses proven in-process TS launcher for recipe and cleanup',async(
  assert.ok(samePvc.includes('if ! node --import tsx scripts/private-runtime-recipe/run.ts --cleanup >'));
  assert.ok(!samePvc.includes('pnpm exec tsx'));
  assert.ok(!samePvc.includes('node_modules/.bin/tsx'));
- assert.ok(samePvc.indexOf('node --test scripts/aster-browser/*.node-test.mjs')<samePvc.indexOf('- name: Install pinned local clients and Chromium'));
+ const preflight=samePvc.indexOf('node --test --test-concurrency=1 scripts/aster-browser/*.node-test.mjs');
+ assert.ok(preflight>=0&&preflight<samePvc.indexOf('- name: Install pinned local clients and Chromium'));
 });
