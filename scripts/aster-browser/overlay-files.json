@@ -27,6 +27,8 @@
   "scripts/aster-browser/positive-fence.mjs",
   "scripts/aster-browser/positive-fence.node-test.mjs",
   "scripts/aster-browser/prepare-overlay.mjs",
+  "scripts/aster-browser/runtime-start-observation.spec.ts",
+  "scripts/aster-browser/runtime-start-observation.ts",
   "scripts/aster-browser/same-pvc-controller.ts",
   "scripts/aster-browser/same-pvc-summary.mjs",
   "scripts/aster-browser/source-attestation.d.mts",

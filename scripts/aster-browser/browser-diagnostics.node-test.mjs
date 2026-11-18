@@ -65,3 +65,27 @@ test('test and runner ceilings leave teardown margin inside unchanged parent lim
   assert.match(run,/timeout: 900_000,[\s\S]*?ASTER_BROWSER_DIAGNOSTICS_FILE: browserCheckpoint/);
   assert.match(run,/finally \{\s*relayBrowserCheckpoint\(browserCheckpoint, diagnostic\)/);
 });
+
+test('import runtime failure subphases relay only fixed enums', () => fixture((path) => {
+  for (const stage of ['browser-import-submit', 'browser-import-navigation', 'browser-runtime-request-missing', 'browser-runtime-response-missing', 'browser-runtime-response-status', 'browser-runtime-identity', 'browser-ide-navigation']) {
+    writeFileSync(path, '');
+    writeBrowserCheckpoint(stage, 'begin', path);
+    failBrowserCheckpoint('failed', path);
+    const output = []; relayBrowserCheckpoint(path, createDiagnostics(line => output.push(line)));
+    assert.ok(renderDiagnostics(output.join('')).includes(`${stage} / failed`));
+  }
+}));
+
+test('import submit is scoped and transient runtime rejection does not abort recovery', () => {
+  const source = readFileSync(new URL('./journey.pw.ts', import.meta.url), 'utf8');
+  const block = source.slice(source.indexOf('// Install observation before submit'), source.indexOf('const ideUrl = page.url()'));
+  assert.ok(block.includes("page.locator('input[name=\"archive\"]')"));
+  assert.ok(block.includes("importForm.locator('button[type=\"submit\"]')"));
+  assert.ok(!block.includes("page.locator('button[type=\"submit\"]')"));
+  assert.ok(block.includes('runtimeStartObservation(origin, response.url()'));
+  assert.ok(block.includes('runtimeRequest(response.request()) && !response.ok()'));
+  assert.ok(block.includes('rejectedRuntimeResponseSeen')); 
+  assert.ok(block.includes('assert.ok(response.ok())'));
+  assert.ok(block.indexOf('page.waitForResponse') < block.indexOf("importForm.locator"));
+  assert.ok(block.includes("() => ({ response: undefined })"));
+});

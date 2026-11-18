@@ -65,7 +65,7 @@ jobs:
           retention-days: 7
 
   same-pvc-932:
-    if: ${{ github.event_name == 'push' && github.repository == 'openaxcloud/vibecore' && github.ref == 'refs/heads/qa/vibecore-same-pvc-932' && github.run_attempt == 1 && github.event.before == 'd9ffba6a2ca608328ffaabc1ac82a975fa195cd4' && github.event.after == github.sha && github.event.forced == false && github.event.created == false && github.event.deleted == false && github.event.repository.private == false }}
+    if: ${{ github.event_name == 'push' && github.repository == 'openaxcloud/vibecore' && github.ref == 'refs/heads/qa/vibecore-same-pvc-932' && github.run_attempt == 1 && github.event.before == 'e2edc4fa5b1c7c2280dd58bf44e94102752a7a5a' && github.event.after == github.sha && github.event.forced == false && github.event.created == false && github.event.deleted == false && github.event.repository.private == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -116,7 +116,8 @@ jobs:
           pnpm exec tsc -p scripts/aster-browser/tsconfig.json
           pnpm exec tsc -p scripts/private-runtime-recipe/tsconfig.json
           node --test --test-concurrency=1 scripts/aster-browser/*.node-test.mjs
-          pnpm exec vitest run scripts/private-runtime-recipe/checks.test.ts scripts/aster-browser/stack.spec.ts scripts/aster-browser/baseline-policy.spec.ts scripts/aster-browser/environment.spec.ts scripts/aster-browser/contracts.spec.ts scripts/aster-browser/gateway.spec.ts
+          pnpm exec vitest run scripts/private-runtime-recipe/checks.test.ts scripts/aster-browser/stack.spec.ts scripts/aster-browser/baseline-policy.spec.ts scripts/aster-browser/environment.spec.ts scripts/aster-browser/contracts.spec.ts scripts/aster-browser/gateway.spec.ts scripts/aster-browser/runtime-start-observation.spec.ts
+          (cd packages/runtime-remote && pnpm exec vitest run src/identifiant-de-projet.spec.ts)
       - name: Install pinned local clients and Chromium
         run: |
           set -euo pipefail

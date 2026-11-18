@@ -1,3 +1,4 @@
+import { runtimeStartObservation } from './runtime-start-observation.js';
 import { failBrowserCheckpoint, writeBrowserCheckpoint as checkpoint } from './browser-diagnostics.mjs';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
@@ -199,24 +200,56 @@ test('real contexts: baseline, warm reopen on new volume, clean reopen on anothe
     });
     await page.locator('input[name="name"]').fill(`Aster fixture ${suffix}`);
 
+    // Install observation before submit: import is a server action, runtime starts after its IDE redirect.
+    const runtimeRequest = (request: import('@playwright/test').Request) =>
+      new URL(request.url()).origin === origin &&
+      new URL(request.url()).pathname === '/api/runtime/workspaces' && request.method() === 'POST';
+    let runtimeRequestSeen = false;
+    let initialRuntimeBody: { workspaceId?: string; metadata?: { projectId?: string } } | undefined;
+    let rejectedRuntimeResponseSeen = false;
+    const noteRuntimeRequest = (request: import('@playwright/test').Request) => {
+      if (runtimeRequest(request)) {
+        runtimeRequestSeen = true;
+        try { initialRuntimeBody = request.postDataJSON(); } catch { /* Classified below; never emit body. */ }
+      }
+    };
+    page.on('request', noteRuntimeRequest);
+    const noteRuntimeResponse = (response: import('@playwright/test').Response) => {
+      if (runtimeRequest(response.request()) && !response.ok()) rejectedRuntimeResponseSeen = true;
+    };
+    page.on('response', noteRuntimeResponse);
+    // Record non-2xx, but retain the original successful-response wait: cold-start transient recovery is valid.
+    // Convert rejection immediately so a failed click cannot leave an unhandled waiter.
+    const started = page.waitForResponse((response) => Boolean(runtimeStartObservation(origin, response.url(), response.request().method(),
+      response.ok(), initialRuntimeBody?.workspaceId, initialRuntimeBody?.metadata?.projectId)), { timeout: 180_000 })
+      .then((response) => ({ response }), () => ({ response: undefined }));
+    checkpoint('browser-import-submit');
+    const importForm = page.locator('form').filter({ has: page.locator('input[name="archive"]') });
+    await expect(importForm).toHaveCount(1);
+    await importForm.locator('button[type="submit"]').click();
+    checkpoint('browser-import-navigation');
+    await expect(page).not.toHaveURL(/\/import-zip(?:\?|$)/, { timeout: 90_000 });
     checkpoint('browser-runtime-start');
-    const started = page.waitForResponse(
-      (r) =>
-        new URL(r.url()).origin === origin &&
-        new URL(r.url()).pathname === '/api/runtime/workspaces' &&
-        r.request().method() === 'POST' &&
-        r.ok(),
-      { timeout: 180_000 },
-    );
-    await page.locator('button[type="submit"]').click();
-
-    const response = await started;
-    const body = response.request().postDataJSON();
+    const { response } = await started;
+    page.off('request', noteRuntimeRequest);
+    page.off('response', noteRuntimeResponse);
+    if (!response) {
+      checkpoint(rejectedRuntimeResponseSeen ? 'browser-runtime-response-status' :
+        runtimeRequestSeen ? 'browser-runtime-response-missing' : 'browser-runtime-request-missing');
+      assert.fail('Runtime observation incomplete');
+    }
+    checkpoint('browser-runtime-response-status');
+    assert.ok(response.ok());
+    checkpoint('browser-runtime-identity');
+    const body = response.request().method() === 'POST' ? response.request().postDataJSON() : initialRuntimeBody;
     const session = await response.json();
-    const identity: Identity = { projectId: body.metadata?.projectId, workspaceId: session.id };
+    const identity: Identity = { projectId: body?.metadata?.projectId, workspaceId: session.id };
     assert.ok(identity.projectId && identity.workspaceId && identity.projectId !== identity.workspaceId);
-
-    await expect(page).not.toHaveURL(/\/import-zip(?:\?|$)/);
+    if (response.request().method() === 'GET') {
+      assert.equal(session.id, initialRuntimeBody?.workspaceId);
+      assert.ok(['running', 'starting'].includes(session.status));
+    }
+    checkpoint('browser-ide-navigation');
 
     const ideUrl = page.url();
     assert.equal(new URL(ideUrl).origin, origin);

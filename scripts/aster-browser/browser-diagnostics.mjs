@@ -3,7 +3,9 @@ import { constants, closeSync, fstatSync, ftruncateSync, lstatSync, openSync, re
 export const browserStages = Object.freeze([
   'browser-runner', 'browser-fixture', 'browser-contexts', 'browser-register', 'browser-register-page',
   'browser-register-form', 'browser-login', 'browser-login-page', 'browser-login-form', 'browser-import',
-  'browser-runtime-start', 'browser-preview', 'browser-pvc-restart', 'browser-positive-fence',
+  'browser-import-submit', 'browser-import-navigation', 'browser-runtime-request-missing',
+  'browser-runtime-response-missing', 'browser-runtime-response-status', 'browser-runtime-identity',
+  'browser-ide-navigation', 'browser-runtime-start', 'browser-preview', 'browser-pvc-restart', 'browser-positive-fence',
   'browser-witnesses', 'browser-reopen', 'browser-assertions', 'browser-close', 'browser-complete',
 ]);
 export const browserStatuses = Object.freeze(['begin', 'completed', 'failed', 'test-timeout']);
