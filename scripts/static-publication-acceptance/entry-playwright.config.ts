@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'.',testMatch:'entry-discriminator.pw.ts',workers:1,retries:0,timeout:180_000,globalTimeout:200_000,reporter:[['./entry-reporter.ts']],use:{headless:true,actionTimeout:10_000,navigationTimeout:30_000,trace:'off',screenshot:'off',video:'off'},outputDir:process.env.VC_STATIC_PRIVATE_RESULTS??'/tmp/vc-entry-private'});
