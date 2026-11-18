@@ -1,3 +1,4 @@
+import { requireDeploymentWorkspaceId } from './deployment-workspace.js';
 import { publishMigrationOwner } from './database-migration-work-link.js';
 import { admitDatabaseWrite, type DatabaseWriteAdmission } from './database-write-admission.js';
 import { isIdeMetadataEnvKey } from './workspace-env-metadata.js';
@@ -622,7 +623,13 @@ export type WorkspacePodBuildRefusal =
 export type WorkspacePodStaticBuild = (
   request: any,
   project: { id: string; organizationId: string },
-  body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
+  body: {
+    buildCommand: string;
+    outputDirectory: string;
+    timeoutSeconds: number;
+    artifactSizeLimitMb?: number;
+    workspaceId?: string;
+  },
   deploymentId: string,
   progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
 ) => Promise<
@@ -16311,7 +16318,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { handled: false, refusal: 'NO_WEBSOCKET_RUNTIME' };
     }
 
-    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
+    const workspaceId = body.workspaceId
+      ? await requireDeploymentWorkspaceId(store, project.id, body.workspaceId)
+      : await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     /*
@@ -37555,7 +37564,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } else if (!userId || !WebSocketCtor) {
         serverError = 'Open the project workspace before deploying a server.';
       } else {
-        const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
+        const workspaceId = body.workspaceId
+          ? await requireDeploymentWorkspaceId(store, project.id, body.workspaceId)
+          : await resolveProjectWorkspaceId(store, project.id, userId);
         const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
         try {
@@ -40114,6 +40125,64 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const sourceArtifactSizeLimitMb =
       typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : 250;
 
+    /*
+     * Server republishes use the same real build/runtime lifecycle as a fresh publish.
+     * A cloned READY row without a built artifact or running service is not a deployment.
+     */
+    if (source.provider === 'server') {
+      const body = parse(createDeploymentSchema, {
+        provider: 'server',
+        workspaceId: source.workspaceId ?? undefined,
+        environment: source.environment,
+        buildCommand: source.buildCommand ?? 'npm run build',
+        outputDirectory: source.outputDirectory ?? 'dist',
+        timeoutSeconds: sourceTimeoutSeconds,
+        artifactSizeLimitMb: sourceArtifactSizeLimitMb,
+        envVars: sourceEnvVars,
+        machineSize: source.machineSize ?? undefined,
+      }) as CreateDeploymentRequest;
+
+      if (useWorkspacePodBuild) {
+        try {
+          await enqueueDeployJob({
+            projectId: project.id,
+            deploymentId: redeploy.id,
+            userId: request.currentUser?.id,
+            buildInput: { ...body, secondaryWorkspaceId },
+          });
+        } catch (error) {
+          request.log?.error?.({ err: error, deploymentId: redeploy.id }, 'deployment build enqueue failed');
+
+          const failed = await store.updateDeployment(project.id, redeploy.id, {
+            status: 'FAILED',
+            finishedAt: new Date().toISOString(),
+            logs: [
+              ...redeploy.logs,
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error' as const,
+                message: appPublicEnglish('DEPLOYMENT_QUEUE_FAILED'),
+              },
+            ],
+          });
+
+          return reply
+            .code(202)
+            .send({ deployment: localizeDeploymentRecord(failed, transactionalLocaleForRequest(request)) });
+        }
+
+        return reply
+          .code(202)
+          .send({ deployment: localizeDeploymentRecord(redeploy, transactionalLocaleForRequest(request)) });
+      }
+
+      const ready = await runDeploymentBuildFlow({ request, project, queued: redeploy, body, secondaryWorkspaceId });
+
+      return reply
+        .code(201)
+        .send({ deployment: localizeDeploymentRecord(ready, transactionalLocaleForRequest(request)) });
+    }
+
     const hookResult = await triggerProviderDeployHook(sourceProvider);
 
     let staticBuildFailed = false;
@@ -40123,10 +40192,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (source.provider === 'static') {
       /*
-       * P1: build in the workspace pod (see create handler); fall back to the
-       * in-process API-pod build only when the pod is unreachable.
+       * Match create: production redeploy never falls back to an API-pod build.
+       * The local runner is reserved for explicitly injected test configuration.
        */
       const redeployBody = {
+        workspaceId: source.workspaceId ?? undefined,
         buildCommand: source.buildCommand ?? 'npm run build',
         outputDirectory: source.outputDirectory ?? 'dist',
         timeoutSeconds: sourceTimeoutSeconds,
@@ -40138,17 +40208,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : { handled: false as const };
       workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
 
+      const refusal = workspaceAttempt.handled ? undefined : workspaceAttempt.refusal;
+
+      const refusalMessage =
+        refusal === 'WORKSPACE_QUOTA_BUSY'
+          ? appPublicEnglish('DEPLOY_WORKSPACE_QUOTA_BUSY', {
+              project: !workspaceAttempt.handled ? (workspaceAttempt.detail ?? '') : '',
+            })
+          : appPublicEnglish(refusal === 'WORKSPACE_QUOTA' ? 'DEPLOY_WORKSPACE_QUOTA' : 'DEPLOY_WORKSPACE_UNREACHABLE');
+
       const staticBuild = workspaceAttempt.handled
         ? workspaceAttempt.result
-        : await staticBuildRunner({
-            projectId: project.id,
-            workspaceId: secondaryWorkspaceId,
-            buildCommand: redeployBody.buildCommand,
-            outputDirectory: redeployBody.outputDirectory,
-            envVars: sourceEnvVars,
-            timeoutSeconds: sourceTimeoutSeconds,
-            artifactSizeLimitMb: sourceArtifactSizeLimitMb,
-          });
+        : useWorkspacePodBuild
+          ? {
+              ok: false as const,
+              error: refusalMessage,
+              logs: [{ timestamp: new Date().toISOString(), level: 'error' as const, message: refusalMessage }],
+            }
+          : await staticBuildRunner({
+              projectId: project.id,
+              workspaceId: secondaryWorkspaceId,
+              buildCommand: redeployBody.buildCommand,
+              outputDirectory: redeployBody.outputDirectory,
+              envVars: sourceEnvVars,
+              timeoutSeconds: sourceTimeoutSeconds,
+              artifactSizeLimitMb: sourceArtifactSizeLimitMb,
+            });
 
       rebuildLogs.push(...staticBuild.logs);
 
