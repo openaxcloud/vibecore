@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {emitDiagnostic,failureCode} from '../ide-bootstrap-probe/diagnostics.mjs';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -6,10 +7,24 @@ import { dirname, join, resolve } from 'node:path';
 import { assertRecipeClusterName, assertRecipeKubeconfig, assertRecipeEvent } from './checks.js';
 import { podEvidence, type EvidencePod } from './evidence.js';
 import { dependencyImages, recipeManifests } from './manifests.js';
+import { attestProbeSources } from '../ide-bootstrap-probe/source-attestation.mjs';
+import { exactProduct } from '../ide-bootstrap-probe/policy.mjs';
+import { probeEvent, runIdeProbe } from '../ide-bootstrap-probe/hook.mjs';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
-assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+const ideProbe = process.env.VC_IDE_BOOTSTRAP_PROBE === '1';
+
+if (ideProbe) {
+  emitDiagnostic('recipe-preflight','begin');
+  try {
+    probeEvent(process.env);
+    exactProduct();
+    attestProbeSources(process.env, process.cwd(), process.argv.includes('--cleanup'));
+  } catch (error) { emitDiagnostic('recipe-preflight','failed',failureCode(error)); throw error; }
+} else {
+  assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+}
 assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
 assert.equal(process.env.RUNNER_OS, 'Linux');
 assert.ok(process.env.RUNNER_TEMP);
@@ -208,6 +223,8 @@ async function main() {
   writeFileSync(statePath, JSON.stringify(state), { flag: 'wx', mode: 0o600 });
 
   let stage = 'create-local-cluster';
+  const setStage = (value: string) => { stage = value; if (ideProbe) emitDiagnostic(stage, 'begin'); };
+  setStage(stage);
 
   try {
     await run(
@@ -228,7 +245,7 @@ async function main() {
     );
     await assertLocalCluster();
     await kubectl(['get', 'storageclass', 'standard']);
-    stage = 'build-local-images';
+    setStage('build-local-images');
     await docker(
       [
         'build',
@@ -322,7 +339,7 @@ async function main() {
       ],
       { stream: true, timeout: 600_000 },
     );
-    stage = 'start-local-dependencies';
+    setStage('start-local-dependencies');
 
     const resources = recipeManifests(
       name,
@@ -340,13 +357,13 @@ async function main() {
     for (const service of ['postgres', 'redis']) {
       await kubectl(['-n', name, 'rollout', 'status', `deployment/${service}`, '--timeout=180s']);
     }
-    stage = 'migrate-local-postgres';
+    setStage('migrate-local-postgres');
     await kubectl(
       ['apply', '-f', '-'],
       JSON.stringify({ apiVersion: 'v1', kind: 'List', items: late.filter((resource) => resource.kind === 'Job') }),
     );
     await kubectl(['-n', name, 'wait', '--for=condition=complete', 'job/migrate', '--timeout=600s']);
-    stage = 'start-real-api-and-manager';
+    setStage('start-real-api-and-manager');
     await kubectl(
       ['apply', '-f', '-'],
       JSON.stringify({
@@ -361,7 +378,16 @@ async function main() {
     }
     await forward('api', 3001);
     await forward('manager', 3010);
-    stage = 'real-api-manager-agent-validation';
+    if (ideProbe) {
+      setStage('ide-bootstrap-probe');
+      await assertLocalCluster();
+      await runIdeProbe({
+        name, directory, kubeconfig: state.kubeconfig,
+        browsers: join(temp, 'aster-playwright'), path: process.env.PATH!,
+      });
+      return;
+    }
+    setStage('real-api-manager-agent-validation');
     await assertLocalCluster();
     process.env.PRIVATE_RUNTIME_RECIPE_ID = name;
     process.env.RUNTIME_API_E2E_PRIVATE_RECIPE = '1';
@@ -394,6 +420,7 @@ async function main() {
     );
     console.log(result);
   } catch (error) {
+    if (ideProbe) emitDiagnostic(stage, 'failed', failureCode(error));
     console.log(JSON.stringify({ ok: false, stage, cluster: name }));
     writeFileSync(
       join(evidence, 'result.json'),
@@ -416,7 +443,9 @@ async function main() {
     } catch {
       // No trusted local cluster exists; never probe a fallback context.
     }
-    await cleanup();
+    if (ideProbe) emitDiagnostic('cleanup', 'begin');
+    try { await cleanup(); if (ideProbe) emitDiagnostic('cleanup', 'complete'); }
+    catch (error) { if (ideProbe) emitDiagnostic('cleanup', 'failed', failureCode(error)); throw error; }
   }
 }
 
