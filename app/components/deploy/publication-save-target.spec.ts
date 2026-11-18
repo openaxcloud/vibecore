@@ -23,12 +23,14 @@ describe('publication save target', () => {
     ).toBe('workspace-a');
   });
   it('rejects a new publication without a target', () => {
-    expect(() => publicationSaveTarget('deployments', form({}))).toThrow('PUBLICATION_SAVE_WORKSPACE_CHANGED');
+    expect(() => publicationSaveTarget('deployments', form({}))).toThrowError(
+      expect.objectContaining({ code: 'PUBLICATION_SAVE_WORKSPACE_CHANGED', message: '' }),
+    );
   });
   it('rejects an unknown redeployment source', () => {
     expect(() =>
       publicationSaveTarget('deployments', form({ intent: 'redeploy', deploymentId: 'unknown' }), []),
-    ).toThrow('PUBLICATION_SAVE_SOURCE_MISSING');
+    ).toThrowError(expect.objectContaining({ code: 'PUBLICATION_SAVE_SOURCE_MISSING', message: '' }));
   });
   it.each([undefined, null, '', '   '])(
     'does not infer a legacy workspace from the active or primary target (%s)',
@@ -37,7 +39,7 @@ describe('publication save target', () => {
         publicationSaveTarget('deployments', form({ intent: 'redeploy', deploymentId: 'dep', workspaceId: 'active' }), [
           { id: 'dep', provider: 'static', workspaceId },
         ]),
-      ).toThrow('PUBLICATION_SAVE_LEGACY_TARGET');
+      ).toThrowError(expect.objectContaining({ code: 'PUBLICATION_SAVE_LEGACY_TARGET', message: '' }));
     },
   );
   it.each(['cancel', 'rollback'])('leaves %s unchanged', (intent) => {

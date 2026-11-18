@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { appPublicCopy, localizeAppPublicMessage } from './app-public-copy.js';
 import { requireDeploymentWorkspaceId } from './deployment-workspace.js';
 
 describe('explicit deployment workspace', () => {
@@ -16,6 +17,20 @@ describe('explicit deployment workspace', () => {
       ).rejects.toMatchObject({ code: 'WORKSPACE_NOT_FOUND' });
     },
   );
+
+  it('keeps the stable API code and catalogued French/English message', async () => {
+    const error = await requireDeploymentWorkspaceId({ getWorkspace: async () => null }, 'project-a', 'missing').catch(
+      (value) => value,
+    );
+    expect(error).toMatchObject({ code: 'WORKSPACE_NOT_FOUND', statusCode: 404 });
+
+    for (const locale of ['en', 'fr'] as const) {
+      expect(localizeAppPublicMessage(error.message, locale)).toEqual({
+        matched: true,
+        value: appPublicCopy('WORKSPACE_PROJECT_MISMATCH', locale),
+      });
+    }
+  });
 
   it('propagates lookup failure instead of selecting a default', async () => {
     await expect(

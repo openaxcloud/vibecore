@@ -178,7 +178,7 @@ describe('runtime listing against a newer successful save', () => {
 
     const publish = vi.fn(async () => undefined);
     const publishing = store.withSavedFilesForPublication('project-a', publish);
-    const rejected = expect(publishing).rejects.toThrow('PUBLICATION_FILES_NOT_SAVED');
+    const rejected = expect(publishing).rejects.toMatchObject({ code: 'PUBLICATION_FILES_NOT_SAVED', message: '' });
     await vi.waitFor(() => expect(finishWrite).toBeDefined());
     store.setCurrentDocumentContent('NEWER_DRAFT');
     finishWrite();
@@ -191,9 +191,10 @@ describe('runtime listing against a newer successful save', () => {
   it('publication refuses a mismatched project before writing anything', async () => {
     const store = await publicationDraft();
     const publish = vi.fn(async () => undefined);
-    await expect(store.withSavedFilesForPublication('project-b', publish)).rejects.toThrow(
-      'PUBLICATION_SAVE_SCOPE_CHANGED',
-    );
+    await expect(store.withSavedFilesForPublication('project-b', publish)).rejects.toMatchObject({
+      code: 'PUBLICATION_SAVE_SCOPE_CHANGED',
+      message: '',
+    });
     expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
     expect(publish).not.toHaveBeenCalled();
   });
@@ -272,7 +273,7 @@ describe('runtime listing against a newer successful save', () => {
           publish,
           scenario === 'missing-target' ? undefined : 'workspace-a',
         ),
-      ).rejects.toThrow('PUBLICATION_SAVE_WORKSPACE_CHANGED');
+      ).rejects.toMatchObject({ code: 'PUBLICATION_SAVE_WORKSPACE_CHANGED', message: '' });
       expect(publish).not.toHaveBeenCalled();
 
       if (scenario !== 'wrong-after') {

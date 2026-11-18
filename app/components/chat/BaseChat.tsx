@@ -370,6 +370,7 @@ import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { DeploymentHistoryDetails } from '~/components/deploy/DeploymentHistoryDetails';
 import { DeployPublishCard } from '~/components/deploy/DeployPublishCard';
 import { publicationSaveTarget } from '~/components/deploy/publication-save-target';
+import { PublicationSaveError } from '~/lib/publication-save-error';
 import { useDeploymentSubmit } from '~/components/deploy/useDeploymentSubmit';
 import {
   DEPLOY_POLL_INTERVAL_MS,
@@ -12302,7 +12303,7 @@ function ProjectIdeApiServicePanel({
       console.error('IDE panel action request failed', { panel, intent, requestError });
 
       const message = savingForPublication
-        ? requestError instanceof Error && requestError.message === 'PUBLICATION_SAVE_LEGACY_TARGET'
+        ? requestError instanceof PublicationSaveError && requestError.code === 'PUBLICATION_SAVE_LEGACY_TARGET'
           ? t('baseChatAst.panel.publicationLegacyTarget')
           : t('baseChatAst.panel.publicationSaveFailed')
         : t('baseChatAst.panel.actionFailed');

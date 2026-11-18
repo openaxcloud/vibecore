@@ -26,5 +26,9 @@ describe('managed publication save boundary wiring', () => {
     expect(submit).toMatch(/const sendRequest = \(\) => \{\s*savingForPublication = false;/u);
     expect(submit).toContain("t('baseChatAst.panel.publicationSaveFailed')");
     expect(submit).toContain("t('baseChatAst.panel.publicationLegacyTarget')");
+    expect(submit).toContain(
+      "requestError instanceof PublicationSaveError && requestError.code === 'PUBLICATION_SAVE_LEGACY_TARGET'",
+    );
+    expect(submit).not.toContain('requestError.message');
   });
 });

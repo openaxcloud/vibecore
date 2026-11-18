@@ -1,3 +1,4 @@
+import { PublicationSaveError } from '~/lib/publication-save-error';
 interface DeploymentSource {
   id?: string;
   workspaceId?: string | null;
@@ -26,7 +27,7 @@ export function publicationSaveTarget(
     const workspaceId = String(form.get('workspaceId') ?? '').trim();
 
     if (!workspaceId) {
-      throw new Error('PUBLICATION_SAVE_WORKSPACE_CHANGED');
+      throw new PublicationSaveError('PUBLICATION_SAVE_WORKSPACE_CHANGED');
     }
 
     return workspaceId;
@@ -35,7 +36,7 @@ export function publicationSaveTarget(
   const source = deployments.find((entry) => entry.id === form.get('deploymentId'));
 
   if (!source) {
-    throw new Error('PUBLICATION_SAVE_SOURCE_MISSING');
+    throw new PublicationSaveError('PUBLICATION_SAVE_SOURCE_MISSING');
   }
 
   // External provider hooks rebuild their own repository, not the IDE draft.
@@ -44,7 +45,7 @@ export function publicationSaveTarget(
   }
 
   if (!source.workspaceId?.trim()) {
-    throw new Error('PUBLICATION_SAVE_LEGACY_TARGET');
+    throw new PublicationSaveError('PUBLICATION_SAVE_LEGACY_TARGET');
   }
 
   return source.workspaceId;

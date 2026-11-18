@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import { PublicationSaveError } from '~/lib/publication-save-error';
 import { requireMaterializedPreviewManifest } from './preview-manifest-materialization';
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
 import { createSingleFlight } from '~/lib/ide/single-flight';
@@ -2920,7 +2921,7 @@ export class WorkbenchStore {
 
     const assertScope = () => {
       if (this.#projectId !== projectId || !isCurrentScope()) {
-        throw new Error('PUBLICATION_SAVE_SCOPE_CHANGED');
+        throw new PublicationSaveError('PUBLICATION_SAVE_SCOPE_CHANGED');
       }
     };
 
@@ -2934,7 +2935,7 @@ export class WorkbenchStore {
         assertScope();
 
         if (!workspaceId || session.id !== workspaceId) {
-          throw new Error('PUBLICATION_SAVE_WORKSPACE_CHANGED');
+          throw new PublicationSaveError('PUBLICATION_SAVE_WORKSPACE_CHANGED');
         }
       }
     };
@@ -2956,7 +2957,7 @@ export class WorkbenchStore {
       this.unsavedFiles.get().size > 0 ||
       [...this.#pendingFileSaves.keys()].some((key) => key.startsWith(`${binding}:`))
     ) {
-      throw new Error('PUBLICATION_FILES_NOT_SAVED');
+      throw new PublicationSaveError('PUBLICATION_FILES_NOT_SAVED');
     }
 
     // Invoke synchronously after the last guard: no extra await before POST.
