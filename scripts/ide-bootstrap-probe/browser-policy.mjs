@@ -1,0 +1,3 @@
+export function browserRequestAllowed(value,method,f){try{const u=new URL(value);if(u.origin!==f.web||u.username||u.password)return false;if(u.pathname.startsWith('/api/')&&/\/(deployments|chat|generate|agent|llm|ai|completion|completions)(\/|-|$)/.test(u.pathname))return false;if(['GET','HEAD','OPTIONS'].includes(method))return true;return method==='POST'&&u.pathname==='/api/runtime/workspaces'&&!u.search;}catch{return false;}}
+
+export function ownedBootstrap(body,f){return !!body&&typeof body==='object'&&!Array.isArray(body)&&body.workspaceId===f.workspaceId&&(!body.metadata?.projectId||body.metadata.projectId===f.projectId)&&(!body.metadata?.workspaceId||body.metadata.workspaceId===f.workspaceId);}

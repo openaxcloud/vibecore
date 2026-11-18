@@ -1,0 +1,73 @@
+name: Isolated compiled IDE bootstrap observation (one shot)
+on:
+  push:
+    branches: [codex/qa-ide-bootstrap-compiled-20261118]
+permissions:
+  contents: read
+jobs:
+  ide-bootstrap:
+    if: ${{ github.event_name == 'push' && github.repository == 'openaxcloud/vibecore' && github.ref == 'refs/heads/codex/qa-ide-bootstrap-compiled-20261118' && github.run_attempt == 1 && github.event.before == 'aaaf642064b5eeefc8975ccff9b151ff0beb1ec4' && github.event.after == github.sha && github.event.forced == false && github.event.created == false && github.event.deleted == false && github.event.repository.private == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+        working-directory: product
+    env:
+      HUSKY: '0'
+      CI: 'true'
+      E2E_PROVIDER_MODE: absent
+      VC_IDE_BOOTSTRAP_PROBE: '1'
+      PRIVATE_RUNTIME_QA_SOURCE_ROOT: ${{ github.workspace }}/qa-source
+    steps:
+      - name: Checkout immutable reviewed QA
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 2
+          path: qa-source
+          persist-credentials: false
+      - name: Checkout immutable product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: aaaf642064b5eeefc8975ccff9b151ff0beb1ec4
+          path: product
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 9.14.4
+          run_install: false
+      - name: Attest exact source and overlay
+        run: |
+          set -euo pipefail
+          printf 'PLAYWRIGHT_BROWSERS_PATH=%s/aster-playwright\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          node "$PRIVATE_RUNTIME_QA_SOURCE_ROOT/scripts/ide-bootstrap-probe/safe-run.mjs" node "$PRIVATE_RUNTIME_QA_SOURCE_ROOT/scripts/ide-bootstrap-probe/prepare-overlay.mjs" "$PWD"
+      - name: Frozen dependencies and all pre-allocation controls
+        run: |
+          set -euo pipefail
+          node scripts/ide-bootstrap-probe/safe-run.mjs pnpm install --frozen-lockfile
+          node scripts/ide-bootstrap-probe/safe-run.mjs pnpm exec tsc -p scripts/ide-bootstrap-probe/tsconfig.json
+          node scripts/ide-bootstrap-probe/safe-run.mjs pnpm exec tsc -p scripts/private-runtime-recipe/tsconfig.json
+          node scripts/ide-bootstrap-probe/safe-run.mjs node --import tsx --test --test-concurrency=1 scripts/ide-bootstrap-probe/*.node-test.mjs
+          node scripts/ide-bootstrap-probe/safe-run.mjs pnpm exec vitest run scripts/private-runtime-recipe/checks.test.ts --maxWorkers=1 --minWorkers=1
+      - name: Install pinned local clients and Chromium
+        run: |
+          set -euo pipefail
+          node scripts/ide-bootstrap-probe/safe-run.mjs bash scripts/ide-bootstrap-probe/install-clients.sh
+          echo "$RUNNER_TEMP/private-runtime-bin" >> "$GITHUB_PATH"
+      - name: Compiled SSR and read-only browser bootstrap
+        run: |
+          set -euo pipefail
+          node scripts/ide-bootstrap-probe/safe-run.mjs --expect-observation node_modules/.bin/tsx scripts/private-runtime-recipe/run.ts
+      - name: Cleanup only owned disposable resources
+        if: always()
+        run: |
+          set -euo pipefail
+          if test -f "$RUNNER_TEMP/vibecore-private-runtime-state.json"; then
+            node scripts/ide-bootstrap-probe/safe-run.mjs node_modules/.bin/tsx scripts/private-runtime-recipe/run.ts --cleanup
+          fi
