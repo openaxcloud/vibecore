@@ -7527,12 +7527,37 @@ function assertOnlyManagerChanges(beforeYaml, afterYaml, managerName, migrationI
     fail(`UNRELATED_RESOURCE_CHANGED ${JSON.stringify({ changes, truncated })}`);
   }
 }
-function terminalManagerPod(pod) {
+function terminalManagerEvidence(pod) {
   const status = pod.status;
-  const terminated = (container) => container?.state?.terminated && typeof container.state.terminated === "object" && Number.isInteger(container.state.terminated.exitCode) && !container.state.running && !container.state.waiting;
-  return ["Failed", "Succeeded"].includes(status?.phase) && Array.isArray(status.conditions) && status.conditions.some((condition) => condition.type === "Ready" && condition.status === "False") && !status.conditions.some((condition) => condition.type === "Ready" && condition.status === "True") && Array.isArray(status.containerStatuses) && status.containerStatuses.length > 0 && status.containerStatuses.length === pod.spec?.containers?.length && status.containerStatuses.every((container) => container.ready === false && terminated(container)) && [status.initContainerStatuses, status.ephemeralContainerStatuses].every(
-    (containers) => containers === void 0 || Array.isArray(containers) && containers.every(terminated)
-  );
+  const conditions = status?.conditions;
+  const ready = Array.isArray(conditions) ? conditions.filter((condition) => condition?.type === "Ready") : [];
+  const readyCondition = conditions !== void 0 && !Array.isArray(conditions) ? "Invalid" : ready.some((condition) => condition.status === "True") ? "True" : ready.some((condition) => condition.status !== "False") ? "Other" : ready.length ? "False" : "Absent";
+  const stopped = (containers, regular = false) => {
+    if (containers === void 0) {
+      return regular ? "Missing" : "Absent";
+    }
+    if (!Array.isArray(containers)) {
+      return "Invalid";
+    }
+    if (regular && (!containers.length || containers.length !== pod.spec?.containers?.length)) {
+      return "Incomplete";
+    }
+    const terminated = containers.every(
+      (container) => container?.state?.terminated && typeof container.state.terminated === "object" && Number.isInteger(container.state.terminated.exitCode) && !container.state.running && !container.state.waiting && (!regular || container.ready === false)
+    );
+    return terminated ? "Stopped" : "NotTerminated";
+  };
+  return {
+    phaseTerminal: ["Failed", "Succeeded"].includes(status?.phase),
+    readyCondition,
+    regular: stopped(status?.containerStatuses, true),
+    init: stopped(status?.initContainerStatuses),
+    ephemeral: stopped(status?.ephemeralContainerStatuses)
+  };
+}
+function terminalManagerPod(pod) {
+  const evidence = terminalManagerEvidence(pod);
+  return evidence.phaseTerminal && ["False", "Absent"].includes(evidence.readyCondition) && evidence.regular === "Stopped" && [evidence.init, evidence.ephemeral].every((state) => ["Stopped", "Absent"].includes(state));
 }
 function managerReadinessDiagnostic(deployment, pods, expectedDigest) {
   const items = Array.isArray(pods?.items) ? pods.items : [];
@@ -7561,6 +7586,7 @@ function managerReadinessDiagnostic(deployment, pods, expectedDigest) {
       deleting: Boolean(pod.metadata?.deletionTimestamp),
       ready: ready(pod),
       terminal: terminalManagerPod(pod),
+      terminalEvidence: terminalManagerEvidence(pod),
       targetDigestMatch: Array.isArray(pod.status?.containerStatuses) && pod.status.containerStatuses.length === 1 && pod.status.containerStatuses[0].imageID?.match(/(?:^|@|:\/\/)(sha256:[a-f0-9]{64})$/)?.[1] === expectedDigest,
       owners: (Array.isArray(pod.metadata?.ownerReferences) ? pod.metadata.ownerReferences : []).slice(0, 2).map((owner) => ({
         kind: owner.kind === "ReplicaSet" ? "ReplicaSet" : "Other",
