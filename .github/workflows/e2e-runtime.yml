@@ -25,7 +25,8 @@ concurrency:
 jobs:
   e2e-runtime:
     name: Playwright @runtime (non-blocking)
-    runs-on: ubuntu-latest
+    # The pinned Playwright package cannot install Chromium on Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     # Reporting-only until a workspace runtime is available in CI.
     continue-on-error: true
