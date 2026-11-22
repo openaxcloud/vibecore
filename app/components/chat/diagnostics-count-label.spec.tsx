@@ -1,7 +1,10 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { formatBaseChatAstNumber } from '~/lib/i18n/catalogs/base-chat-ast';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 
 /*
@@ -14,14 +17,14 @@ import { createI18nInstance } from '~/lib/i18n/runtime';
  * la forme à partir de `count` ; avec une chaîne il ne trouve aucune des deux
  * et retombe sur la valeur de secours.
  *
- * Ce test fige les deux moitiés de l'invariant : un nombre résout, et une
- * chaîne ne doit jamais produire l'étiquette de secours anglaise.
+ * Le badge de Supervision doit fournir à la fois le nombre pour le pluriel
+ * et sa version locale pour l’interpolation.
  */
 describe('étiquette accessible des compteurs de diagnostics', () => {
   // Formulations humanisées au lot UNIF-07 (fin de « project errors » façon jargon).
   const cas = [
-    ['fr', { un: '1 erreur dans ce projet', plusieurs: '4 erreurs dans ce projet' }],
-    ['en', { un: '1 error in this project', plusieurs: '4 errors in this project' }],
+    ['fr', { un: '1 erreur dans ce projet', plusieurs: '1\u202f234 erreurs dans ce projet' }],
+    ['en', { un: '1 error in this project', plusieurs: '1,234 errors in this project' }],
   ] as const;
 
   for (const [langue, attendus] of cas) {
@@ -29,12 +32,24 @@ describe('étiquette accessible des compteurs de diagnostics', () => {
       const i18n = createI18nInstance(langue);
       const t = i18n.t.bind(i18n);
 
-      expect(t('baseChatAst.diagnostics.count', { count: 1, formatted: '1' })).toBe(attendus.un);
-      expect(t('baseChatAst.diagnostics.count', { count: 4, formatted: '4' })).toBe(attendus.plusieurs);
+      const label = (count: number) =>
+        t('baseChatAst.diagnostics.count', { count, formatted: formatBaseChatAstNumber(langue, count) });
+
+      expect(label(1)).toBe(attendus.un);
+      expect(label(1234)).toBe(attendus.plusieurs);
     });
   }
 
-  it('ne retombe jamais sur l’étiquette de secours anglaise, même avec un compte non numérique', () => {
+  it('fournit les deux valeurs à l’étiquette de Supervision et la masque sans erreur', () => {
+    const source = readFileSync(join(__dirname, 'BaseChat.tsx'), 'utf8');
+    const monitoringItem = source.match(/panel: 'monitoring',\s+label:[\s\S]*?tone:/)?.[0];
+
+    expect(monitoringItem).toMatch(
+      /badgeLabel:\s*statusbarDiagnostics\.errors > 0\s*\? t\('baseChatAst\.diagnostics\.count', \{\s*count: statusbarDiagnostics\.errors,\s*formatted: formatBaseChatAstNumber\(language, statusbarDiagnostics\.errors\),\s*\}\)\s*:\s*undefined/,
+    );
+  });
+
+  it('ne retombe pas sur l’étiquette de secours anglaise pour un compte numérique', () => {
     const i18n = createI18nInstance('fr');
     const t = i18n.t.bind(i18n);
     const secours = String(t('common.unavailable'));
