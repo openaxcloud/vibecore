@@ -49,7 +49,8 @@ jobs:
     name: Playwright ${{ matrix.project }}
     needs: pertinence
     if: needs.pertinence.outputs.auditer == 'true'
-    runs-on: ubuntu-latest
+    # Playwright 1.59.1 cannot install browser dependencies on Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:
       # Every viewport is independent proof. Keep collecting the other three

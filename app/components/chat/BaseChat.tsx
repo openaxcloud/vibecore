@@ -9382,7 +9382,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         badge: statusbarDiagnostics.errors || undefined,
         badgeLabel:
           statusbarDiagnostics.errors > 0
-            ? t('baseChatAst.diagnostics.count', { count: statusbarDiagnostics.errors })
+            ? t('baseChatAst.diagnostics.count', {
+                count: statusbarDiagnostics.errors,
+                formatted: formatBaseChatAstNumber(language, statusbarDiagnostics.errors),
+              })
             : undefined,
         tone: statusbarDiagnostics.errors > 0 ? 'danger' : 'neutral',
       },
