@@ -3,6 +3,10 @@ name: Private Runtime Recipe (functional only)
 on:
   workflow_dispatch:
     inputs:
+      relay_probe_only:
+        description: Run only the synthetic Chromium relay probe (no application or cluster)
+        type: boolean
+        default: false
       browser_reseed:
         description: Also run the local Chromium workspace reseed acceptance
         type: boolean
@@ -14,7 +18,27 @@ permissions:
   contents: read
 
 jobs:
+  relay-probe:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/qa/isolated-reseed-check-20261122' && inputs.relay_probe_only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install only the pinned browser probe dependencies
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund --prefix "$RUNNER_TEMP/reseed-relay-probe" playwright@1.59.1
+          "$RUNNER_TEMP/reseed-relay-probe/node_modules/.bin/playwright" install --only-shell chromium
+      - name: Compare isolated Chromium proxy transports
+        run: |
+          node --experimental-strip-types --test scripts/private-runtime-recipe/relay-probe.test.mjs
+          node --experimental-strip-types scripts/private-runtime-recipe/relay-probe.mjs
   private-runtime:
+    if: github.event_name != 'workflow_dispatch' || !inputs.relay_probe_only
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
