@@ -413,7 +413,10 @@ async function main() {
       await assertLocalCluster();
 
       const { verifyBrowserReseed } = await import('./browser-reseed.js');
-      const browserResult = await verifyBrowserReseed(browserWorkspaceIdentity);
+
+      const browserResult = await verifyBrowserReseed(browserWorkspaceIdentity, (failure) => {
+        writeFileSync(join(evidence, 'browser-reseed-failure.json'), JSON.stringify(failure, null, 2));
+      });
       writeFileSync(join(evidence, 'browser-reseed.json'), JSON.stringify(browserResult, null, 2));
     }
 

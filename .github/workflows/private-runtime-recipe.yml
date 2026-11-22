@@ -16,7 +16,7 @@ permissions:
 jobs:
   private-runtime:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 25
     env:
       HUSKY: '0'
       CI: 'true'
@@ -54,6 +54,8 @@ jobs:
       - name: Prepare local Chromium and web app
         if: github.event_name == 'workflow_dispatch' && inputs.browser_reseed
         env:
+          RUNTIME_MODE: remote-kubernetes
+          RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
           VITE_RUNTIME_MODE: remote-kubernetes
           VITE_RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
           SAAS_API_URL: http://127.0.0.1:3001

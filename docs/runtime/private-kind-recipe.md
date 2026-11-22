@@ -151,6 +151,13 @@ dans le volume; les entrées et octets de l'archive durable doivent être
 identiques avant/après. Ni un HTTP 200 isolé, ni une interface affichée, ni une
 absence de trace ne comptent comme succès.
 
+Sur un échec navigateur, `browser-reseed-failure.json` conserve seulement la phase,
+un classement explicite, quelques marqueurs publics d'hydratation, des catégories
+de requêtes et des codes HTTP. Il ne copie ni URI, ni messages d'erreur bruts, ni
+identifiants, ni jetons/cookies. Un prétest OPTIONS local sépare la configuration
+CORS de l'hydratation ou du démarrage du workspace. Cette preuve négative
+n'autorise pas à déclarer le parcours réussi.
+
 `browser-reseed.json` n'est écrit qu'en cas de réussite; il ne contient ni
 identifiants de session, ni journaux bruts, ni données de l'archive. Les contextes,
 le processus web et le cluster générés sont nettoyés sur réussite/échec. Cette

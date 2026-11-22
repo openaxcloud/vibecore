@@ -7,10 +7,37 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import JSZip from 'jszip';
 
+import {
+  diagnoseSeed,
+  emptySeedEvidence,
+  pageErrorKind,
+  recipeCorsReady,
+  recordSeedStatus,
+  seedBoundary,
+  startupMarks,
+} from './browser-evidence.js';
 import { recipeApi, recipeApp, startRecipeBrowserHttp } from './browser-http.js';
 
 type Identity = { podUid: string; pvcUid: string };
-type Phase = 'web-ready' | 'canonical-archive' | 'first-seed' | 'owned-fixtures' | 'reopen' | 'verify';
+type Phase =
+  | 'web-ready'
+  | 'canonical-archive'
+  | 'runtime-preflight'
+  | 'first-browser-launch'
+  | 'first-ide-navigation'
+  | 'first-workspace-start'
+  | 'first-archive-marker'
+  | 'first-owned-identity'
+  | 'owned-fixtures'
+  | 'reopen-navigation'
+  | 'reopen-seed'
+  | 'verify';
+
+export type BrowserFailureReport = {
+  phase: Phase;
+  boundary: Phase | ReturnType<typeof diagnoseSeed>;
+  evidence?: ReturnType<typeof emptySeedEvidence>;
+};
 
 function need(ok: unknown, message: string): asserts ok {
   if (!ok) {
@@ -96,14 +123,46 @@ async function api<T>(path: string, token?: string, body?: unknown): Promise<T> 
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
+async function assertRuntimePreflight() {
+  for (const path of ['/api/runtime/runtime/boot', '/api/runtime/workspaces']) {
+    const response = await fetch(recipeApi + path, {
+      method: 'OPTIONS',
+      headers: {
+        origin: recipeApp,
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'authorization,content-type',
+      },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(5_000),
+    });
+    need(recipeCorsReady(response.status, response.headers), 'Local API rejected the browser CORS prerequisites');
+  }
+}
+
 async function newContext(browser: Browser, token: string): Promise<BrowserContext> {
   const context = await browser.newContext({ serviceWorkers: 'block' });
+  await context.addInitScript((allowed) => {
+    const scope = globalThis as typeof globalThis & {
+      __vibecoreStartupMark?: (mark: string) => void;
+      __reseedRecipePublicMarks?: string[];
+    };
+
+    const marks: string[] = [];
+    scope.__reseedRecipePublicMarks = marks;
+
+    scope.__vibecoreStartupMark = (mark) => {
+      if ((allowed as readonly string[]).includes(mark) && !marks.includes(mark)) {
+        marks.push(mark);
+      }
+    };
+  }, startupMarks);
   await context.addCookies([{ name: 'vc_session', value: token, url: recipeApp, httpOnly: true, sameSite: 'Lax' }]);
 
   return context;
 }
 
-function observe(page: Page, project: string) {
+function observe(page: Page, project: string, expectedProjectName: string) {
+  const evidence = emptySeedEvidence();
   const started = new Set<string>();
   const deleted: { id: string; path: string | null }[] = [];
   const imported: string[] = [];
@@ -138,6 +197,7 @@ function observe(page: Page, project: string) {
     }
 
     if (text.startsWith('[workspace] reseed clear')) {
+      evidence.reseedClear = true;
       clears += 1;
     }
   });
@@ -150,9 +210,30 @@ function observe(page: Page, project: string) {
     }
   });
 
+  page.on('pageerror', (error) => {
+    const kind = pageErrorKind(error.name);
+
+    if (!evidence.pageErrors.includes(kind)) {
+      evidence.pageErrors.push(kind);
+    }
+  });
+
+  page.on('requestfailed', (request) => {
+    const name = seedBoundary(request.url(), request.method(), project);
+
+    if (name && !evidence.requestFailures.includes(name)) {
+      evidence.requestFailures.push(name);
+    }
+  });
+
   page.on('response', (response) => {
     const url = new URL(response.url());
     const method = response.request().method();
+    const name = seedBoundary(response.url(), method, project);
+
+    if (name) {
+      recordSeedStatus(evidence, name, response.status());
+    }
 
     if (
       url.origin === recipeApp &&
@@ -164,7 +245,13 @@ function observe(page: Page, project: string) {
     }
 
     if (url.origin === recipeApi && url.pathname === '/api/runtime/workspaces' && method === 'POST' && response.ok()) {
-      const input = response.request().postDataJSON() as { projectId?: string; metadata?: { projectId?: string } };
+      let input: { projectId?: string; metadata?: { projectId?: string } } | undefined;
+
+      try {
+        input = response.request().postDataJSON();
+      } catch {
+        // Keep only the HTTP status for a response with an unreadable request.
+      }
 
       if ((input?.projectId ?? input?.metadata?.projectId) !== project) {
         return;
@@ -173,6 +260,7 @@ function observe(page: Page, project: string) {
       void response.json().then(
         (session: { id?: string }) => {
           if (session.id && /^ws-[a-z0-9-]+$/.test(session.id)) {
+            evidence.observedWorkspace = true;
             started.add(session.id);
           }
         },
@@ -187,7 +275,29 @@ function observe(page: Page, project: string) {
     }
   });
 
-  return { started, deleted, imported, archived, decisions, clears: () => clears };
+  const snapshotEvidence = async () => {
+    const marks = await Promise.race([
+      page
+        .evaluate((name) => {
+          const scope = globalThis as typeof globalThis & { __reseedRecipePublicMarks?: string[] };
+
+          return {
+            marks: scope.__reseedRecipePublicMarks,
+            projectNameRendered: Boolean(
+              document.querySelector('.bolt-project-ide-shell')?.textContent?.includes(name),
+            ),
+          };
+        }, expectedProjectName)
+        .catch(() => undefined),
+      sleep(1_000).then(() => undefined),
+    ]);
+    evidence.startup = startupMarks.filter((mark) => marks?.marks?.includes(mark));
+    evidence.projectNameRendered = marks?.projectNameRendered === true;
+
+    return evidence;
+  };
+
+  return { started, deleted, imported, archived, decisions, evidence, snapshotEvidence, clears: () => clears };
 }
 
 async function readMarker(page: Page, markerIds: string[]) {
@@ -254,15 +364,20 @@ function identicalIdentity(before: Identity, after: Identity): boolean {
  * Called only inside run.ts, after the exact generated local cluster has been
  * revalidated and its API port-forward is active. No alternate target or tokens.
  */
-export async function verifyBrowserReseed(identity: (workspaceId: string) => Promise<Identity>) {
+export async function verifyBrowserReseed(
+  identity: (workspaceId: string) => Promise<Identity>,
+  recordFailure: (failure: BrowserFailureReport) => void,
+) {
   const nonce = randomBytes(10).toString('hex');
   const leaf = `obsolete-${nonce}/stale.txt`;
   const keep = `canonical-${nonce}.txt`;
   const canonical = `persisted-${nonce}`;
+  const projectName = `Private reseed fixture ${nonce}`;
   const keepBytes = Buffer.from(canonical).toString('base64');
 
   let phase: Phase = 'web-ready';
   let browser: Browser | undefined;
+  let observed: ReturnType<typeof observe> | undefined;
   let relay: Awaited<ReturnType<typeof startRecipeBrowserHttp>> | undefined;
   let token: string | undefined;
   let workspaceId: string | undefined;
@@ -327,7 +442,7 @@ export async function verifyBrowserReseed(identity: (workspaceId: string) => Pro
     need(/^[a-z0-9_-]+$/.test(auth.organization.id), 'Unexpected disposable organization ID');
 
     const { project } = await api<{ project: { id: string } }>(`/orgs/${auth.organization.id}/projects`, token, {
-      name: `Private reseed fixture ${nonce}`,
+      name: projectName,
     });
     need(/^[a-z0-9_-]+$/.test(project.id), 'Unexpected disposable project ID');
 
@@ -345,7 +460,10 @@ export async function verifyBrowserReseed(identity: (workspaceId: string) => Pro
       replaceExisting: true,
     });
 
-    phase = 'first-seed';
+    phase = 'runtime-preflight';
+    await assertRuntimePreflight();
+
+    phase = 'first-browser-launch';
     browser = await chromium.launch({
       headless: true,
       env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' },
@@ -358,9 +476,14 @@ export async function verifyBrowserReseed(identity: (workspaceId: string) => Pro
 
     const first = await newContext(browser, token);
     const firstPage = await first.newPage();
-    const initial = observe(firstPage, project.id);
+    const initial = observe(firstPage, project.id, projectName);
+    observed = initial;
+    phase = 'first-ide-navigation';
+
     const ideUrl = `${recipeApp}/projects/${project.id}/ide`;
     need((await firstPage.goto(ideUrl, { waitUntil: 'domcontentloaded' }))?.ok(), 'IDE could not open');
+
+    phase = 'first-workspace-start';
 
     const id = await eventually('first real workspace start', 130_000, async () => [...initial.started][0]);
     workspaceId = id;
@@ -369,6 +492,8 @@ export async function verifyBrowserReseed(identity: (workspaceId: string) => Pro
      * Readiness needs real import, console evidence and the app's durable
      * marker, not merely a rendered shell or arbitrary delay.
      */
+    phase = 'first-archive-marker';
+
     const seeded = await eventually('first real seed and marker', 80_000, async () => {
       if (initial.imported.includes(id) && initial.archived.includes(200) && initial.clears() > 0) {
         return readMarker(firstPage, [...new Set([id, project.id])]);
@@ -377,12 +502,16 @@ export async function verifyBrowserReseed(identity: (workspaceId: string) => Pro
       return undefined;
     });
 
+    initial.evidence.markerRead = true;
+    phase = 'first-owned-identity';
+
     const before = await identity(id);
     workspaceOwned = true;
     assert.equal((await fixture(token, id, nonce, 'read')).keep, keepBytes, 'Initial runtime canonical bytes');
     await first.close();
 
     phase = 'owned-fixtures';
+    observed = undefined;
 
     const planted = await fixture(token, id, nonce, 'plant');
     assert.equal(planted.keep, Buffer.from(`runtime-stale-${nonce}`).toString('base64'));
@@ -402,15 +531,18 @@ export async function verifyBrowserReseed(identity: (workspaceId: string) => Pro
       'Fixture accidentally entered durable storage',
     );
 
-    phase = 'reopen';
+    phase = 'reopen-navigation';
 
     const second = await newContext(browser, token);
     need((await second.storageState()).origins.length === 0, 'Reopen context unexpectedly shares origin storage');
 
     const secondPage = await second.newPage();
-    const reopened = observe(secondPage, project.id);
+    const reopened = observe(secondPage, project.id, projectName);
+    observed = reopened;
     relay.reset();
     need((await secondPage.goto(ideUrl, { waitUntil: 'domcontentloaded' }))?.ok(), 'IDE could not reopen');
+
+    phase = 'reopen-seed';
 
     const secondMarker = await eventually('same workspace real reseed from fresh browser', 130_000, async () => {
       if (
@@ -428,6 +560,7 @@ export async function verifyBrowserReseed(identity: (workspaceId: string) => Pro
 
       return undefined;
     });
+    reopened.evidence.markerRead = true;
     need(secondMarker.seededAt >= seeded.seededAt, 'Second marker predates first browser seed');
     assert.deepEqual([...initial.started], [id], 'First browser started an unexpected workspace');
     assert.deepEqual([...reopened.started], [id], 'Browser did not use exactly the original workspace');
@@ -439,6 +572,7 @@ export async function verifyBrowserReseed(identity: (workspaceId: string) => Pro
     await second.close();
 
     phase = 'verify';
+    observed = undefined;
     need(identicalIdentity(before, await identity(id)), 'Pod/PVC changed across browser reopen');
 
     const restored = await fixture(token, id, nonce, 'read');
@@ -469,7 +603,10 @@ export async function verifyBrowserReseed(identity: (workspaceId: string) => Pro
      * Keep failure artifacts bounded to stage and probe names; no session,
      * returned bodies, browser logs, raw routes, kubeconfig or ZIP payloads.
      */
-    throw new Error(`Private browser reseed failed at ${phase}`);
+    const evidence = await observed?.snapshotEvidence();
+    const boundary = evidence ? diagnoseSeed(evidence) : phase;
+    recordFailure({ phase, boundary, evidence });
+    throw new Error(`Private browser reseed failed at ${phase} / ${boundary}`);
   } finally {
     try {
       await browser?.close();
