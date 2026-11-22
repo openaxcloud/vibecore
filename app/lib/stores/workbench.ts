@@ -299,6 +299,8 @@ export class WorkbenchStore {
   #runtime: RuntimeAdapter = getRuntimeAdapter();
   #runtimeWriteDestination: string | undefined;
   #projectStorageBinding = 0;
+  #snapshotFileViewEpoch = 0;
+  #snapshotRefreshScope?: () => boolean;
   #projectStorageSaveVersions = new Map<string, number>();
   #previewsStore = new PreviewsStore(this.#runtime);
   #filesStore = new FilesStore(this.#runtime);
@@ -859,15 +861,18 @@ export class WorkbenchStore {
     const binding = this.#projectStorageBinding;
     const projectId = this.#projectId;
 
+    const viewEpoch = this.#snapshotFileViewEpoch;
+    const viewIsCurrent = () => viewEpoch === this.#snapshotFileViewEpoch;
+
     let runtimeError: unknown;
 
     try {
-      await this.#filesStore.reloadFromRuntime(rootPath, options);
+      await this.#filesStore.reloadFromRuntime(rootPath, options, viewIsCurrent);
     } catch (error) {
       runtimeError = error;
     }
 
-    if (binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
+    if (!viewIsCurrent() || binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
       return;
     }
 
@@ -889,7 +894,7 @@ export class WorkbenchStore {
       }
     }
 
-    if (binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
+    if (!viewIsCurrent() || binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
       return;
     }
 
@@ -919,13 +924,14 @@ export class WorkbenchStore {
     }
 
     const binding = this.#projectStorageBinding;
+    const viewEpoch = this.#snapshotFileViewEpoch;
 
-    return this.#projectStorageFilesInFlight.run(`${projectId}:${binding}`, () =>
-      this.#loadProjectStorageFilesUncoalesced(projectId, binding),
+    return this.#projectStorageFilesInFlight.run(`${projectId}:${binding}:${viewEpoch}`, () =>
+      this.#loadProjectStorageFilesUncoalesced(projectId, binding, viewEpoch),
     );
   }
 
-  async #loadProjectStorageFilesUncoalesced(projectId: string, binding: number) {
+  async #loadProjectStorageFilesUncoalesced(projectId: string, binding: number, viewEpoch: number) {
     const prefetched = takeInitialProjectArchive(projectId);
 
     /*
@@ -936,7 +942,11 @@ export class WorkbenchStore {
     const savesBeforeRequest = new Map(prefetched ? [] : this.#projectStorageSaveVersions);
     const payload = await (prefetched ?? requestProjectArchive(projectId));
 
-    if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
+    if (
+      this.#projectId !== projectId ||
+      this.#projectStorageBinding !== binding ||
+      this.#snapshotFileViewEpoch !== viewEpoch
+    ) {
       return false;
     }
 
@@ -951,7 +961,11 @@ export class WorkbenchStore {
     const files = await this.#projectStorageFilesFromArchive(archiveBase64);
     (globalThis as any).__vibecoreStartupMark?.('archive-decode-ready');
 
-    if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
+    if (
+      this.#projectId !== projectId ||
+      this.#projectStorageBinding !== binding ||
+      this.#snapshotFileViewEpoch !== viewEpoch
+    ) {
       return false;
     }
 
@@ -976,6 +990,96 @@ export class WorkbenchStore {
     this.#retryResolvedMissingImportFailures();
 
     return true;
+  }
+
+  prepareSnapshotFileRefresh(projectId: string, expectedWorkspaceId?: string) {
+    const hasEdits = () =>
+      this.unsavedFiles.get().size > 0 || this.#pendingFileSaves.size > 0 || this.#filesStore.hasPendingSaves();
+
+    if (projectId !== this.#projectId || hasEdits() || this.#snapshotRefreshScope?.()) {
+      return undefined;
+    }
+
+    const inScope = this.captureRuntimeScope();
+    this.#snapshotRefreshScope = inScope;
+
+    const saves = new Map(this.#projectStorageSaveVersions);
+    const deletedPaths = new Set(this.#filesStore.getDeletedPaths());
+    const isCurrent = () => inScope() && this.#snapshotRefreshScope === inScope;
+
+    const hasNewerChanges = () => {
+      const currentDeletedPaths = this.#filesStore.getDeletedPaths();
+
+      return (
+        hasEdits() ||
+        this.#projectStorageSaveVersions.size !== saves.size ||
+        [...this.#projectStorageSaveVersions].some(([path, version]) => saves.get(path) !== version) ||
+        currentDeletedPaths.some((path) => !deletedPaths.has(path))
+      );
+    };
+
+    const refresh = async (archiveBase64?: string, restoredWorkspaceId?: string, runtimeSynced?: boolean) => {
+      if (!isCurrent()) {
+        return 'superseded' as const;
+      }
+
+      if (hasNewerChanges()) {
+        return 'newer-edits' as const;
+      }
+
+      if (runtimeSynced === false && this.#runtime.mode === 'remote-kubernetes') {
+        return 'runtime-pending' as const;
+      }
+
+      if (
+        typeof archiveBase64 !== 'string' ||
+        !archiveBase64 ||
+        (expectedWorkspaceId && expectedWorkspaceId !== restoredWorkspaceId) ||
+        (this.#runtime.mode === 'remote-kubernetes' && (!expectedWorkspaceId || runtimeSynced !== true))
+      ) {
+        return 'unavailable' as const;
+      }
+
+      this.#snapshotFileViewEpoch++;
+
+      try {
+        /*
+         * Apply only the bytes returned by the acknowledged restore. An earlier
+         * archive or a runtime tree listing is not a proof of these bytes.
+         */
+        takeInitialProjectArchive(projectId);
+
+        const files = await this.#projectStorageFilesFromArchive(archiveBase64);
+
+        if (!isCurrent()) {
+          return 'superseded' as const;
+        }
+
+        if (hasNewerChanges()) {
+          return 'newer-edits' as const;
+        }
+
+        // Invalidate ordinary tree/archive reads begun while restore was in flight.
+        this.#filesStore.replaceWithProjectStorageFiles(files, undefined, { restoredSnapshot: true });
+        this.setDocuments(this.files.get());
+        this.#runtimeFilesLoadedProjectId = projectId;
+        this.#markFilesHydrated(projectId);
+        this.#snapshotFileViewEpoch++;
+
+        return 'refreshed' as const;
+      } catch {
+        return isCurrent() ? ('unavailable' as const) : ('superseded' as const);
+      }
+    };
+
+    return {
+      refresh,
+      release: () => {
+        if (this.#snapshotRefreshScope === inScope) {
+          this.#snapshotRefreshScope = undefined;
+        }
+      },
+    };
   }
 
   /**
@@ -2709,7 +2813,11 @@ export class WorkbenchStore {
       return;
     }
 
-    const issue = await this.#filesStore.adoptRemoteContent(filePath).catch(() => 'illisible' as const);
+    const viewEpoch = this.#snapshotFileViewEpoch;
+
+    const issue = await this.#filesStore
+      .adoptRemoteContent(filePath, () => viewEpoch === this.#snapshotFileViewEpoch)
+      .catch(() => 'illisible' as const);
 
     if (issue === 'adopte') {
       this.setDocuments(this.#filesStore.files.get());
