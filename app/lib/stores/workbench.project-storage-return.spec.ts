@@ -209,6 +209,43 @@ describe('project storage hydration after returning to the IDE', () => {
       expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
     });
 
+    it('blocks snapshot restore during a direct FilesStore save even without an editor draft', async () => {
+      const { store, projectId } = setup();
+      stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+      runtimeFiles.set('audit.txt', 'saved document');
+
+      let started!: () => void;
+      let release!: () => void;
+
+      const writeStarted = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      runtimeAdapterMock.writeFile.mockImplementationOnce(async (path, content) => {
+        started();
+        await gate;
+        runtimeFiles.set(path, content);
+      });
+
+      const saving = store.writeFileContent(path, 'new programmatic save');
+      await writeStarted;
+
+      try {
+        expect(store.unsavedFiles.get().size).toBe(0);
+        expect(store.prepareSnapshotFileRefresh(projectId)).toBeUndefined();
+      } finally {
+        release();
+        await saving;
+      }
+
+      const restoration = store.prepareSnapshotFileRefresh(projectId);
+      expect(restoration).toBeDefined();
+      restoration?.release();
+    });
+
     it('uses the acknowledged archive and ignores an older archive or runtime tree response', async () => {
       const { store, projectId } = setup();
       const downloads = stubArchive(() => archive());

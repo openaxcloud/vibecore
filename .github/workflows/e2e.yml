@@ -134,7 +134,8 @@ jobs:
         # tranches donnent ~45 min, soit le double de marge sous le plafond,
         # pour deux fois moins de jobs. On rachète la marge sans affamer la file.
         shard: [1, 2, 3, 4]
-    runs-on: ubuntu-latest
+    # Playwright 1.59.1 cannot install browser dependencies on Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     # Plafond par TRANCHE. Une tranche joue un QUART des specs — remis à quatre
     # tranches le 2026-10-01 parce que la suite a dépassé son budget : elle n'a
     # jamais approché ce plafond, il reste large exprès. + 15 min de canari iOS
@@ -320,7 +321,8 @@ jobs:
     name: Canari iOS WebKit (non bloquant)
     # Même garde que le job bloquant : pas de fork, pour les mêmes raisons.
     if: needs.perimetre.outputs.code == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-latest
+    # Playwright 1.59.1 cannot install browser dependencies on Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     # Son propre plafond : il ne peut plus manger le budget de personne, mais un
     # job pendu reste un coureur immobilisé.
     timeout-minutes: 45
