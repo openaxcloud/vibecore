@@ -2,6 +2,11 @@ name: Private Runtime Recipe (functional only)
 
 on:
   workflow_dispatch:
+    inputs:
+      browser_reseed:
+        description: Also run the local Chromium workspace reseed acceptance
+        type: boolean
+        default: false
   push:
     branches: [validation/private-runtime-20261113-7b970996]
 
@@ -10,7 +15,7 @@ permissions:
 
 jobs:
   private-runtime:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       HUSKY: '0'
@@ -44,9 +49,21 @@ jobs:
           echo "$RUNNER_TEMP/private-runtime-bin" >> "$GITHUB_PATH"
       - name: Validate recipe contracts
         run: |
-          pnpm exec vitest run scripts/private-runtime-recipe/checks.test.ts
+          pnpm exec vitest run scripts/private-runtime-recipe/{checks,browser-reseed}.test.ts
           pnpm exec tsc -p scripts/private-runtime-recipe/tsconfig.json
+      - name: Prepare local Chromium and web app
+        if: github.event_name == 'workflow_dispatch' && inputs.browser_reseed
+        env:
+          VITE_RUNTIME_MODE: remote-kubernetes
+          VITE_RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
+          SAAS_API_URL: http://127.0.0.1:3001
+          API_BASE_URL: http://127.0.0.1:3001
+        run: |
+          pnpm exec playwright install chromium --with-deps
+          pnpm run build
       - name: Real API to manager to pod recipe
+        env:
+          PRIVATE_RUNTIME_BROWSER_RESEED: ${{ github.event_name == 'workflow_dispatch' && inputs.browser_reseed && '1' || '0' }}
         run: pnpm exec tsx scripts/private-runtime-recipe/run.ts
       - name: Remove only the generated local cluster (also on cancellation)
         if: always()

@@ -23,6 +23,11 @@ type State = { name: string; directory: string; kubeconfig: string };
 let state: State;
 
 const forwards: ChildProcess[] = [];
+const browserReseed = process.env.PRIVATE_RUNTIME_BROWSER_RESEED === '1';
+
+if (browserReseed) {
+  assert.equal(process.env.GITHUB_EVENT_NAME, 'workflow_dispatch', 'Browser reseed is manual opt-in only');
+}
 
 function childEnv(): NodeJS.ProcessEnv {
   const result: NodeJS.ProcessEnv = {
@@ -192,6 +197,33 @@ async function forward(service: string, port: number) {
       reject(new Error(`Port forward ${service} exited ${code}`));
     });
   });
+}
+
+async function browserWorkspaceIdentity(workspaceId: string) {
+  assert.match(workspaceId, /^ws-[a-z0-9-]+$/);
+
+  const namespace = state.name;
+
+  const pod = JSON.parse(await kubectl(['-n', namespace, 'get', `pod/workspace-${workspaceId}`, '-o', 'json'])) as {
+    metadata: { uid: string; namespace: string };
+    spec: { volumes: { persistentVolumeClaim?: { claimName: string } }[] };
+    status: { conditions?: { type: string; status: string }[] };
+  };
+  assert.equal(pod.metadata.namespace, namespace);
+  assert.ok(pod.status.conditions?.some((condition) => condition.type === 'Ready' && condition.status === 'True'));
+
+  const claim = pod.spec.volumes.find((volume) => volume.persistentVolumeClaim)?.persistentVolumeClaim?.claimName;
+  assert.ok(claim && /^[a-z0-9-]+$/.test(claim));
+
+  const pvc = JSON.parse(await kubectl(['-n', namespace, 'get', `pvc/${claim}`, '-o', 'json'])) as {
+    metadata: { uid: string; namespace: string };
+    status: { phase: string };
+  };
+  assert.equal(pvc.metadata.namespace, namespace);
+  assert.equal(pvc.status.phase, 'Bound');
+  assert.ok(pod.metadata.uid && pvc.metadata.uid);
+
+  return { podUid: pod.metadata.uid, pvcUid: pvc.metadata.uid };
 }
 
 async function main() {
@@ -375,6 +407,16 @@ async function main() {
       progressFile: join(evidence, 'validation-progress.txt'),
     });
     writeFileSync(join(evidence, 'checks.txt'), result);
+
+    if (browserReseed) {
+      stage = 'local-chromium-reseed';
+      await assertLocalCluster();
+
+      const { verifyBrowserReseed } = await import('./browser-reseed.js');
+      const browserResult = await verifyBrowserReseed(browserWorkspaceIdentity);
+      writeFileSync(join(evidence, 'browser-reseed.json'), JSON.stringify(browserResult, null, 2));
+    }
+
     writeFileSync(
       join(evidence, 'result.json'),
       JSON.stringify(
@@ -387,6 +429,7 @@ async function main() {
           aiGeneration: 'not-tested',
           productionIsolation: 'not-tested',
           publication: 'not-tested',
+          browserReseed: browserReseed ? 'passed' : 'not-tested',
         },
         null,
         2,

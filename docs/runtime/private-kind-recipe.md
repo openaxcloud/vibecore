@@ -39,7 +39,7 @@ disponible sur la branche par défaut et la revue terminée, sélectionner la r�
 `e2e-runtime.yml` ou `staging-runtime-validation.yml` pour cette recette : ils ont
 un autre périmètre et référencent des secrets externes.
 
-Le runner `ubuntu-latest` est jetable. Seules les minutes Actions sont consommées ;
+Le runner `ubuntu-24.04` est jetable. Seules les minutes Actions sont consommées ;
 aucun projet cloud, registre distant, domaine, certificat, compte tiers ou service
 IA n'est provisionné. Le runner construit les images à partir de la révision
 sélectionnée et les charge directement dans kind. Les dépendances publiques sont
@@ -112,6 +112,49 @@ une archive **projet** récupérable. Elle ne prétend pas archiver tout état �
 uniquement par le shell, les processus, la mémoire ou les bases des applications.
 La résistance à une perte de nœud/disque, la reprise après sinistre et les autres
 parcours client/IDE restent hors périmètre.
+
+## Option manuelle : réouverture Chromium et réensemencement
+
+L'option `browser_reseed` (désactivée par défaut) complète la recette manuelle.
+Elle ne s'active ni sur un push à la branche de validation, ni sur une PR. Le
+runner installe Chromium et construit le vrai web au même SHA. Comme la recette
+kind existante, cette préparation télécharge des dépendances publiques, notamment
+le navigateur, ses paquets système et les images de base. Ce n'est pas une
+installation hors ligne.
+
+Pendant le scénario, le web ne démarre qu'après le signal `listen` du processus
+enfant et une vraie réponse HTML sur son écoute IPv4 locale. Chromium garde
+l’origine `localhost:5173` attendue par le CORS de l’API; son relais HTTP résout
+uniquement les deux cibles locales vers IPv4, rejette les redirections avant de
+restituer les en-têtes et ne réémet ni CONNECT ni WebSocket. Il préserve les
+méthodes, corps et en-têtes des réponses normales. La réouverture échoue si sa
+page, la suppression ou l'import n'ont pas traversé ce relais. Le web SSR n'est
+autorisé à utiliser `fetch` que vers le port-forward API et ne suit pas les
+redirections amont. Ces gardes ne sont ni un pare-feu de processus ni un contrôle
+d’egress du cluster.
+
+Le projet factice remplace entièrement son squelette Vite par une archive
+statique, sans `package.json`, installer ou fournisseur IA. L'inscription passe
+par le transport d'email de développement sans envoi; l'archive et le Git sont
+locaux au cluster. Le navigateur suit le vrai chemin de l'IDE et ses réponses
+HTTP, sans simulation. Les abonnements WebSocket, démarrés en arrière-plan
+indépendamment du réensemencement, ne font pas partie du résultat.
+
+Le premier contexte doit importer l'archive et produire le marqueur durable
+normal de l'IDE. La recette dépose ensuite des fichiers de test uniquement dans
+son propre volume : un fichier obsolète, une version stale du fichier canonique
+et trois témoins sous un lockfile imbriqué, `node_modules` et `.git`. La réouverture
+dans un second contexte sans stockage local doit réellement choisir
+`reseed` sur le même pod et le même PVC, supprimer uniquement le fichier
+obsolète, et importer l'archive. Les octets restaurés et préservés sont relus
+dans le volume; les entrées et octets de l'archive durable doivent être
+identiques avant/après. Ni un HTTP 200 isolé, ni une interface affichée, ni une
+absence de trace ne comptent comme succès.
+
+`browser-reseed.json` n'est écrit qu'en cas de réussite; il ne contient ni
+identifiants de session, ni journaux bruts, ni données de l'archive. Les contextes,
+le processus web et le cluster générés sont nettoyés sur réussite/échec. Cette
+option ne couvre ni les courses concurrentes, ni gVisor, ni la production.
 
 ## Résultats et nettoyage
 
