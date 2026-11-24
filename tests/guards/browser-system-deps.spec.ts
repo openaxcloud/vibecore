@@ -13,7 +13,7 @@ const install = action.runs.steps.find((step: { name?: string }) => step.name ==
  * Execute the actual action shell. Only external installers are replaced: no apt,
  * downloads, sudo or sleep run, and the action's branching/retry logic stays real.
  */
-function runInstaller(browsers: string, failures = 0, failWebkit = false) {
+function runInstaller(browsers: string, failures = 0, failWebkit = false, timeoutApt = false) {
   const directory = mkdtempSync(join(tmpdir(), 'vibecore-browser-deps-'));
   const calls = join(directory, 'calls');
   const counter = join(directory, 'counter');
@@ -33,6 +33,17 @@ if [ "$(basename "$0")" = pnpm ]; then
 fi
 `;
 
+    writeFileSync(
+      join(directory, 'timeout'),
+      `#!/usr/bin/env bash
+[ "$1" = --kill-after=15s ] && [ "$2" = 6m ] || exit 96
+if [ "$QA_TIMEOUT_APT" = 1 ]; then exit 124; fi
+shift 2
+exec "$@"
+`,
+      { mode: 0o755 },
+    );
+
     for (const command of ['pnpm', 'sudo', 'sleep']) {
       writeFileSync(join(directory, command), stub, { mode: 0o755 });
     }
@@ -44,6 +55,7 @@ fi
       QA_CALLS: calls,
       QA_COUNTER: counter,
       QA_FAILURES: String(failures),
+      QA_TIMEOUT_APT: timeoutApt ? '1' : '0',
       QA_FAIL_WEBKIT: failWebkit ? '1' : '0',
     };
 
@@ -108,7 +120,8 @@ describe('system dependencies follow the browsers actually tested', () => {
       'pnpm <exec> <playwright> <install-deps> <chromium>',
       'pnpm <exec> <playwright> <install-deps> <chromium>',
     ]);
-    expect(result.calls).toContain('sudo <apt-get> <update>');
+    expect(result.calls.some((call) => call.includes('<apt-get>'))).toBe(false);
+    expect(result.calls.some((call) => call.startsWith('sudo <rm> <-rf>'))).toBe(true);
     expect(result.calls.at(-1)).toBe('pnpm <exec> <playwright> <install> <chromium>');
   });
 
@@ -117,6 +130,13 @@ describe('system dependencies follow the browsers actually tested', () => {
     expect(result.status).toBe(1);
     expect(result.calls.filter((call) => call.includes('<install-deps>'))).toHaveLength(3);
     expect(result.calls.some((call) => call.includes('<install>'))).toBe(false);
+  });
+
+  it('fails the shard on a hard timeout without racing apt cleanup or starting a browser', () => {
+    const result = runInstaller('chromium', 0, false, true);
+    expect(result.status).toBe(124);
+    expect(result.calls).toEqual([]);
+    expect(result.output).toContain('no browser tests ran on this shard');
   });
 
   it('preserves the existing advisory handling of a WebKit binary download failure', () => {
