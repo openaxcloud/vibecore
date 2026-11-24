@@ -111,12 +111,11 @@ runs:
       path: ~/.cache/ms-playwright
       key: ms-playwright-${{ runner.os }}-${{ steps.version_playwright.outputs.version }}-${{ steps.version_playwright.outputs.browser_key }}
 
-  # The WebKit canary spent 44 minutes fetching Ubuntu packages from the
-  # Azure mirror without an apt error. Retrying failed commands cannot help
-  # a transfer that keeps progressing slowly. Preserve all packages and apt
-  # signature checks; only select Ubuntu's canonical archive on this runner.
-  - name: Select Ubuntu archive for WebKit dependencies
-    if: inputs.navigateurs == 'chromium,webkit' && runner.arch == 'X64'
+  # Ubuntu's Azure mirror has stalled both Chromium shards and the WebKit
+  # canary before any test. Preserve apt signature checks and package lists;
+  # choose Ubuntu's canonical archive for both x64 dependency sets.
+  - name: Select Ubuntu archive for browser dependencies
+    if: runner.arch == 'X64' && (inputs.navigateurs == 'chromium' || inputs.navigateurs == 'chromium,webkit')
     shell: bash
     run: sudo python3 .github/scripts/preparer-miroir-ubuntu.py
 
@@ -146,11 +145,19 @@ runs:
       # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
       # dont on lit le résultat.
       for attempt in 1 2 3; do
-        if pnpm exec playwright install-deps "${browser_deps[@]}"; then break; fi
+        if timeout --kill-after=15s 6m pnpm exec playwright install-deps "${browser_deps[@]}"; then
+          break
+        else
+          apt_status=$?
+        fi
+        if [ "$apt_status" -eq 124 ] || [ "$apt_status" -eq 137 ]; then
+          echo "::error::Playwright apt timed out (attempt $attempt/3, exit $apt_status); no browser tests ran on this shard."
+          exit "$apt_status"
+        fi
         echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
         if [ "$attempt" = "3" ]; then exit 1; fi
         sudo rm -rf /var/lib/apt/lists/*
-        sudo apt-get update || true
+        # The next Playwright attempt performs its own apt-get update.
         sleep 10
       done
       pnpm exec playwright install chromium

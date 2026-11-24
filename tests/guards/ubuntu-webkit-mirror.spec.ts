@@ -93,15 +93,17 @@ describe('canonical Ubuntu mirror scoped to WebKit preparation', () => {
     expect(runFixture('apt-mirrors.txt', source, 'ubuntu', 'aarch64')).toBe(source);
   });
 
-  it('runs before dependency installation only for the existing x64 WebKit canary input', () => {
+  it('runs before dependency installation for both valid x64 browser inputs', () => {
     const action = parse(readFileSync(join(root, '.github/actions/preparer-pile-e2e/action.yml'), 'utf8'));
     const steps = action.runs.steps;
 
     const index = steps.findIndex(
-      (step: { name?: string }) => step.name === 'Select Ubuntu archive for WebKit dependencies',
+      (step: { name?: string }) => step.name === 'Select Ubuntu archive for browser dependencies',
     );
     expect(index).toBeGreaterThan(-1);
-    expect(steps[index].if).toBe("inputs.navigateurs == 'chromium,webkit' && runner.arch == 'X64'");
+    expect(steps[index].if).toBe(
+      "runner.arch == 'X64' && (inputs.navigateurs == 'chromium' || inputs.navigateurs == 'chromium,webkit')",
+    );
     expect(steps[index].run).toBe('sudo python3 .github/scripts/preparer-miroir-ubuntu.py');
     expect(steps.findIndex((step: { name?: string }) => step.name === 'Install Playwright browsers')).toBeGreaterThan(
       index,
