@@ -27,11 +27,9 @@ import { parseDocument } from 'yaml';
 
 const RACINE = join(__dirname, '..', '..');
 
-const WORKFLOWS = [
-  '.github/workflows/e2e.yml',
-  '.github/workflows/e2e-runtime.yml',
-  '.github/workflows/i18n-live-audit.yml',
-] as const;
+const RUNTIME = '.github/workflows/e2e-runtime.yml';
+const COMPOSE = ['.github/workflows/e2e.yml', '.github/workflows/i18n-live-audit.yml'] as const;
+const WORKFLOWS = [...COMPOSE, RUNTIME];
 
 /*
  * Toutes les valeurs `run:` d'un workflow, commentaires retirés — ET CELLES DES
@@ -133,7 +131,7 @@ describe('BUG-CI-008 — la pile E2E se remet d’un amont qui hoquette', () => 
     expect(etape).not.toMatch(/playwright install[^\n]*2>\/dev\/null/);
   });
 
-  it.each(WORKFLOWS)('%s attend la SANTÉ de la pile et lui laisse une seconde tentative', (chemin) => {
+  it.each(COMPOSE)('%s attend la SANTÉ de la pile et lui laisse une seconde tentative', (chemin) => {
     const etape = etapesRun(chemin).find((run) => run.includes('docker compose') && run.includes('up -d'));
 
     expect(etape, 'aucune étape ne démarre la pile').toBeDefined();
@@ -148,6 +146,52 @@ describe('BUG-CI-008 — la pile E2E se remet d’un amont qui hoquette', () => 
     /* La seconde tentative, avec un volume propre — et seulement en cas d'échec. */
     expect(etape).toContain('down -v');
     expect((etape!.match(/up -d --wait/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('le banc Kubernetes privé', () => {
+  it('exige la recette Chromium et nettoie même après son échec', () => {
+    const job = parseDocument(readFileSync(join(RACINE, RUNTIME), 'utf8')).toJS().jobs['e2e-runtime'];
+    const steps: { run?: string; if?: string; 'timeout-minutes'?: number; 'continue-on-error'?: boolean }[] = job.steps;
+    const index = steps.findIndex(
+      (step) => step.run === 'pnpm exec tsx scripts/private-runtime-recipe/run.ts --browser',
+    );
+
+    expect(index).toBeGreaterThanOrEqual(0);
+    expect(steps[index].if).toBeUndefined();
+    expect(steps[index]['timeout-minutes']).toBeGreaterThan(0);
+    expect(steps[index]['continue-on-error'] ?? false).toBe(false);
+    expect(job['continue-on-error'] ?? false).toBe(false);
+    expect(steps.slice(index + 1)).toContainEqual(
+      expect.objectContaining({
+        if: 'always()',
+        run: expect.stringContaining('scripts/private-runtime-recipe/run.ts --browser --cleanup'),
+      }),
+    );
+  });
+
+  it('attend les rollouts et la migration puis valide le runtime avant Chromium', () => {
+    const recipe = readFileSync(join(RACINE, 'scripts/private-runtime-recipe/run.ts'), 'utf8');
+    const rollout = "'rollout', 'status', `deployment/${service}`, '--timeout=180s'";
+    const gates = [
+      "for (const service of ['postgres', 'redis'])",
+      rollout,
+      "'--for=condition=complete', 'job/migrate', '--timeout=600s'",
+      "for (const service of ['api', 'manager'])",
+      rollout,
+      "'rollout', 'status', 'deployment/preview-proxy', '--timeout=180s'",
+      "await run('node_modules/.bin/tsx', ['scripts/qa/runtime-e2e-preflight.ts']);",
+      "await run('node_modules/.bin/tsx', ['scripts/validate-runtime-api-kubernetes.ts']",
+      "await run('bash', ['scripts/qa/runtime-e2e-browser.sh']",
+      'throw error;',
+      'finally {',
+      'await cleanup();',
+    ];
+    let previous = -1;
+    for (const gate of gates) {
+      previous = recipe.indexOf(gate, previous + 1);
+      expect(previous, gate).toBeGreaterThanOrEqual(0);
+    }
   });
 });
 
