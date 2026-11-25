@@ -3495,6 +3495,74 @@ describe('SaaS API', () => {
     }
   });
 
+  it('enforces invitation capacity across Pro, Team and Pro subscription updates', async () => {
+    const secret = 'synthetic-webhook-signing-key';
+    vi.stubEnv('STRIPE_WEBHOOK_SECRET', secret);
+    vi.stubEnv('STRIPE_PRO_PRICE_ID', 'price_pro_capacity');
+    vi.stubEnv('STRIPE_TEAM_PRICE_ID', 'price_team_capacity');
+
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    try {
+      const auth = await register(app, { email: 'owner@example.test', organizationName: 'Capacity' });
+      const headers = { authorization: `Bearer ${auth.token}` };
+      const invite = (number: number) =>
+        app.inject({
+          method: 'POST',
+          url: `/orgs/${auth.organization.id}/invitations`,
+          headers,
+          payload: { email: `member-${number}@example.test`, roleKey: 'member' },
+        });
+
+      async function updatePlan(eventId: string, plan: 'pro' | 'team') {
+        const payload = JSON.stringify({
+          id: eventId,
+          type: 'customer.subscription.updated',
+          data: {
+            object: {
+              id: 'sub_capacity',
+              customer: 'cus_capacity',
+              status: 'active',
+              items: { data: [{ price: { id: `price_${plan}_capacity` } }] },
+              metadata: { organizationId: auth.organization.id },
+            },
+          },
+        });
+        const response = await app.inject({
+          method: 'POST',
+          url: '/billing/stripe/webhook',
+          headers: { 'stripe-signature': stripeSignature(payload, secret), 'content-type': 'application/json' },
+          payload: Buffer.from(payload),
+        });
+        expect(response.statusCode).toBe(200);
+        const billing = await app.inject({ method: 'GET', url: `/orgs/${auth.organization.id}/billing`, headers });
+        expect(billing.json().plan.key).toBe(plan);
+        expect(billing.json().limits['team.members']).toBe(plan === 'pro' ? 5 : 25);
+      }
+
+      await updatePlan('evt_capacity_1', 'pro');
+      // Three outstanding invitations predate the plan changes.
+      for (let number = 1; number <= 3; number++) {
+        await store.createOrganizationInvite({
+          organizationId: auth.organization.id,
+          email: `member-${number}@example.test`,
+          roleKey: 'member',
+          token: `fixture-${number}`,
+          expiresAt: new Date(Date.now() + 86400000),
+        });
+      }
+      expect((await invite(4)).statusCode).toBe(201);
+      expect((await invite(5)).json().code).toBe('QUOTA_EXCEEDED');
+      await updatePlan('evt_capacity_2', 'team');
+      expect((await invite(5)).statusCode).toBe(201);
+      await updatePlan('evt_capacity_3', 'pro');
+      expect((await invite(6)).json().code).toBe('QUOTA_EXCEEDED');
+    } finally {
+      vi.unstubAllEnvs();
+      await app.close();
+    }
+  });
+
   it('records cancellation behavior from Stripe subscription deletion', async () => {
     const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_cancel_secret';
