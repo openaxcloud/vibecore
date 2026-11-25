@@ -685,7 +685,11 @@ export class WorkbenchStore {
 
   configureProject(projectId?: string) {
     const changed = this.#projectId !== projectId;
-    if (changed) this.#lectureDeLAgent = null;
+
+    if (changed) {
+      this.#lectureDeLAgent = null;
+    }
+
     const changedFileProject = Boolean(projectId && this.#filesProjectId && projectId !== this.#filesProjectId);
     const preserveEditorState = Boolean(this.#filesProjectId) && !changedFileProject;
     this.#projectId = projectId;
@@ -3890,9 +3894,9 @@ export class WorkbenchStore {
         return undefined;
       }
 
-      const { ideState } = await response.json();
+      const { ideState } = (await response.json()) as { ideState?: { version?: number } };
 
-      return Number.isSafeInteger(ideState?.version) ? Number(ideState.version) : undefined;
+      return Number.isSafeInteger(ideState?.version) ? Number(ideState!.version) : undefined;
     } catch {
       return undefined;
     } finally {
