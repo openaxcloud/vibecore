@@ -1582,9 +1582,17 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         );
       }
 
-      await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
-        method: 'POST',
-      });
+      const includeEditorArchive = !restoreAgentMemory && body.includeEditorArchive === '1';
+
+      const result = await apiRequest<{
+        editorArchive?: string;
+        editorWorkspaceId?: string;
+        editorRuntimeSynced?: boolean;
+      }>(
+        request,
+        `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore${includeEditorArchive ? `?${new URLSearchParams({ editorArchive: '1', editorWorkspaceId: body.editorWorkspaceId ?? '' })}` : ''}`,
+        { method: 'POST' },
+      );
 
       if (restoreAgentMemory) {
         try {
@@ -1610,13 +1618,23 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         }
       }
 
-      return json({
-        ok: true,
-        outcome: 'completed',
-        filesRestore: 'restored',
-        databaseRestore: 'skipped',
-        agentMemoryRestore: restoreAgentMemory ? 'restored' : 'skipped',
-      });
+      return json(
+        {
+          ok: true,
+          outcome: 'completed',
+          filesRestore: 'restored',
+          ...(includeEditorArchive && typeof result?.editorWorkspaceId === 'string'
+            ? {
+                editorWorkspaceId: result.editorWorkspaceId,
+                editorRuntimeSynced: result.editorRuntimeSynced === true,
+                ...(typeof result.editorArchive === 'string' ? { editorArchive: result.editorArchive } : {}),
+              }
+            : {}),
+          databaseRestore: 'skipped',
+          agentMemoryRestore: restoreAgentMemory ? 'restored' : 'skipped',
+        },
+        includeEditorArchive ? { headers: { 'cache-control': 'no-store' } } : undefined,
+      );
     } else if (intent === 'checkpoint') {
       /*
        * RP-CKPT-04 — point de restauration AUTOMATIQUE de fin de tour, à la
