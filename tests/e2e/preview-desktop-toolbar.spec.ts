@@ -45,6 +45,13 @@ async function openPreviewWithLibrary(page: Page) {
   ]);
   await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-webview-toolbar')).toBeVisible();
+  await expect(
+    page
+      .frameLocator('[data-testid="preview-iframe"]')
+      .first()
+      .getByRole('heading', { name: 'Toolbar audit', exact: true }),
+  ).toBeVisible();
+
   await page.goto(`/projects/${projectId}/ide?panel=files`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-file-tree')).toBeVisible();
   await expect(
