@@ -1,5 +1,7 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
+import JSZip from 'jszip';
+
 test.use({ serviceWorkers: 'block' });
 
 async function createQueuedProject(request: APIRequestContext, page: Page, baseURL: string) {
@@ -27,7 +29,7 @@ async function createQueuedProject(request: APIRequestContext, page: Page, baseU
 
   await page.context().addCookies([{ name: 'vc_session', value: token, url: baseURL, httpOnly: true }]);
 
-  return { project, prompt, initial, state };
+  return { project, prompt, initial, state, api, headers };
 }
 
 test('a rejected provider key leaves the initial prompt available without replay on reopen', async ({
@@ -146,7 +148,7 @@ test('a streamed file proposal persists only the completed contents', async ({ p
         async start(controller) {
           const frame = (type: string, value: unknown) =>
             controller.enqueue(encoder.encode(type + ':' + JSON.stringify(value) + '\n'));
-          frame('f', { messageId: 'synthetic-file' });
+          frame('f', { messageId: crypto.randomUUID() });
 
           for (const part of parts) {
             frame('0', part);
@@ -178,3 +180,147 @@ test('a streamed file proposal persists only the completed contents', async ({ p
   await expect(page.getByTestId('project-agent-run-status')).toBeHidden();
   expect(writes).toEqual([complete]);
 });
+
+for (const interruption of ['stop', 'length'] as const) {
+  test(`a ${interruption} before file close keeps only the earlier completed file across reopen`, async ({
+    page,
+    request,
+    baseURL,
+  }) => {
+    test.setTimeout(120_000);
+
+    const { project, state, api, headers, prompt } = await createQueuedProject(request, page, baseURL!);
+    const endpoint = api + '/projects/' + project.id;
+    const completed = 'Completed synthetic text.\n';
+    const userEdit = 'Later user revision.\n';
+
+    const archive = async () => {
+      const response = await request.get(endpoint + '/export/zip', { headers });
+      expect(response.ok()).toBe(true);
+
+      return JSZip.loadAsync(Buffer.from((await response.json()).archive.base64, 'base64'));
+    };
+    const readFile = async (path: string) => {
+      const zip = await archive();
+      const entry = Object.values(zip.files).find((file) => file.name === path || file.name.endsWith('/' + path));
+
+      return entry?.async('string');
+    };
+    const openProposals = async () => {
+      const response = await request.get(endpoint + '/agent-patch-proposals', { headers });
+      expect(response.ok()).toBe(true);
+
+      return (await response.json()).proposals as { relativePath: string; proposedContent: string }[];
+    };
+
+    await page.addInitScript(
+      ({ text }) => {
+        const original = window.fetch.bind(window);
+
+        window.fetch = (input, init) => {
+          if (new URL(input instanceof Request ? input.url : String(input), location.href).pathname !== '/api/chat') {
+            return original(input, init);
+          }
+
+          sessionStorage.setItem(
+            'fixture-dispatches',
+            String(Number(sessionStorage.getItem('fixture-dispatches')) + 1),
+          );
+
+          const encoder = new TextEncoder();
+
+          const stream = new ReadableStream({
+            start(controller) {
+              const frame = (type: string, value: unknown) =>
+                controller.enqueue(encoder.encode(type + ':' + JSON.stringify(value) + '\n'));
+              frame('f', { messageId: crypto.randomUUID() });
+              frame(
+                '0',
+                '<boltArtifact id="fixture" title="Synthetic files"><boltAction type="file" filePath="finished.txt">' +
+                  text +
+                  '</boltAction><boltAction type="file" filePath="unfinished.txt">Partial first line.\n',
+              );
+              window.addEventListener('fixture-continue', () => frame('0', 'Partial second line.\n'), { once: true });
+              window.addEventListener(
+                'fixture-length',
+                () => {
+                  frame('d', { finishReason: 'length', usage: { promptTokens: 0, completionTokens: 0 } });
+                  controller.close();
+                },
+                { once: true },
+              );
+              init?.signal?.addEventListener(
+                'abort',
+                () => controller.error(new DOMException('Stopped', 'AbortError')),
+                { once: true },
+              );
+            },
+          });
+
+          return Promise.resolve(new Response(stream, { headers: { 'x-vercel-ai-data-stream': 'v1' } }));
+        };
+      },
+      { text: completed },
+    );
+
+    const writes: string[] = [];
+    page.on('request', (req) => {
+      if (req.method() === 'PUT' && new URL(req.url()).pathname.includes('/agent-patch-proposals/')) {
+        writes.push(req.postDataJSON().relativePath);
+      }
+    });
+    await page.goto(`/projects/${project.id}/ide`, { waitUntil: 'domcontentloaded' });
+
+    const savedCompleted = async () =>
+      (await openProposals()).find((proposal) => proposal.relativePath === 'finished.txt')?.proposedContent ??
+      (await readFile('finished.txt'));
+    await expect.poll(savedCompleted, { timeout: 60_000 }).toBe(completed);
+    await page.evaluate(() => window.dispatchEvent(new Event('fixture-continue')));
+
+    await expect
+      .poll(async () => JSON.stringify((await state()).messages), { timeout: 15_000 })
+      .toContain('Partial second line.');
+
+    const run = page.getByTestId('project-agent-run-status');
+    await expect(run).toBeVisible();
+
+    if (interruption === 'stop') {
+      await run.getByRole('button').click();
+      await expect.poll(async () => (await state()).consumedPrompt?.reason).toBe('cancelled');
+    } else {
+      await page.evaluate(() => window.dispatchEvent(new Event('fixture-length')));
+    }
+
+    await expect(run).toBeHidden();
+    expect(writes).toContain('finished.txt');
+    expect(writes).not.toContain('unfinished.txt');
+    expect(await openProposals()).not.toContainEqual(expect.objectContaining({ relativePath: 'unfinished.txt' }));
+    expect(await readFile('unfinished.txt')).toBeUndefined();
+
+    expect(await savedCompleted()).toBe(completed);
+
+    const revision = new JSZip();
+    revision.file('finished.txt', userEdit);
+
+    const updated = await request.post(endpoint + '/files/import/zip', {
+      headers,
+      data: { zipBase64: await revision.generateAsync({ type: 'base64' }) },
+    });
+    expect(updated.ok()).toBe(true);
+    expect(await readFile('finished.txt')).toBe(userEdit);
+
+    const beforeReopen = [...writes];
+
+    const hydrated = page.waitForResponse(
+      (resp) => new URL(resp.url()).pathname.endsWith('/agent-patch-proposals') && resp.ok(),
+    );
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await hydrated;
+    await expect(page.getByText(prompt, { exact: true }).filter({ visible: true })).toHaveCount(1);
+    expect(await page.evaluate(() => sessionStorage.getItem('fixture-dispatches'))).toBe('1');
+    expect(writes).toEqual(beforeReopen);
+    expect(await readFile('finished.txt')).toBe(userEdit);
+    expect(await readFile('unfinished.txt')).toBeUndefined();
+    expect(await openProposals()).not.toContainEqual(expect.objectContaining({ relativePath: 'unfinished.txt' }));
+  });
+}

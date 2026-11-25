@@ -19,7 +19,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WorkbenchStore } from './workbench';
+import { WorkbenchStore, type AgentPatchProposal } from './workbench';
+import { fetchOpenAgentPatchProposals, putAgentPatchProposal } from '~/lib/persistence/agentPatchProposalSync';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 
@@ -284,6 +285,46 @@ describe('à la réouverture, le tour que CE navigateur n’a pas vu finir', () 
 
     await expect(store.acceptAgentPatchProposal(id)).resolves.toBe('accepted');
     expect(runtimeFiles.get('src/App.tsx')).toBe(DE_L_AGENT);
+  });
+
+  it.each([true, false])('reconciles recovery after proposal hydration (same contents: %s)', async (sameContents) => {
+    let hydrate!: (proposals: AgentPatchProposal[]) => void;
+    vi.mocked(fetchOpenAgentPatchProposals).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          hydrate = resolve;
+        }),
+    );
+    vi.mocked(putAgentPatchProposal).mockClear();
+
+    const store = await rouvrir();
+    const messageId = 'aimsg_a1';
+    store.reprendreLeTourInterrompu(messageId);
+
+    const id = action(store, messageId, '0', { type: 'file', filePath: 'src/App.tsx', content: DE_L_AGENT });
+    const pending = store.attendreLaFinDesTaches();
+    await attendre();
+    expect(putAgentPatchProposal).not.toHaveBeenCalled();
+    hydrate([
+      {
+        id,
+        artifactId: messageId + '-artefact',
+        messageId,
+        actionId: '0',
+        filePath: '/home/project/src/App.tsx',
+        relativePath: 'src/App.tsx',
+        originalContent: ORIGINAL,
+        proposedContent: sameContents ? DE_L_AGENT : 'earlier bytes',
+        hunks: [],
+        status: 'pending',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    await pending;
+    expect(putAgentPatchProposal).toHaveBeenCalledTimes(sameContents ? 0 : 1);
+    expect(store.agentPatchProposals.get()[id]?.proposedContent).toBe(DE_L_AGENT);
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
   });
 
   it('repris : ses sous-agents aussi', async () => {

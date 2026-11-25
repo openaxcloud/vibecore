@@ -323,6 +323,7 @@ export class WorkbenchStore {
 
   /** Voir `reprendreLeTourInterrompu`. */
   #toursInterrompusARevoir = new Set<string>();
+  #proposalHydration?: Promise<void>;
   #previewStartPromise: Promise<string> | undefined;
 
   /*
@@ -749,8 +750,8 @@ export class WorkbenchStore {
      * (logs + empty list on failure), so a slow or unavailable API doesn't
      * block the IDE booting; the nanostore remains the source of truth.
      */
-    if (changed && projectId) {
-      void this.#hydrateAgentPatchProposals(projectId);
+    if (changed) {
+      this.#proposalHydration = projectId ? this.#hydrateAgentPatchProposals(projectId) : undefined;
     }
   }
 
@@ -853,7 +854,7 @@ export class WorkbenchStore {
     }
 
     // Stream deltas update the local preview. Only the closed file is ready for review after a reload.
-    if (!proposal.enFlux) {
+    if (!proposal.enFlux && !proposal.tronquee) {
       void putAgentPatchProposal(projectId, proposal);
     }
   }
@@ -3982,6 +3983,15 @@ export class WorkbenchStore {
       return;
     }
 
+    if (aRevoir && !isStreaming && this.#proposalHydration) {
+      const scopeIsCurrent = this.captureRuntimeScope();
+      await this.#proposalHydration;
+
+      if (!scopeIsCurrent()) {
+        return;
+      }
+    }
+
     if (!aRevoir && this.#reloadedMessages.contient(data.messageId)) {
       artifact.runner.skipAction(data.actionId);
       return;
@@ -4448,7 +4458,14 @@ export class WorkbenchStore {
     if (aRevoir) {
       const actuel = this.#filesStore.getFile(path.join(this.#runtime.workdir, data.action.filePath));
 
-      if (isStreaming || (actuel?.type === 'file' && actuel.content === data.action.content)) {
+      const restored = this.agentPatchProposals.get()[`${data.artifactId}:${data.actionId}`];
+
+      const alreadySaved =
+        restored?.relueDeLaBase &&
+        restored.relativePath === data.action.filePath &&
+        restored.proposedContent === data.action.content;
+
+      if (isStreaming || alreadySaved || (actuel?.type === 'file' && actuel.content === data.action.content)) {
         return;
       }
     }
