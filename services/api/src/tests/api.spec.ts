@@ -3451,7 +3451,7 @@ describe('SaaS API', () => {
     }
   });
 
-  it('maps checkout completed webhooks from checkout metadata when subscription items are absent', async () => {
+  it.each([undefined, 'price_team_checkout'])('maps checkout plan metadata with price %s', async (priceId) => {
     const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
     const previousTeamPrice = process.env.STRIPE_TEAM_PRICE_ID;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_checkout_completed';
@@ -3473,10 +3473,11 @@ describe('SaaS API', () => {
           subscription: 'sub_from_checkout',
           customer: 'cus_checkout_webhook',
           status: 'complete',
+          payment_status: 'paid',
           metadata: {
             organizationId: auth.organization.id,
             planKey: 'team',
-            priceId: 'price_team_checkout',
+            priceId,
           },
         },
       },
@@ -3495,6 +3496,14 @@ describe('SaaS API', () => {
       expect(response.statusCode).toBe(200);
       expect((await store.getSubscription(auth.organization.id))?.planKey).toBe('team');
       expect((await store.getSubscription(auth.organization.id))?.externalId).toBe('sub_from_checkout');
+
+      const billing = await app.inject({
+        method: 'GET',
+        url: `/orgs/${auth.organization.id}/billing`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(billing.json().plan.key).toBe('team');
+      expect(billing.json().limits['team.members']).toBe(25);
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
       process.env.STRIPE_TEAM_PRICE_ID = previousTeamPrice;
@@ -3617,6 +3626,44 @@ describe('SaaS API', () => {
        * annoncée doit être « pas de plafond d'offre », pas « 3 ».
        */
       expect(billing.json().limits['projects.count']).toBeGreaterThan(1000);
+
+      for (const [subscriptionId, expectedPlan, cancelAtPeriodEnd] of [
+        ['sub_cancel', 'free', false],
+        ['sub_resumed', 'pro', false],
+        ['sub_resumed', 'pro', true],
+        ['sub_resumed', 'pro', false],
+      ] as const) {
+        const update = JSON.stringify({
+          id: `evt_resume_${crypto.randomUUID()}`,
+          type: 'customer.subscription.updated',
+          data: {
+            object: {
+              id: subscriptionId,
+              cancel_at_period_end: cancelAtPeriodEnd,
+              status: 'active',
+              metadata: { organizationId: auth.organization.id, planKey: 'pro' },
+            },
+          },
+        });
+        const result = await app.inject({
+          method: 'POST',
+          url: '/billing/stripe/webhook',
+          headers: {
+            'stripe-signature': stripeSignature(update, 'whsec_cancel_secret'),
+            'content-type': 'application/json',
+          },
+          payload: Buffer.from(update),
+        });
+        expect(result.statusCode).toBe(200);
+
+        const resumed = await app.inject({
+          method: 'GET',
+          url: `/orgs/${auth.organization.id}/billing`,
+          headers: { authorization: `Bearer ${auth.token}` },
+        });
+        expect(resumed.json().plan.key).toBe(expectedPlan);
+        expect((await store.getSubscription(auth.organization.id))?.cancelAtPeriodEnd).toBe(cancelAtPeriodEnd);
+      }
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
       await app.close();

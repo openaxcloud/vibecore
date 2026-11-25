@@ -73,7 +73,7 @@ export function FloatingPaneFrame({
 
   const beginDrag = useCallback(
     (mode: DragMode) => (event: React.PointerEvent<HTMLElement>) => {
-      if (event.button !== 0) {
+      if (event.button !== 0 || dragRef.current) {
         return;
       }
 
@@ -127,7 +127,11 @@ export function FloatingPaneFrame({
       }
     };
 
-    const endDrag = () => {
+    const endDrag = (event: PointerEvent) => {
+      if (event.pointerId !== dragRef.current?.pointerId) {
+        return;
+      }
+
       dragRef.current = null;
       setDragging(false);
     };

@@ -1421,6 +1421,7 @@ export const ChatImpl = memo(
     };
 
     const abort = () => {
+      const pending = pendingGenerationRef.current;
       annulerRattrapage();
       terminalRecovery.cancel();
       stop();
@@ -1428,6 +1429,12 @@ export const ChatImpl = memo(
       /* Un arrêt volontaire n'est pas une coupure : ce que l'utilisateur a arrêté reste arrêté. */
       if (projectId) {
         effacerLeTourEnCours(projectId);
+
+        if (pending) {
+          void saveProjectIdeMemory(projectId, {
+            chat: { pendingPrompt: null, consumedPrompt: consommerPrompt(pending.pendingPrompt, 'cancelled') },
+          }).catch((error) => logger.warn('failed to persist queued prompt cancellation', { projectId, error }));
+        }
       }
 
       /*

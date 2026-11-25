@@ -42,9 +42,9 @@ describe('floating frame pointer geometry', () => {
         clientHeight: { value: tiny ? 150 : 400 },
       });
 
-      const event = (name: string, x: number, y: number) => {
+      const event = (name: string, x: number, y: number, pointerId = 1) => {
         const e = new Event(name, { bubbles: true });
-        Object.assign(e, { button: 0, pointerId: 1, clientX: x, clientY: y });
+        Object.assign(e, { button: 0, pointerId, clientX: x, clientY: y });
 
         return e;
       };
@@ -54,6 +54,8 @@ describe('floating frame pointer geometry', () => {
           : getByTestId('resize-floating-pane-audit'),
         event('pointerdown', 20, 20),
       );
+      fireEvent(getByTestId('resize-floating-pane-audit'), event('pointerdown', 100, 100, 2));
+      act(() => window.dispatchEvent(event('pointerup', 100, 100, 2)));
       act(() => window.dispatchEvent(event('pointermove', 30, 30)));
       expect(onBoundsChange).toHaveBeenLastCalledWith(
         tiny
