@@ -43,3 +43,19 @@ Subscription states are applied as follows:
 - deleted subscription event -> `CANCELED`
 
 Only `TRIALING`, `ACTIVE` and `PAST_DUE` keep paid entitlements. `UNPAID` and `CANCELED` fall back to Free limits.
+
+### Reproduce subscription entitlement reconciliation locally
+
+From the repository root with workspace dependencies installed, run:
+
+```sh
+pnpm exec vitest run app/routes/billing.spec.ts app/routes/billing.feedback.spec.tsx
+(cd services/api && pnpm exec vitest run src/tests/api.spec.ts -t 'checkout|portal sessions|invitation capacity|cancellation behavior')
+```
+
+The form tests submit Pro, Team and Portal requests to the billing route action.
+The API tests simulate provider responses and sign synthetic webhook payloads.
+A Checkout event without a price ID uses its plan metadata. After deletion, an
+active update for the canceled subscription leaves the organization on Free.
+An active replacement subscription restores its plan. These checks require no
+Stripe account or network call to Stripe.

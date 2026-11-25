@@ -136,7 +136,7 @@ export interface ProjectIdeMemory {
       clearedAt: string;
 
       /** Qui a effacé : génération aboutie, ou rejeu jugé inutile. */
-      reason: 'generated' | 'skipped-existing-app';
+      reason: 'generated' | 'skipped-existing-app' | 'cancelled';
     } | null;
     conversations?: Array<{
       id: string;

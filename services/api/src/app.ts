@@ -31601,12 +31601,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const priceId =
           object.items?.data?.[0]?.price?.id ?? object.lines?.data?.[0]?.price?.id ?? object.metadata?.priceId;
 
-        let plan = (await store.listBillingPlans()).find(
-          (candidate) =>
-            candidate.stripePriceId === priceId ||
-            candidate.stripePriceMonthlyId === priceId ||
-            candidate.stripePriceAnnualId === priceId,
-        );
+        let plan = priceId
+          ? (await store.listBillingPlans()).find(
+              (candidate) =>
+                candidate.stripePriceId === priceId ||
+                candidate.stripePriceMonthlyId === priceId ||
+                candidate.stripePriceAnnualId === priceId,
+            )
+          : undefined;
 
         if (!plan) {
           const metaPlanKey = object.metadata?.planKey as PlanKey | undefined;

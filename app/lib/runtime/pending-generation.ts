@@ -94,7 +94,7 @@ export interface PromptDeGeneration {
 
 export interface PromptConsomme extends PromptDeGeneration {
   clearedAt: string;
-  reason: 'generated' | 'skipped-existing-app';
+  reason: 'generated' | 'skipped-existing-app' | 'cancelled';
 }
 
 /**
