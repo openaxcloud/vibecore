@@ -115,7 +115,7 @@ async function banc() {
 
     const archive = await JSZip.loadAsync(Buffer.from(reponse.json().archive.base64, 'base64'));
 
-    return (await archive.file(CHEMIN)?.async('string'))?.trim();
+    return archive.file(CHEMIN)?.async('string');
   };
 
   return { app, poserEtat, enregistrerCommeLUtilisateur, copieServeur };
@@ -126,17 +126,17 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
     const { app, poserEtat, enregistrerCommeLUtilisateur, copieServeur } = await banc();
 
     await poserEtat({ chat: { messages: [messageAgent('a1', '// VERSION-AGENT')] } });
-    expect(await copieServeur(), 'témoin : le tour de l’agent est bien matérialisé').toBe('// VERSION-AGENT');
+    expect(await copieServeur(), 'témoin : le tour de l’agent est bien matérialisé').toBe('// VERSION-AGENT\n');
 
     await enregistrerCommeLUtilisateur('// VERSION-UTILISATEUR\n');
     expect(await copieServeur(), 'témoin : l’enregistrement de l’utilisateur est sur le serveur').toBe(
-      '// VERSION-UTILISATEUR',
+      '// VERSION-UTILISATEUR\n',
     );
 
     await poserEtat({ ui: { ongletOuvert: CHEMIN } });
 
     // Mesuré AVANT correctif : « // VERSION-AGENT ».
-    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR');
+    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR\n');
 
     await app.close();
   });
@@ -150,7 +150,7 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
 
     await poserEtat({ chat: { messages: fil } });
 
-    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR');
+    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR\n');
 
     await app.close();
   });
@@ -177,7 +177,7 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
     /* La fermeture de l'artefact du tour a2 importe l'arbre du pod (`#persistRuntimeFilesToProjectStorage`). */
     await enregistrerCommeLUtilisateur('// VERSION-AGENT-NOUVELLE\n');
 
-    expect(await copieServeur()).toBe('// VERSION-AGENT-NOUVELLE');
+    expect(await copieServeur()).toBe('// VERSION-AGENT-NOUVELLE\n');
 
     await app.close();
   });
@@ -191,7 +191,7 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
 
     await poserEtat({ chat: { messages: [premier, messageAgent('a2', '// VERSION-AGENT-NOUVELLE')] } });
 
-    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR');
+    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR\n');
 
     await app.close();
   });
@@ -202,7 +202,7 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
     await poserEtat({ chat: { messages: [{ id: 'a1', role: 'assistant', content: 'Je commence…' }] } });
     await poserEtat({ chat: { messages: [messageAgent('a1', '// VERSION-AGENT-FIN-DE-FLUX')] } });
 
-    expect(await copieServeur()).toBe('// VERSION-AGENT-FIN-DE-FLUX');
+    expect(await copieServeur()).toBe('// VERSION-AGENT-FIN-DE-FLUX\n');
 
     await app.close();
   });
