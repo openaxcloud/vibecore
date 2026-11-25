@@ -4309,7 +4309,11 @@ export class WorkbenchStore {
       }
 
       const previous = this.#filesStore.getFile(fullPath)?.content ?? null;
-      await artifact.runner.runAction(data);
+
+      let confirmedContent: string | undefined;
+      await artifact.runner.runAction(data, false, (content) => {
+        confirmedContent = content;
+      });
 
       const writeReceipt = artifact.runner.consumeConfirmedFileWrite?.(data.actionId);
 
@@ -4396,7 +4400,10 @@ export class WorkbenchStore {
         completedAction?.status === 'complete' &&
         writeScopeIsCurrent()
       ) {
-        this.#recordConfirmedWrite(data.artifactId, writeReceipt.filePath, previous, writeReceipt.content);
+        if (confirmedContent !== undefined) {
+          this.#recordConfirmedWrite(data.artifactId, writeReceipt.filePath, previous, confirmedContent);
+        }
+
         confirmerEcritureDeMessage(data.messageId, writeReceipt.filePath, `${data.artifactId}:${data.actionId}`);
       }
 

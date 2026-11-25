@@ -342,6 +342,42 @@ describe('à la réouverture, le tour que CE navigateur n’a pas vu finir', () 
     }
   });
 
+  it('archives the confirmed direct write even if the runtime changes before fallback close', async () => {
+    const requests = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async (url) =>
+        Response.json(String(url).endsWith('/ide-state') ? { ideState: { version: 12 } } : {}),
+      );
+
+    try {
+      const store = await rouvrir();
+      store.setAgentPatchReviewRequired(false);
+
+      const messageId = 'direct-fallback';
+      const artifactId = messageId + '-artefact';
+      action(store, messageId, '0', { type: 'file', filePath: 'direct.md', content: 'observed\u0000 payload\n' });
+      await store.attendreLaFinDesTaches();
+      expect(runtimeFiles.get('direct.md')).toBe('observed payload\n');
+      runtimeFiles.set('direct.md', 'Later runtime edit.\n');
+      store.updateArtifact(
+        { id: artifactId, artifactId, messageId, title: 'App', type: 'bundled', fermetureDeSecours: true },
+        { closed: true },
+      );
+      await store.attendreLaFinDesTaches();
+
+      const posts = requests.mock.calls.filter(([url]) => String(url).endsWith('/files/import/zip'));
+      expect(posts).toHaveLength(1);
+
+      const body = JSON.parse(String(posts[0][1]?.body));
+      expect(body).toMatchObject({ sourceVersion: 12, previousContents: { 'direct.md': null } });
+
+      const zip = await JSZip.loadAsync(body.zipBase64, { base64: true });
+      expect(await zip.file('direct.md')?.async('string')).toBe('observed payload\n');
+    } finally {
+      requests.mockRestore();
+    }
+  });
+
   it('does not recreate a processed proposal when the same tab recovers after a later file edit', async () => {
     const messageId = 'finished-turn';
     const source = { type: 'file' as const, filePath: 'src/App.tsx', content: DE_L_AGENT };

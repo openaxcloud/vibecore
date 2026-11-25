@@ -396,10 +396,7 @@ export function installCommandForStartCommand(command: string, packageManager?: 
 
 export class ActionRunner {
   #runtime: RuntimeAdapter;
-  #confirmedFileWrites = new Map<
-    string,
-    { content: string; filePath: string; runtime: RuntimeAdapter; abortSignal: AbortSignal }
-  >();
+  #confirmedFileWrites = new Map<string, { filePath: string; runtime: RuntimeAdapter; abortSignal: AbortSignal }>();
 
   /** One-shot evidence of the payload observed immediately after its write, not its current contents. */
   consumeConfirmedFileWrite(actionId: string) {
@@ -615,7 +612,11 @@ export class ActionRunner {
     await this.#currentExecutionPromise;
   }
 
-  async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+  async runAction(
+    data: ActionCallbackData,
+    isStreaming: boolean = false,
+    onConfirmedContent?: (content: string) => void,
+  ) {
     const { actionId } = data;
     const action = this.actions.get()[actionId];
 
@@ -635,7 +636,7 @@ export class ActionRunner {
 
     this.#currentExecutionPromise = this.#currentExecutionPromise
       .then(() => {
-        return this.#executeAction(actionId, isStreaming);
+        return this.#executeAction(actionId, isStreaming, data.fermetureDeSecours ? undefined : onConfirmedContent);
       })
       .catch((error) => {
         logger.error('Action execution promise failed:', error);
@@ -650,7 +651,7 @@ export class ActionRunner {
     return;
   }
 
-  async #executeAction(actionId: string, isStreaming: boolean = false) {
+  async #executeAction(actionId: string, isStreaming: boolean = false, onConfirmedContent?: (content: string) => void) {
     const action = this.actions.get()[actionId];
 
     /*
@@ -697,7 +698,7 @@ export class ActionRunner {
             break;
           }
           case 'file': {
-            await this.#runFileAction(action, isStreaming, actionId);
+            await this.#runFileAction(action, isStreaming, actionId, onConfirmedContent);
             break;
           }
           case 'diff': {
@@ -1149,7 +1150,12 @@ export class ActionRunner {
     return (h ^ content.length) | 0;
   }
 
-  async #runFileAction(action: ActionState, isStreaming: boolean = false, actionId?: string) {
+  async #runFileAction(
+    action: ActionState,
+    isStreaming: boolean = false,
+    actionId?: string,
+    onConfirmedContent?: (content: string) => void,
+  ) {
     if (action.type !== 'file') {
       unreachable('Expected file action');
     }
@@ -1310,11 +1316,12 @@ export class ActionRunner {
 
       if (confirmed && !action.abortSignal.aborted && this.#runtime === runtime) {
         this.#confirmedFileWrites.set(actionId, {
-          content: payload,
           filePath: relativePath,
           runtime,
           abortSignal: action.abortSignal,
         });
+
+        onConfirmedContent?.(payload);
 
         while (this.#confirmedFileWrites.size > 32) {
           this.#confirmedFileWrites.delete(this.#confirmedFileWrites.keys().next().value!);
