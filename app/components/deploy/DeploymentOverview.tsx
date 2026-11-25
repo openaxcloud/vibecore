@@ -2,6 +2,7 @@ import { Check, Copy, Globe, QrCode } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCode } from 'react-qrcode-logo';
+import styles from './DeploymentOverview.module.scss';
 import { getDeploymentType } from './deployment-types';
 import { classNames } from '~/utils/classNames';
 
@@ -221,13 +222,8 @@ export function DomainValue({ url }: { url: string }) {
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="flex min-w-0 items-center gap-2">
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="truncate text-[var(--vc-ide-accent-action)] hover:underline"
-        >
+      <span className={styles.urlActions}>
+        <a href={url} target="_blank" rel="noreferrer" className="text-[var(--vc-ide-accent-action)] hover:underline">
           {url}
         </a>
         <button
