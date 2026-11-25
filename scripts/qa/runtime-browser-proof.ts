@@ -9,7 +9,10 @@ export default class RuntimeBrowserProof implements Reporter {
     ['Wait for running workspace', 'pending'],
     ['Open Webview', 'pending'],
     ['Run project from IDE', 'pending'],
+    ['Observe npm install exit zero', 'pending'],
     ['Load workspace preview document', 'pending'],
+    ['Observe project dev server serving its entry module', 'pending'],
+    ['Add synthetic contact inside Orbit', 'pending'],
     ['Read generated app in Webview', 'pending'],
   ]);
 

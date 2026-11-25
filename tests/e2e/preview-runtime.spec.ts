@@ -204,10 +204,48 @@ test(
   async ({ page }) => {
     test.setTimeout(360_000);
 
+    // Observe the IDE's own command and the agent exit on that same socket.
+    // Retain only workspace IDs and status, never credentials, argv or output.
+    let runRequested = false;
+    const installed = new Set<string>();
+    const servedScripts = new Set<string>();
+    page.on('websocket', (socket) => {
+      const target = new URL(socket.url());
+      const match = /^\/api\/runtime\/workspaces\/(ws-[a-z0-9-]+)\/commands\/stream$/.exec(target.pathname);
+      if (target.origin !== 'ws://127.0.0.1:3001' || !match) return;
+      let installing = false;
+      socket.on('framesent', ({ payload }) => {
+        const frame = JSON.parse(payload.toString());
+        if (frame.type === 'hello') {
+          installing = runRequested && frame.payload?.command === 'npm' && frame.payload.args?.[0] === 'install';
+        }
+      });
+      socket.on('framereceived', ({ payload }) => {
+        if (!installing || !runRequested) return;
+        const frame = JSON.parse(payload.toString());
+        if (frame.type === 'exit' && frame.exitCode === 0) installed.add(match[1]);
+      });
+    });
+    page.on('response', (response) => {
+      if (!runRequested || !response.ok() || response.request().resourceType() !== 'script') return;
+      const target = new URL(response.url());
+      if (
+        target.port === '3020' &&
+        /^ws-[a-z0-9-]+-\d+\.localhost$/.test(target.hostname) &&
+        /^\/src\/main\.tsx$/.test(target.pathname) &&
+        /javascript/i.test(response.headers()['content-type'] ?? '')
+      )
+        servedScripts.add(target.origin);
+    });
+
     await test.step('Register synthetic user', () => authenticate(page));
     await test.step('Create project from template', async () => {
       await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
-      await page.getByRole('button', { name: 'Use template' }).first().click();
+      await page
+        .locator('form')
+        .filter({ has: page.locator('input[name="templateName"][value="react-saas"]') })
+        .getByRole('button', { name: 'Use template' })
+        .click();
       await expect(page).toHaveURL(/\/@[^/]+\/react-saas-[a-z0-9]+(?:\?.*)?$/, { timeout: 120_000 });
     });
     await test.step('Wait for running workspace', () => expectWorkspaceRunning(page, 180_000));
@@ -223,7 +261,11 @@ test(
         await control.click();
       }
       await expect(control).toHaveText('Run', { timeout: 30_000 });
+      runRequested = true;
       await control.click();
+    });
+    await test.step('Observe npm install exit zero', async () => {
+      await expect.poll(() => installed.size, { timeout: 150_000 }).toBeGreaterThan(0);
     });
     await test.step('Load workspace preview document', async () => {
       const frame = page.locator('iframe[title="preview"]:visible');
@@ -247,9 +289,18 @@ test(
         console.log('PREVIEW_FRAMES', JSON.stringify(sources));
       }
     });
+    await test.step('Observe project dev server serving its entry module', async () => {
+      const src = await page.locator('iframe[title="preview"]:visible').getAttribute('src');
+      const preview = new URL(src!);
+      expect(installed.has(preview.hostname.replace(/-\d+\.localhost$/, ''))).toBe(true);
+      await expect.poll(() => servedScripts.has(preview.origin), { timeout: 90_000 }).toBe(true);
+    });
     await test.step('Read generated app in Webview', async () => {
       const app = page.frameLocator('iframe[title="preview"]:visible').locator('[data-gallery-app-id="react-saas"]');
       await expect(app.getByRole('heading', { name: 'Active opportunities' })).toBeVisible({ timeout: 180_000 });
+    });
+    await test.step('Add synthetic contact inside Orbit', async () => {
+      const app = page.frameLocator('iframe[title="preview"]:visible').locator('[data-gallery-app-id="react-saas"]');
       await app.getByRole('button', { name: '+ Add lead' }).click();
       await app.getByLabel('Contact', { exact: true }).fill('Synthetic Lead');
       await app.getByLabel('Company', { exact: true }).fill('Runtime E2E');
