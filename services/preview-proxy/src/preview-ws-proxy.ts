@@ -203,9 +203,9 @@ export function attachPreviewWebSocketProxy(server: ReturnType<typeof createServ
         const isPrivate = await deps.isPortPrivate(target.workspaceId, String(target.port)).catch(() => true);
 
         if (isPrivate) {
-          const sessionOrgId = requesterOrgId ?? deps.resolveRequesterOrgId?.(req.headers.cookie);
+          requesterOrgId ??= deps.resolveRequesterOrgId?.(req.headers.cookie);
 
-          if (!sessionOrgId) {
+          if (!requesterOrgId) {
             destroy(clientSocket, 401);
 
             return;
@@ -260,11 +260,11 @@ export function attachPreviewWebSocketProxy(server: ReturnType<typeof createServ
         );
 
         if (upstreamHead && upstreamHead.length) {
-          clientSocket.unshift(upstreamHead);
+          clientSocket.write(upstreamHead);
         }
 
         if (head && head.length) {
-          upstreamSocket.unshift(head);
+          upstreamSocket.write(head);
         }
 
         const ping = setInterval(() => {

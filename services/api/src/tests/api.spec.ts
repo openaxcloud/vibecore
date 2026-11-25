@@ -255,6 +255,7 @@ async function startRuntimeServices(
     packageCapabilityMissing?: boolean;
     managerWorkspaceEmpty?: boolean;
     managerStopNotFound?: boolean;
+    beforeAgentToken?: Promise<void>;
   } = {},
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
@@ -368,7 +369,11 @@ async function startRuntimeServices(
 
         // Echo back stdin the way a shell would, still JSON-framed.
         try {
-          const parsed = JSON.parse(text) as { type?: string; data?: string };
+          const parsed = JSON.parse(text) as { type?: string; data?: string; payload?: (typeof commandBodies)[number] };
+
+          if (parsed.payload && url.pathname === '/commands/stream' && parsed.type === 'hello') {
+            commandBodies.push(parsed.payload);
+          }
 
           if (parsed.type === 'stdin' && parsed.data) {
             socket.send(JSON.stringify({ type: 'stdout', data: parsed.data, timestamp: 'now' }));
@@ -394,7 +399,9 @@ async function startRuntimeServices(
       managerCalls.push({ pathname: url.pathname, body: body ? JSON.parse(body) : {} });
 
       if (url.pathname.endsWith('/agent-token')) {
-        response.end(JSON.stringify({ token: 'runtime-token' }));
+        void Promise.resolve(options.beforeAgentToken).then(() =>
+          response.end(JSON.stringify({ token: 'runtime-token' })),
+        );
       } else if (url.pathname.endsWith('/logs')) {
         response.end(JSON.stringify({ logs: options.logs ?? ['workspace ready'] }));
       } else if (
@@ -3495,6 +3502,74 @@ describe('SaaS API', () => {
     }
   });
 
+  it('enforces invitation capacity across Pro, Team and Pro subscription updates', async () => {
+    const secret = 'synthetic-webhook-signing-key';
+    vi.stubEnv('STRIPE_WEBHOOK_SECRET', secret);
+    vi.stubEnv('STRIPE_PRO_PRICE_ID', 'price_pro_capacity');
+    vi.stubEnv('STRIPE_TEAM_PRICE_ID', 'price_team_capacity');
+
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    try {
+      const auth = await register(app, { email: 'owner@example.test', organizationName: 'Capacity' });
+      const headers = { authorization: `Bearer ${auth.token}` };
+      const invite = (number: number) =>
+        app.inject({
+          method: 'POST',
+          url: `/orgs/${auth.organization.id}/invitations`,
+          headers,
+          payload: { email: `member-${number}@example.test`, roleKey: 'member' },
+        });
+
+      async function updatePlan(eventId: string, plan: 'pro' | 'team') {
+        const payload = JSON.stringify({
+          id: eventId,
+          type: 'customer.subscription.updated',
+          data: {
+            object: {
+              id: 'sub_capacity',
+              customer: 'cus_capacity',
+              status: 'active',
+              items: { data: [{ price: { id: `price_${plan}_capacity` } }] },
+              metadata: { organizationId: auth.organization.id },
+            },
+          },
+        });
+        const response = await app.inject({
+          method: 'POST',
+          url: '/billing/stripe/webhook',
+          headers: { 'stripe-signature': stripeSignature(payload, secret), 'content-type': 'application/json' },
+          payload: Buffer.from(payload),
+        });
+        expect(response.statusCode).toBe(200);
+        const billing = await app.inject({ method: 'GET', url: `/orgs/${auth.organization.id}/billing`, headers });
+        expect(billing.json().plan.key).toBe(plan);
+        expect(billing.json().limits['team.members']).toBe(plan === 'pro' ? 5 : 25);
+      }
+
+      await updatePlan('evt_capacity_1', 'pro');
+      // Three outstanding invitations predate the plan changes.
+      for (let number = 1; number <= 3; number++) {
+        await store.createOrganizationInvite({
+          organizationId: auth.organization.id,
+          email: `member-${number}@example.test`,
+          roleKey: 'member',
+          token: `fixture-${number}`,
+          expiresAt: new Date(Date.now() + 86400000),
+        });
+      }
+      expect((await invite(4)).statusCode).toBe(201);
+      expect((await invite(5)).json().code).toBe('QUOTA_EXCEEDED');
+      await updatePlan('evt_capacity_2', 'team');
+      expect((await invite(5)).statusCode).toBe(201);
+      await updatePlan('evt_capacity_3', 'pro');
+      expect((await invite(6)).json().code).toBe('QUOTA_EXCEEDED');
+    } finally {
+      vi.unstubAllEnvs();
+      await app.close();
+    }
+  });
+
   it('records cancellation behavior from Stripe subscription deletion', async () => {
     const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_cancel_secret';
@@ -4185,7 +4260,15 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'zip@example.com', organizationName: 'Zip Org' });
     const zip = new JSZip();
-    zip.file('README.md', '# Zip import\n');
+    const originals = {
+      'binary.bin': Buffer.from([0, 255, 128, 65]),
+      'README.md': Buffer.from('Été 東京 🌍\n', 'utf8'),
+      'empty.txt': Buffer.alloc(0),
+    };
+
+    for (const [path, bytes] of Object.entries(originals)) {
+      zip.file(path, bytes);
+    }
     zip.file('src/index.ts', 'export const value = 1;\n');
 
     const zipBase64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64');
@@ -4205,7 +4288,11 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().archive.base64).toEqual(expect.any(String));
+    const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
+
+    for (const [path, bytes] of Object.entries(originals)) {
+      expect(await archive.file(path)!.async('nodebuffer'), path).toEqual(bytes);
+    }
 
     const replacementZip = new JSZip();
     replacementZip.file('README.md', '# Replaced project\n');
@@ -5624,6 +5711,48 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     } finally {
       await runtime.close();
       await app.close();
+    }
+  });
+
+  it('delivers the initial install command once after asynchronous agent-token resolution', async () => {
+    let releaseToken!: () => void;
+    const tokenGate = new Promise<void>((resolve) => {
+      releaseToken = resolve;
+    });
+    const runtime = await startRuntimeServices({ beforeAgentToken: tokenGate });
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'command-stream@example.com', organizationName: 'Command Stream' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Command stream project' },
+    });
+    const address = await app.listen({ port: 0, host: '127.0.0.1' });
+    const target = `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${project.json().project.id}/commands/stream`;
+    const socket = new WebSocket(`${target}?token=${encodeURIComponent(auth.token)}`);
+    const payload = {
+      command: 'npm',
+      args: ['install', '--include=dev', '--prefer-offline', '--no-audit', '--no-fund'],
+    };
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.once('error', reject);
+        socket.once('open', () =>
+          socket.send(JSON.stringify({ type: 'hello', payload }), (err) => (err ? reject(err) : resolve())),
+        );
+      });
+      await vi.waitFor(() =>
+        expect(runtime.managerCalls.some((call) => call.pathname.endsWith('/agent-token'))).toBe(true),
+      );
+      expect(runtime.calls).not.toContain('WS /commands/stream');
+      releaseToken();
+      await vi.waitFor(() => expect(runtime.commandBodies).toEqual([payload]));
+    } finally {
+      releaseToken();
+      socket.close();
+      await app.close();
+      await runtime.close();
     }
   });
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Select Ubuntu's canonical archive for the ephemeral WebKit CI runner only."""
+"""Select Ubuntu's canonical archive for the ephemeral browser CI runner only."""
 
 import argparse
 import platform

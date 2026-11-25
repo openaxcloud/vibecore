@@ -62,14 +62,11 @@ for (const endpoint of [
 }
 test('workflow runs preflight before expensive tests and keeps diagnostic files separate', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/e2e-runtime.yml', import.meta.url), 'utf8');
-  assert.ok(workflow.indexOf('runtime-e2e-preflight.ts') < workflow.indexOf('name: Playwright @runtime suite'));
-  assert.match(workflow, /continue-on-error: true/);
+  assert.match(workflow, /run.ts --browser/);
+  assert.doesNotMatch(workflow, /continue-on-error: true/);
   assert.match(workflow, /name: runtime-diagnostics-light/);
   assert.match(workflow, /runtime-e2e-diagnostics.ts/);
-  assert.doesNotMatch(
-    workflow.split('name: runtime-diagnostics-light')[1].split('name: Upload E2E traces')[0],
-    /error-context/,
-  );
+  assert.doesNotMatch(workflow, /path:.*error-context|\/tmp\/vibecore-api.log/s);
 });
 
 test('diagnostics export closed-vocabulary codes only, never arbitrary secrets or user text', () => {

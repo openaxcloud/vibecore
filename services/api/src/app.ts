@@ -7664,7 +7664,7 @@ async function archiveProjectFiles(projectId: string, files: ProjectFile[]) {
   const zip = new JSZip();
 
   for (const file of files) {
-    zip.file(file.path, file.content);
+    zip.file(file.path, decodeFileContent(file.content, file.encoding));
   }
 
   const content = await zip.generateAsync({ type: 'nodebuffer' });
@@ -20517,22 +20517,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   app.get('/api/runtime/workspaces/:workspaceId/commands/stream', { websocket: true }, async (socket, request) => {
-    const { workspaceId } = parse(workspaceParams, request.params);
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    // The IDE sends its command in the first frame on open. Apply transport
+    // backpressure until the permission checks finish and the relay is listening.
+    socket.pause();
+    try {
+      const { workspaceId } = parse(workspaceParams, request.params);
+      const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
-    // Same shell-exec capability as /terminal — enforce the terminal revocation here too.
-    if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
-      return;
+      // Same shell-exec capability as /terminal — enforce the terminal revocation here too.
+      if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
+        return;
+      }
+
+      await proxyRuntimeSocket(
+        socket,
+        authorized.workspaceId,
+        '/commands/stream',
+        false,
+        transactionalLocaleForRequest(request),
+        request.query,
+      );
+    } finally {
+      socket.resume();
     }
-
-    await proxyRuntimeSocket(
-      socket,
-      authorized.workspaceId,
-      '/commands/stream',
-      false,
-      transactionalLocaleForRequest(request),
-      request.query,
-    );
   });
 
   app.get('/api/runtime/workspaces/:workspaceId/terminal', { websocket: true }, async (socket, request) => {

@@ -5,11 +5,21 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, write
 import { dirname, join, resolve } from 'node:path';
 import { assertRecipeClusterName, assertRecipeKubeconfig, assertRecipeEvent } from './checks.js';
 import { podEvidence, type EvidencePod } from './evidence.js';
+import { summarizeRuntimeLog } from '../qa/runtime-e2e-diagnostics.js';
 import { dependencyImages, recipeManifests } from './manifests.js';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
-assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+const browser = process.argv.includes('--browser');
+if (browser && process.env.GITHUB_EVENT_NAME === 'schedule') {
+  assert.equal(
+    process.env.GITHUB_WORKFLOW_REF,
+    `${process.env.GITHUB_REPOSITORY}/.github/workflows/e2e-runtime.yml@refs/heads/main`,
+  );
+  assert.equal(process.env.GITHUB_REF, 'refs/heads/main');
+} else {
+  assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+}
 assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
 assert.equal(process.env.RUNNER_OS, 'Linux');
 assert.ok(process.env.RUNNER_TEMP);
@@ -210,11 +220,26 @@ async function main() {
   let stage = 'create-local-cluster';
 
   try {
+    const config = join(directory, 'kind.yaml');
+    if (browser) {
+      writeFileSync(
+        config,
+        [
+          'kind: Cluster',
+          'apiVersion: kind.x-k8s.io/v1alpha4',
+          'containerdConfigPatches:',
+          '- |-',
+          '  [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]',
+          '    runtime_type = "io.containerd.runsc.v1"',
+        ].join('\n'),
+      );
+    }
     await run(
       'kind',
       [
         'create',
         'cluster',
+        ...(browser ? ['--config', config] : []),
         '--name',
         name,
         '--image',
@@ -228,6 +253,12 @@ async function main() {
     );
     await assertLocalCluster();
     await kubectl(['get', 'storageclass', 'standard']);
+    if (browser) {
+      stage = 'configure-gvisor';
+      await run('bash', ['scripts/qa/install-kind-runsc.sh', `${name}-control-plane`], { timeout: 300_000 });
+      await kubectl(['apply', '-f', 'infra/kubernetes/workspaces-runtime/runtimeclass-gvisor.yaml']);
+      await kubectl(['label', 'node', `${name}-control-plane`, 'vibecore.ai/node-pool=sandbox']);
+    }
     stage = 'build-local-images';
     await docker(
       [
@@ -327,6 +358,8 @@ async function main() {
     const resources = recipeManifests(
       name,
       ...(Array.from({ length: 4 }, () => randomBytes(32).toString('hex')) as [string, string, string, string]),
+      browser,
+      browser ? randomBytes(32).toString('hex') : undefined,
     );
     const late = resources.filter(
       (resource) =>
@@ -361,6 +394,10 @@ async function main() {
     }
     await forward('api', 3001);
     await forward('manager', 3010);
+    if (browser) {
+      await kubectl(['-n', name, 'rollout', 'status', 'deployment/preview-proxy', '--timeout=180s']);
+      await forward('preview-proxy', 3020);
+    }
     stage = 'real-api-manager-agent-validation';
     await assertLocalCluster();
     process.env.PRIVATE_RUNTIME_RECIPE_ID = name;
@@ -370,10 +407,19 @@ async function main() {
     process.env.RUNTIME_API_E2E_RUNTIME_URL = 'http://127.0.0.1:3001/api/runtime';
     process.env.RUNTIME_API_E2E_WORKSPACE_MANAGER_URL = 'http://127.0.0.1:3010';
 
+    if (browser) {
+      stage = 'runtime-preflight';
+      await run('node_modules/.bin/tsx', ['scripts/qa/runtime-e2e-preflight.ts']);
+      process.env.RUNTIME_E2E_BROWSER_PREFLIGHT = '1';
+    }
     const result = await run('node_modules/.bin/tsx', ['scripts/validate-runtime-api-kubernetes.ts'], {
       timeout: 900_000,
       progressFile: join(evidence, 'validation-progress.txt'),
     });
+    if (browser) {
+      stage = 'chromium-project-creation-and-execution';
+      await run('bash', ['scripts/qa/runtime-e2e-browser.sh'], { timeout: 2_400_000, stream: true });
+    }
     writeFileSync(join(evidence, 'checks.txt'), result);
     writeFileSync(
       join(evidence, 'result.json'),
@@ -409,7 +455,70 @@ async function main() {
     try {
       await assertLocalCluster();
 
+      if (browser) {
+        const services = [];
+        for (const service of ['api', 'manager', 'preview-proxy']) {
+          try {
+            const log = await kubectl(['-n', name, 'logs', `deployment/${service}`, '--limit-bytes=1048576']);
+            services.push({ service, available: true, ...summarizeRuntimeLog(log) });
+          } catch {
+            services.push({ service, available: false });
+          }
+        }
+        writeFileSync(join(evidence, 'cluster-services.json'), JSON.stringify(services));
+      }
+
       const pods = JSON.parse(await kubectl(['get', 'pods', '-A', '-o', 'json'])) as { items: EvidencePod[] };
+      if (browser && stage === 'chromium-project-creation-and-execution') {
+        // Read only fixed paths inside this run's workspace pods. Never export project files or process arguments.
+        const inspect = `
+          const fs = require('node:fs');
+          const net = require('node:net');
+          const exists = file => fs.existsSync('/workspace/' + file);
+          const portOpen = port => new Promise(resolve => {
+            const socket = net.connect(port, '127.0.0.1');
+            const finish = value => { socket.destroy(); resolve(value); };
+            socket.setTimeout(1500, () => finish(false));
+            socket.once('connect', () => finish(true));
+            socket.once('error', () => finish(false));
+          });
+          (async () => console.log(JSON.stringify({
+            manifest: exists('package.json'), source: exists('src/App.tsx'),
+            viteInstalled: exists('node_modules/vite/package.json'),
+            serving5173: await portOpen(5173), serving3000: await portOpen(3000)
+          })))();
+        `;
+        for (const pod of pods.items.filter(
+          ({ metadata }) => metadata.namespace === name && /^workspace-ws-[a-z0-9-]+$/.test(metadata.name),
+        )) {
+          if (pod.status?.phase !== 'Running') continue;
+          try {
+            const flags = JSON.parse(
+              await kubectl([
+                '-n',
+                name,
+                'exec',
+                pod.metadata.name,
+                '-c',
+                'workspace-agent',
+                '--',
+                'node',
+                '-e',
+                inspect,
+              ]),
+            );
+            const observed = Object.fromEntries(
+              ['manifest', 'source', 'viteInstalled', 'serving5173', 'serving3000'].map((key) => [
+                key,
+                flags[key] === true,
+              ]),
+            );
+            console.log(JSON.stringify({ workspaceProbe: observed }));
+          } catch {
+            console.log(JSON.stringify({ workspaceProbeUnavailable: true }));
+          }
+        }
+      }
       const statuses = pods.items.map(podEvidence);
       writeFileSync(join(evidence, 'pod-status.json'), JSON.stringify(statuses, null, 2));
       console.log(JSON.stringify({ podStatuses: statuses }));
