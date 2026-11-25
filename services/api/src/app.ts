@@ -5051,62 +5051,8 @@ function projectFileManifestFromPersistedIdeState(state?: PersistedIdeStateLike)
   exists: boolean;
   files: Array<{ path: string; content: string; ecrit?: true }>;
 } {
-  const root = ideStateObject(state);
-  return projectFileManifestFromPersistedInput(root.files);
-}
-
-function projectFileManifestFromPersistedInput(input: unknown): {
-  exists: boolean;
-  files: Array<{ path: string; content: string; ecrit?: true }>;
-} {
-  const manifest =
-    input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
-
-  const exists = Array.isArray(manifest.entries);
-
-  return {
-    exists,
-    files: exists ? projectFilesFromPersistedFileManifest(input) : [],
-  };
-}
-
-function projectFilesFromPersistedFileManifest(
-  input: unknown,
-): Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }> {
-  const manifest =
-    input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
-
-  const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
-  const files: Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }> = [];
-
-  for (const entry of entries) {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-      continue;
-    }
-
-    const record = entry as Record<string, unknown>;
-
-    if (typeof record.path !== 'string' || typeof record.content !== 'string') {
-      continue;
-    }
-
-    const normalizedPath = normalizeProjectPath(record.path);
-
-    if (!normalizedPath) {
-      continue;
-    }
-
-    // Preserve binary encoding if the manifest recorded it (absent = utf8 text).
-    const encoding = record.encoding === 'base64' ? 'base64' : undefined;
-    files.push({
-      path: normalizedPath,
-      content: record.content,
-      ...(encoding ? { encoding } : {}),
-      ...(record.ecrit === true ? { ecrit: true as const } : {}),
-    });
-  }
-
-  return files;
+  const entries = entreesDuManifeste(ideStateObject(state));
+  return { exists: entries !== undefined, files: entries ?? [] };
 }
 
 function projectFileManifestState(
@@ -5250,14 +5196,41 @@ type EntreeDeManifeste = { path: string; content: string; encoding?: 'base64'; e
  * produirait la tempête de contention que `estEcritureDeFlux` évite déjà.
  */
 function entreesDuManifeste(etat: unknown): EntreeDeManifeste[] | undefined {
-  const racine = (etat ?? {}) as { files?: { entries?: EntreeDeManifeste[] } };
+  const racine = ideStateRecord(etat);
+  const entries: unknown[] | undefined = Array.isArray(racine.files?.entries) ? racine.files.entries : undefined;
 
-  return Array.isArray(racine.files?.entries) ? racine.files!.entries! : undefined;
+  if (racine.files?.entries === undefined) {
+    return undefined;
+  }
+
+  // A partial manifest would make restoreSnapshot delete every omitted file.
+  const invalid = () => new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
+  if (!entries) {
+    throw invalid();
+  }
+
+  const paths = new Set<string>();
+  return entries.map((entry) => {
+    const file = ideStateRecord(entry);
+    const path = typeof file.path === 'string' ? normalizeProjectPath(file.path) : undefined;
+
+    if (
+      !path ||
+      paths.has(path) ||
+      typeof file.content !== 'string' ||
+      (file.encoding !== undefined && file.encoding !== 'utf8' && file.encoding !== 'base64')
+    ) {
+      throw invalid();
+    }
+    paths.add(path);
+    return { ...file, path, content: file.content, encoding: file.encoding === 'base64' ? 'base64' : undefined };
+  });
 }
 
 /** Vrai si le transformateur a réellement changé quelque chose. */
-function manifesteChange(avant: EntreeDeManifeste[], apres: EntreeDeManifeste[]) {
-  if (avant.length !== apres.length) {
+function manifesteChange(avant: EntreeDeManifeste[], apres: EntreeDeManifeste[], explicitPath?: string) {
+  // Saving identical bytes still advances this path's write revision.
+  if (explicitPath !== undefined || avant.length !== apres.length) {
     return true;
   }
 
@@ -5305,10 +5278,8 @@ async function mutateProjectFileManifestEntries(
     throw new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
   }
 
-  if (
-    !entreesActuelles ||
-    (!explicitPath && !manifesteChange(entreesActuelles, transformer([...entreesActuelles], current)))
-  ) {
+  const apres = entreesActuelles ? transformer([...entreesActuelles], current) : [];
+  if (!entreesActuelles || !manifesteChange(entreesActuelles, apres, explicitPath)) {
     return;
   }
 
