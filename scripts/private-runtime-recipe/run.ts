@@ -5,6 +5,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, write
 import { dirname, join, resolve } from 'node:path';
 import { assertRecipeClusterName, assertRecipeKubeconfig, assertRecipeEvent } from './checks.js';
 import { podEvidence, type EvidencePod } from './evidence.js';
+import { summarizeRuntimeLog } from '../qa/runtime-e2e-diagnostics.js';
 import { dependencyImages, recipeManifests } from './manifests.js';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
@@ -448,6 +449,19 @@ async function main() {
   } finally {
     try {
       await assertLocalCluster();
+
+      if (browser) {
+        const services = [];
+        for (const service of ['api', 'manager']) {
+          try {
+            const log = await kubectl(['-n', name, 'logs', `deployment/${service}`, '--limit-bytes=1048576']);
+            services.push({ service, available: true, ...summarizeRuntimeLog(log) });
+          } catch {
+            services.push({ service, available: false });
+          }
+        }
+        writeFileSync(join(evidence, 'cluster-services.json'), JSON.stringify(services));
+      }
 
       const pods = JSON.parse(await kubectl(['get', 'pods', '-A', '-o', 'json'])) as { items: EvidencePod[] };
       const statuses = pods.items.map(podEvidence);

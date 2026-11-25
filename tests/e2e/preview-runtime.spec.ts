@@ -202,24 +202,20 @@ test(
   async ({ page }) => {
     test.setTimeout(240_000);
 
-    await authenticate(page);
-
-    await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Use template' }).first().click();
-    await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 120_000 });
-    await expectWorkspaceRunning(page, 180_000);
-
-    await page.getByRole('button', { name: 'Webview' }).click();
-
-    await expectPreviewIframe(page, 120_000);
-    await expect(page.frameLocator('iframe[title="preview"]').getByRole('heading', { name: 'React SaaS' })).toBeVisible(
-      {
-        timeout: 180_000,
-      },
-    );
-    await expect(
-      page.frameLocator('iframe[title="preview"]').getByText('Created from Bolt template react-saas.'),
-    ).toBeVisible();
+    await test.step('Register synthetic user', () => authenticate(page));
+    await test.step('Create project from template', async () => {
+      await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
+      await page.getByRole('button', { name: 'Use template' }).first().click();
+      await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 120_000 });
+    });
+    await test.step('Wait for running workspace', () => expectWorkspaceRunning(page, 180_000));
+    await test.step('Read generated app in Webview', async () => {
+      await page.getByRole('button', { name: 'Webview' }).click();
+      await expectPreviewIframe(page, 120_000);
+      const preview = page.frameLocator('iframe[title="preview"]');
+      await expect(preview.getByRole('heading', { name: 'React SaaS' })).toBeVisible({ timeout: 180_000 });
+      await expect(preview.getByText('Created from Bolt template react-saas.')).toBeVisible();
+    });
   },
 );
 

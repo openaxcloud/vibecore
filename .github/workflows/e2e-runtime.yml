@@ -106,6 +106,7 @@ jobs:
           name: runtime-diagnostics-light
           path: |
             runtime-diagnostics/
+            private-runtime-evidence/cluster-services.json
             private-runtime-evidence/browser.json
             private-runtime-evidence/result.json
             private-runtime-evidence/pod-status.json

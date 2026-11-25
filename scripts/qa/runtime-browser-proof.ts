@@ -1,8 +1,21 @@
 import { writeFileSync } from 'node:fs';
-import type { FullResult, Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+import type { FullResult, Reporter, TestCase, TestResult, TestStep } from '@playwright/test/reporter';
 
 export default class RuntimeBrowserProof implements Reporter {
   private passed = false;
+  private readonly steps = new Map([
+    ['Register synthetic user', 'pending'],
+    ['Create project from template', 'pending'],
+    ['Wait for running workspace', 'pending'],
+    ['Read generated app in Webview', 'pending'],
+  ]);
+
+  onStepEnd(_test: TestCase, _result: TestResult, step: TestStep) {
+    if (step.category === 'test.step' && this.steps.has(step.title)) {
+      this.steps.set(step.title, step.error ? 'failed' : 'passed');
+      console.log(`${step.title}: ${this.steps.get(step.title)}`);
+    }
+  }
 
   onTestEnd(test: TestCase, result: TestResult) {
     this.passed =
@@ -12,8 +25,12 @@ export default class RuntimeBrowserProof implements Reporter {
   }
 
   async onEnd(result: FullResult): Promise<{ status: 'passed' | 'failed' }> {
-    const passed = this.passed && result.status === 'passed';
-    writeFileSync('private-runtime-evidence/browser.json', JSON.stringify({ chromiumTemplatePreviewPassed: passed }));
+    const passed =
+      this.passed && result.status === 'passed' && [...this.steps.values()].every((status) => status === 'passed');
+    writeFileSync(
+      'private-runtime-evidence/browser.json',
+      JSON.stringify({ chromiumTemplatePreviewPassed: passed, steps: Object.fromEntries(this.steps) }),
+    );
     return { status: passed ? 'passed' : 'failed' };
   }
 }

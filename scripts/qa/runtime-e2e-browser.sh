@@ -11,7 +11,7 @@ for port in 5173 5174; do
 done
 # The template test creates the project through the UI and reads its rendered iframe.
 spec='template-created project boots and renders'
-pnpm exec playwright test tests/e2e/preview-runtime.spec.ts --project=chromium --grep "$spec" --retries=0 --reporter=./scripts/qa/runtime-browser-proof.ts > /tmp/vibecore-browser.log 2>&1
+pnpm exec playwright test tests/e2e/preview-runtime.spec.ts --project=chromium --grep "$spec" --retries=0 --reporter=./scripts/qa/runtime-browser-proof.ts
 echo 'Chromium passed: template project created, workspace running, generated app rendered.'
 pnpm exec playwright test tests/e2e --project=chromium --grep @runtime --grep-invert "$spec" > /tmp/vibecore-browser-suite.log 2>&1
 pnpm run ide:panel-audit > /tmp/vibecore-panel.log 2>&1
