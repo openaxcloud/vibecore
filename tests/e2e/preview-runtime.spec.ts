@@ -74,7 +74,9 @@ async function expectPreviewIframe(page: import('@playwright/test').Page, timeou
 }
 
 async function expectWorkspaceRunning(page: import('@playwright/test').Page, timeout = 90_000) {
-  await expect(page.getByRole('button', { name: /Workspace:\s*running/i })).toBeVisible({ timeout });
+  await expect(page.locator('.bolt-project-statusbar-workspace').getByText('Running', { exact: true })).toBeVisible({
+    timeout,
+  });
 }
 
 async function expectProjectCreationForm(page: import('@playwright/test').Page) {
@@ -131,7 +133,7 @@ test('project preview boots a real app and renders inside the webview', { tag: '
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expectWorkspaceRunning(page, 180_000);
-  await page.getByRole('button', { name: 'Webview' }).click();
+  await page.getByRole('button', { name: 'Switch to Webview tab', exact: true }).click();
 
   await expectPreviewIframe(page, 180_000);
   await expect(page.frameLocator('iframe[title="preview"]').locator('#app')).toContainText(
@@ -187,7 +189,7 @@ test(
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     await expectWorkspaceRunning(page, 180_000);
-    await page.getByRole('button', { name: 'Webview' }).click();
+    await page.getByRole('button', { name: 'Switch to Webview tab', exact: true }).click();
 
     await expectPreviewIframe(page, 180_000);
     await expect(
@@ -206,15 +208,26 @@ test(
     await test.step('Create project from template', async () => {
       await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
       await page.getByRole('button', { name: 'Use template' }).first().click();
-      await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 120_000 });
+      await expect(page).toHaveURL(/\/@[^/]+\/react-saas-[a-z0-9]+(?:\?.*)?$/, { timeout: 120_000 });
     });
     await test.step('Wait for running workspace', () => expectWorkspaceRunning(page, 180_000));
     await test.step('Read generated app in Webview', async () => {
-      await page.getByRole('button', { name: 'Webview' }).click();
-      await expectPreviewIframe(page, 120_000);
-      const preview = page.frameLocator('iframe[title="preview"]');
-      await expect(preview.getByRole('heading', { name: 'React SaaS' })).toBeVisible({ timeout: 180_000 });
-      await expect(preview.getByText('Created from Bolt template react-saas.')).toBeVisible();
+      const runButton = page.getByTestId('button-run-stop');
+      await expect(runButton).toBeVisible();
+      if ((await runButton.innerText()).trim() === 'Run') {
+        await runButton.click();
+      }
+      const previewTab = page.getByRole('button', { name: 'Switch to Webview tab', exact: true });
+      if (await previewTab.isVisible()) {
+        await previewTab.click();
+      }
+      const app = page.frameLocator('iframe[title="preview"]:visible').locator('[data-gallery-app-id="react-saas"]');
+      await expect(app.getByRole('heading', { name: 'Active opportunities' })).toBeVisible({ timeout: 180_000 });
+      await app.getByRole('button', { name: '+ Add lead' }).click();
+      await app.getByLabel('Contact', { exact: true }).fill('Synthetic Lead');
+      await app.getByLabel('Company', { exact: true }).fill('Runtime E2E');
+      await app.getByRole('button', { name: 'Save lead' }).click();
+      await expect(app.getByRole('row').filter({ hasText: 'Synthetic Lead' })).toContainText('Runtime E2E');
     });
   },
 );
@@ -277,7 +290,7 @@ test(
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     await expectWorkspaceRunning(page, 180_000);
     await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
-    await page.getByRole('button', { name: 'Webview' }).click();
+    await page.getByRole('button', { name: 'Switch to Webview tab', exact: true }).click();
     await expectPreviewIframe(page, 180_000);
 
     const toolbar = page.locator('.bolt-project-webview-toolbar').first();
