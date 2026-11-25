@@ -323,7 +323,7 @@ export class WorkbenchStore {
 
   /** Voir `reprendreLeTourInterrompu`. */
   #toursInterrompusARevoir = new Set<string>();
-  #proposalHydration?: Promise<void>;
+  #proposalHydration?: { controller: AbortController; result: Promise<boolean> };
   #previewStartPromise: Promise<string> | undefined;
 
   /*
@@ -747,11 +747,20 @@ export class WorkbenchStore {
     /*
      * Hydrate the AgentPatchProposal queue from the server every time the
      * workbench rebinds to a different project. The fetch is best-effort
-     * (logs + empty list on failure), so a slow or unavailable API doesn't
-     * block the IDE booting; the nanostore remains the source of truth.
+     * and runs in the background. Only recovery of an interrupted file waits
+     * for the persisted proposals before deciding whether to write one.
      */
     if (changed) {
-      this.#proposalHydration = projectId ? this.#hydrateAgentPatchProposals(projectId) : undefined;
+      this.#proposalHydration?.controller.abort();
+      this.#proposalHydration = undefined;
+
+      if (projectId) {
+        const controller = new AbortController();
+        this.#proposalHydration = {
+          controller,
+          result: this.#hydrateAgentPatchProposals(projectId, controller.signal),
+        };
+      }
     }
   }
 
@@ -798,12 +807,11 @@ export class WorkbenchStore {
     this.#pendingWorkspaceLogLines = [];
   }
 
-  async #hydrateAgentPatchProposals(projectId: string) {
-    const proposals = await fetchOpenAgentPatchProposals(projectId);
+  async #hydrateAgentPatchProposals(projectId: string, signal: AbortSignal) {
+    const proposals = await fetchOpenAgentPatchProposals(projectId, signal);
 
-    if (this.#projectId !== projectId) {
-      // The workbench has been re-bound to another project while we waited.
-      return;
+    if (!proposals || signal.aborted || this.#projectId !== projectId) {
+      return false;
     }
 
     for (const proposal of proposals) {
@@ -832,6 +840,8 @@ export class WorkbenchStore {
     }
 
     this.#retryResolvedMissingImportFailures();
+
+    return true;
   }
 
   #syncAgentPatchProposalToServer(proposalId: string) {
@@ -3919,7 +3929,16 @@ export class WorkbenchStore {
        */
       const enregistrer = !this.#reloadedMessages.contient(messageId) || this.#messagesRattrapes.has(messageId);
 
+      const recovering = this.#toursInterrompusARevoir.has(decoderLane(messageId)?.messageId ?? messageId);
+      const restoration = recovering ? this.#proposalHydration : undefined;
+      const scopeIsCurrent = this.captureRuntimeScope();
+
       this.addToExecutionQueue(async () => {
+        // No recovered files were admitted if their saved review state could not be read.
+        if (restoration && (!(await restoration.result) || !scopeIsCurrent())) {
+          return;
+        }
+
         await artifact.runner.waitForIdle();
         await this.#validatePendingAgentPatchProposalsForArtifact(artifactId);
         await this.#refreshPreviewAfterArtifactClose(artifactId, { enregistrer });
@@ -3985,9 +4004,10 @@ export class WorkbenchStore {
 
     if (aRevoir && !isStreaming && this.#proposalHydration) {
       const scopeIsCurrent = this.captureRuntimeScope();
-      await this.#proposalHydration;
+      const restored = await this.#proposalHydration.result;
 
-      if (!scopeIsCurrent()) {
+      if (!restored || !scopeIsCurrent()) {
+        action.abort();
         return;
       }
     }

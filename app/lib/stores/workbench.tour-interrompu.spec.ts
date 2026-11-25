@@ -327,6 +327,65 @@ describe('à la réouverture, le tour que CE navigateur n’a pas vu finir', () 
     expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
   });
 
+  it('releases the action queue without applying or finalizing the recovered file after a failed restore', async () => {
+    let unavailable!: (value: undefined) => void;
+    vi.mocked(fetchOpenAgentPatchProposals).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          unavailable = resolve;
+        }),
+    );
+
+    const store = await rouvrir();
+    const refresh = vi.spyOn(store, 'loadRuntimeFiles');
+    const messageId = 'aimsg_a1';
+    const artifactId = messageId + '-artefact';
+    store.reprendreLeTourInterrompu(messageId);
+    action(store, messageId, '0', { type: 'file', filePath: 'src/App.tsx', content: DE_L_AGENT });
+    store.updateArtifact({ id: artifactId, artifactId, messageId, title: 'App', type: 'bundled' }, { closed: true });
+
+    const next = vi.fn(async () => undefined);
+    store.addToExecutionQueue(next);
+    await attendre();
+    expect(next).not.toHaveBeenCalled();
+    unavailable(undefined);
+    await vi.waitFor(() => expect(next).toHaveBeenCalledOnce());
+    expect(store.artifacts.get()[artifactId].runner.actions.get()['0'].status).toBe('aborted');
+    expect(refresh).not.toHaveBeenCalled();
+    expect(store.agentPatchProposals.get()).toEqual({});
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+  });
+
+  it('abandons an old restore and its queued recovery when switching away and back', async () => {
+    let finish!: (proposals: AgentPatchProposal[]) => void;
+
+    const fetchProposals = vi.mocked(fetchOpenAgentPatchProposals);
+    fetchProposals.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    vi.mocked(putAgentPatchProposal).mockClear();
+
+    const store = await rouvrir();
+    const firstSignal = fetchProposals.mock.lastCall?.[1];
+    store.reprendreLeTourInterrompu('aimsg_a1');
+    action(store, 'aimsg_a1', '0', { type: 'file', filePath: 'src/App.tsx', content: DE_L_AGENT });
+    await attendre();
+    store.configureProject('projet-2');
+    expect(firstSignal?.aborted).toBe(true);
+
+    const secondSignal = fetchProposals.mock.lastCall?.[1];
+    store.configureProject('projet-1');
+    expect(secondSignal?.aborted).toBe(true);
+    finish([]);
+    await store.attendreLaFinDesTaches();
+    expect(store.agentPatchProposals.get()).toEqual({});
+    expect(putAgentPatchProposal).not.toHaveBeenCalled();
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+  });
+
   it('repris : ses sous-agents aussi', async () => {
     const store = await rouvrir();
     store.reprendreLeTourInterrompu('aimsg_a1');

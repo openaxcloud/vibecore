@@ -181,12 +181,12 @@ test('a streamed file proposal persists only the completed contents', async ({ p
   expect(writes).toEqual([complete]);
 });
 
-for (const interruption of ['stop', 'length'] as const) {
-  test(`a ${interruption} before file close keeps only the earlier completed file across reopen`, async ({
-    page,
-    request,
-    baseURL,
-  }) => {
+for (const interruption of ['stop', 'length', 'stalled restore'] as const) {
+  const title =
+    interruption === 'stalled restore'
+      ? 'a stalled restore after truncation releases the queue for the next user prompt'
+      : `a ${interruption} before file close keeps only the earlier completed file across reopen`;
+  test(title, async ({ page, request, baseURL }) => {
     test.setTimeout(120_000);
 
     const { project, state, api, headers, prompt } = await createQueuedProject(request, page, baseURL!);
@@ -218,7 +218,23 @@ for (const interruption of ['stop', 'length'] as const) {
         const original = window.fetch.bind(window);
 
         window.fetch = (input, init) => {
-          if (new URL(input instanceof Request ? input.url : String(input), location.href).pathname !== '/api/chat') {
+          const path = new URL(input instanceof Request ? input.url : String(input), location.href).pathname;
+
+          if (path.endsWith('/agent-patch-proposals') && sessionStorage.getItem('fixture-stall')) {
+            sessionStorage.setItem('fixture-restore-started', 'yes');
+            return new Promise<Response>((_, reject) => {
+              init?.signal?.addEventListener(
+                'abort',
+                () => {
+                  sessionStorage.setItem('fixture-restore-aborted', 'yes');
+                  reject(init.signal?.reason);
+                },
+                { once: true },
+              );
+            });
+          }
+
+          if (path !== '/api/chat') {
             return original(input, init);
           }
 
@@ -230,10 +246,25 @@ for (const interruption of ['stop', 'length'] as const) {
           const encoder = new TextEncoder();
 
           const stream = new ReadableStream({
-            start(controller) {
+            async start(controller) {
               const frame = (type: string, value: unknown) =>
                 controller.enqueue(encoder.encode(type + ':' + JSON.stringify(value) + '\n'));
               frame('f', { messageId: crypto.randomUUID() });
+
+              if (Number(sessionStorage.getItem('fixture-dispatches')) > 1) {
+                frame(
+                  '0',
+                  '<boltArtifact id="new" title="New file"><boltAction type="file" filePath="next.txt">New turn.\n',
+                );
+                await new Promise((resolve) => setTimeout(resolve, 400));
+                frame('0', '</boltAction></boltArtifact>');
+                await new Promise((resolve) => setTimeout(resolve, 400));
+                frame('d', { finishReason: 'stop', usage: { promptTokens: 0, completionTokens: 0 } });
+                controller.close();
+
+                return;
+              }
+
               frame(
                 '0',
                 '<boltArtifact id="fixture" title="Synthetic files"><boltAction type="file" filePath="finished.txt">' +
@@ -271,10 +302,10 @@ for (const interruption of ['stop', 'length'] as const) {
     });
     await page.goto(`/projects/${project.id}/ide`, { waitUntil: 'domcontentloaded' });
 
-    const savedCompleted = async () =>
-      (await openProposals()).find((proposal) => proposal.relativePath === 'finished.txt')?.proposedContent ??
-      (await readFile('finished.txt'));
-    await expect.poll(savedCompleted, { timeout: 60_000 }).toBe(completed);
+    const savedContent = async (path: string) =>
+      (await openProposals()).find((proposal) => proposal.relativePath === path)?.proposedContent ??
+      (await readFile(path));
+    await expect.poll(() => savedContent('finished.txt'), { timeout: 60_000 }).toBe(completed);
     await page.evaluate(() => window.dispatchEvent(new Event('fixture-continue')));
 
     await expect
@@ -297,7 +328,7 @@ for (const interruption of ['stop', 'length'] as const) {
     expect(await openProposals()).not.toContainEqual(expect.objectContaining({ relativePath: 'unfinished.txt' }));
     expect(await readFile('unfinished.txt')).toBeUndefined();
 
-    expect(await savedCompleted()).toBe(completed);
+    expect(await savedContent('finished.txt')).toBe(completed);
 
     const revision = new JSZip();
     revision.file('finished.txt', userEdit);
@@ -311,9 +342,15 @@ for (const interruption of ['stop', 'length'] as const) {
 
     const beforeReopen = [...writes];
 
-    const hydrated = page.waitForResponse(
-      (resp) => new URL(resp.url()).pathname.endsWith('/agent-patch-proposals') && resp.ok(),
-    );
+    const stalled = interruption === 'stalled restore';
+
+    if (stalled) {
+      await page.evaluate(() => sessionStorage.setItem('fixture-stall', 'yes'));
+    }
+
+    const hydrated = stalled
+      ? undefined
+      : page.waitForResponse((resp) => new URL(resp.url()).pathname.endsWith('/agent-patch-proposals') && resp.ok());
     await page.reload({ waitUntil: 'domcontentloaded' });
     await hydrated;
     await expect(page.getByText(prompt, { exact: true }).filter({ visible: true })).toHaveCount(1);
@@ -322,5 +359,23 @@ for (const interruption of ['stop', 'length'] as const) {
     expect(await readFile('finished.txt')).toBe(userEdit);
     expect(await readFile('unfinished.txt')).toBeUndefined();
     expect(await openProposals()).not.toContainEqual(expect.objectContaining({ relativePath: 'unfinished.txt' }));
+
+    if (stalled) {
+      await expect.poll(() => page.evaluate(() => sessionStorage.getItem('fixture-restore-started'))).toBe('yes');
+
+      const composer = page.locator('.bolt-project-chatbox textarea');
+      await composer.fill('Create the next synthetic file');
+      await composer.press('Enter');
+      await expect.poll(() => page.evaluate(() => sessionStorage.getItem('fixture-dispatches'))).toBe('2');
+      await expect
+        .poll(() => page.evaluate(() => sessionStorage.getItem('fixture-restore-aborted')), { timeout: 15_000 })
+        .toBe('yes');
+      await expect.poll(() => writes.includes('next.txt'), { timeout: 20_000 }).toBe(true);
+      await expect.poll(async () => (await savedContent('next.txt'))?.trimEnd()).toBe('New turn.');
+      expect(writes.filter((path) => path === 'finished.txt')).toEqual(
+        beforeReopen.filter((path) => path === 'finished.txt'),
+      );
+      expect(await readFile('finished.txt')).toBe(userEdit);
+    }
   });
 }
