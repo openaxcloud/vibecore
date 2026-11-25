@@ -469,6 +469,56 @@ async function main() {
       }
 
       const pods = JSON.parse(await kubectl(['get', 'pods', '-A', '-o', 'json'])) as { items: EvidencePod[] };
+      if (browser && stage === 'chromium-project-creation-and-execution') {
+        // Read only fixed paths inside this run's workspace pods. Never export project files or process arguments.
+        const inspect = `
+          const fs = require('node:fs');
+          const net = require('node:net');
+          const exists = file => fs.existsSync('/workspace/' + file);
+          const portOpen = port => new Promise(resolve => {
+            const socket = net.connect(port, '127.0.0.1');
+            const finish = value => { socket.destroy(); resolve(value); };
+            socket.setTimeout(1500, () => finish(false));
+            socket.once('connect', () => finish(true));
+            socket.once('error', () => finish(false));
+          });
+          (async () => console.log(JSON.stringify({
+            manifest: exists('package.json'), source: exists('src/App.tsx'),
+            viteInstalled: exists('node_modules/vite/package.json'),
+            serving5173: await portOpen(5173), serving3000: await portOpen(3000)
+          })))();
+        `;
+        for (const pod of pods.items.filter(
+          ({ metadata }) => metadata.namespace === name && /^workspace-ws-[a-z0-9-]+$/.test(metadata.name),
+        )) {
+          if (pod.status?.phase !== 'Running') continue;
+          try {
+            const flags = JSON.parse(
+              await kubectl([
+                '-n',
+                name,
+                'exec',
+                pod.metadata.name,
+                '-c',
+                'workspace-agent',
+                '--',
+                'node',
+                '-e',
+                inspect,
+              ]),
+            );
+            const observed = Object.fromEntries(
+              ['manifest', 'source', 'viteInstalled', 'serving5173', 'serving3000'].map((key) => [
+                key,
+                flags[key] === true,
+              ]),
+            );
+            console.log(JSON.stringify({ workspaceProbe: observed }));
+          } catch {
+            console.log(JSON.stringify({ workspaceProbeUnavailable: true }));
+          }
+        }
+      }
       const statuses = pods.items.map(podEvidence);
       writeFileSync(join(evidence, 'pod-status.json'), JSON.stringify(statuses, null, 2));
       console.log(JSON.stringify({ podStatuses: statuses }));

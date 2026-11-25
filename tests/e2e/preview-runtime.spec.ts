@@ -215,16 +215,37 @@ test(
       const target = new URL(page.url());
       target.searchParams.set('panel', 'preview');
       await page.goto(target.href, { waitUntil: 'domcontentloaded' });
-      const run = page.getByRole('button', { name: 'Run', exact: true });
-      if (await run.isVisible()) {
-        await run.click();
+      await expect(page.getByTestId('button-run-stop')).toBeVisible({ timeout: 30_000 });
+    });
+    await test.step('Run project from IDE', async () => {
+      const control = page.getByTestId('button-run-stop');
+      if ((await control.innerText()).trim() === 'Stop') {
+        await control.click();
       }
+      await expect(control).toHaveText('Run', { timeout: 30_000 });
+      await control.click();
     });
     await test.step('Load workspace preview document', async () => {
       const frame = page.locator('iframe[title="preview"]:visible');
-      await expect(frame).toHaveAttribute('src', /^http:\/\/ws-[a-z0-9-]+-[0-9]+\.localhost:3020\//, {
-        timeout: 120_000,
-      });
+      try {
+        await expect(frame).toHaveAttribute('src', /^http:\/\/ws-[a-z0-9-]+-[0-9]+\.localhost:3020\//, {
+          timeout: 120_000,
+        });
+      } finally {
+        const sources = await frame.evaluateAll((elements) =>
+          elements.map((element) => {
+            const src = element.getAttribute('src');
+            if (!src || src === 'about:blank') return 'blank';
+            try {
+              const url = new URL(src);
+              return url.hostname.endsWith('.localhost') ? 'local-preview' : 'other-origin';
+            } catch {
+              return 'relative';
+            }
+          }),
+        );
+        console.log('PREVIEW_FRAMES', JSON.stringify(sources));
+      }
     });
     await test.step('Read generated app in Webview', async () => {
       const app = page.frameLocator('iframe[title="preview"]:visible').locator('[data-gallery-app-id="react-saas"]');

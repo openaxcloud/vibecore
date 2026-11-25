@@ -8,6 +8,7 @@ export default class RuntimeBrowserProof implements Reporter {
     ['Create project from template', 'pending'],
     ['Wait for running workspace', 'pending'],
     ['Open Webview', 'pending'],
+    ['Run project from IDE', 'pending'],
     ['Load workspace preview document', 'pending'],
     ['Read generated app in Webview', 'pending'],
   ]);
@@ -16,6 +17,13 @@ export default class RuntimeBrowserProof implements Reporter {
     if (step.category === 'test.step' && this.steps.has(step.title)) {
       this.steps.set(step.title, step.error ? 'failed' : 'passed');
       console.log(`${step.title}: ${this.steps.get(step.title)}`);
+    }
+  }
+
+  onStdOut(chunk: string | Buffer) {
+    const message = chunk.toString().trim();
+    if (/^PREVIEW_FRAMES \[(?:"(?:blank|local-preview|other-origin|relative)"(?:,|(?=\])))*\]$/.test(message)) {
+      console.log(message);
     }
   }
 
