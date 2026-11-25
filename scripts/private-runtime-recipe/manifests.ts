@@ -14,6 +14,7 @@ export function recipeManifests(
   managerSecret: string,
   jwtSecret: string,
   sandboxScheduling = false,
+  previewSecret?: string,
 ) {
   assertRecipeClusterName(name);
 
@@ -48,6 +49,7 @@ export function recipeManifests(
       command?: string[];
       environment?: Record<string, string>;
       secret?: boolean;
+      previewCredentials?: boolean;
       storage?: string;
       mountPath?: string;
       manager?: boolean;
@@ -75,7 +77,17 @@ export function recipeManifests(
               image,
               imagePullPolicy: 'Never',
               ...(options.command ? { command: options.command } : {}),
-              env: env(options.environment ?? {}),
+              env: [
+                ...env(options.environment ?? {}),
+                ...(options.previewCredentials
+                  ? [
+                      {
+                        name: 'PREVIEW_PROXY_SHARED_SECRET',
+                        valueFrom: { secretKeyRef: { name: 'local-credentials', key: 'PREVIEW_PROXY_SHARED_SECRET' } },
+                      },
+                    ]
+                  : []),
+              ],
               ...(options.secret ? { envFrom: [{ secretRef: { name: 'local-credentials' } }] } : {}),
               ports: [{ containerPort: port }],
               readinessProbe: options.probePath
@@ -125,6 +137,7 @@ export function recipeManifests(
         WORKSPACE_AGENT_TOKEN_SECRET: tokenSecret,
         WORKSPACE_MANAGER_SHARED_SECRET: managerSecret,
         JWT_SECRET: jwtSecret,
+        ...(previewSecret ? { PREVIEW_PROXY_SHARED_SECRET: previewSecret } : {}),
       },
     },
     { apiVersion: 'v1', kind: 'ServiceAccount', metadata: metadata('manager') },
@@ -202,6 +215,17 @@ export function recipeManifests(
         WORKSPACE_MANAGER_PORT: '3010',
       },
     }),
+    ...(previewSecret
+      ? [
+          service('preview-proxy', 3020),
+          deployment('preview-proxy', platform, 3020, {
+            command: ['pnpm', '--filter', '@vibecore/preview-proxy', 'exec', 'tsx', 'src/server.ts'],
+            probePath: '/health',
+            environment: { WORKSPACE_MANAGER_URL: common.WORKSPACE_MANAGER_URL },
+            previewCredentials: true,
+          }),
+        ]
+      : []),
     service('api', 3001),
     deployment('api', platform, 3001, {
       command: ['pnpm', '--filter', '@vibecore/api', 'exec', 'tsx', 'src/server.ts'],
@@ -209,7 +233,20 @@ export function recipeManifests(
       storage: 'project-storage',
       mountPath: '/data/projects',
       probePath: '/health',
-      environment: { ...common, API_HOST: '0.0.0.0', API_PORT: '3001', RATE_LIMIT_FORCE_SHARED: '1' },
+      environment: {
+        ...common,
+        API_HOST: '0.0.0.0',
+        API_PORT: '3001',
+        RATE_LIMIT_FORCE_SHARED: '1',
+        ...(previewSecret
+          ? {
+              API_CORS_ORIGINS: 'http://127.0.0.1:5173',
+              PREVIEW_URL_TEMPLATE: 'http://127.0.0.1:3020/p/{workspaceId}/{port}/',
+              AUTH_REGISTER_RATE_LIMIT_MAX: '2000',
+              AUTH_LOGIN_RATE_LIMIT_MAX: '2000',
+            }
+          : {}),
+      },
     }),
   ];
 }

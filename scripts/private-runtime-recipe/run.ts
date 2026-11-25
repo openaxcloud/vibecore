@@ -359,6 +359,7 @@ async function main() {
       name,
       ...(Array.from({ length: 4 }, () => randomBytes(32).toString('hex')) as [string, string, string, string]),
       browser,
+      browser ? randomBytes(32).toString('hex') : undefined,
     );
     const late = resources.filter(
       (resource) =>
@@ -393,6 +394,10 @@ async function main() {
     }
     await forward('api', 3001);
     await forward('manager', 3010);
+    if (browser) {
+      await kubectl(['-n', name, 'rollout', 'status', 'deployment/preview-proxy', '--timeout=180s']);
+      await forward('preview-proxy', 3020);
+    }
     stage = 'real-api-manager-agent-validation';
     await assertLocalCluster();
     process.env.PRIVATE_RUNTIME_RECIPE_ID = name;

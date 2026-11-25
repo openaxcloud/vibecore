@@ -23,6 +23,11 @@ jobs:
       CI: true
       HUSKY: 0
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      RUNTIME_MODE: remote-kubernetes
+      VITE_RUNTIME_MODE: remote-kubernetes
+      RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
+      VITE_RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
+      API_BASE_URL: http://127.0.0.1:3001
       SAAS_API_URL: http://127.0.0.1:3001
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
