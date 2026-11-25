@@ -388,7 +388,11 @@ export function AuthOauthButton({
           return;
         }
 
-        // Set pending state, then let the default navigation proceed.
+        // Modified clicks leave this tab available while the browser handles the link.
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+
         onStart(provider);
       }}
       className={`vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors ${
