@@ -15,7 +15,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
-import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useLocation, useNavigate, useNavigation } from 'react-router';
 import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
 import { PASSWORD_MIN_LENGTH, PasswordStrengthMeter } from '~/components/auth/PasswordStrength';
 import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
@@ -25,6 +25,7 @@ import {
   formObject,
   json,
   redirect,
+  safeReturnTo,
   sessionCookie,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -34,6 +35,7 @@ import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { translateServerMessage } from '~/lib/i18n/server';
 import { postRegisterDestination } from '~/lib/post-register-destination.server';
 import { espaceDuClientDejaConnecte } from '~/lib/session-ouverte.server';
+import { REGISTRATION_DRAFT_DESTINATION, REGISTRATION_DRAFT_KEY } from '~/utils/idee-relayee';
 import { origineDeLApplication } from '~/utils/origine-application';
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -124,7 +126,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   return json({
     language: resolveRequestLocale(request).language,
     providers,
-    returnTo: postRegisterDestination(request, null),
+    returnTo: safeReturnTo(requestUrl.searchParams.get('returnTo')) ?? null,
   });
 }
 
@@ -238,6 +240,33 @@ export default function SignupPage() {
   const returnTo = (useLoaderData<typeof loader>() as { returnTo?: string | null } | undefined)?.returnTo ?? null;
   const { t } = useTranslation();
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const draft =
+    new URLSearchParams(location.hash.slice(1)).get('prompt') ?? new URLSearchParams(location.search).get('prompt');
+
+  const hasDraft = Boolean(draft?.trim());
+  const [draftStorageFailed, setDraftStorageFailed] = useState(false);
+
+  useEffect(() => {
+    if (!draft?.trim()) {
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(REGISTRATION_DRAFT_KEY, draft);
+    } catch {
+      setDraftStorageFailed(true);
+      return;
+    }
+
+    const query = new URLSearchParams(location.search);
+    query.delete('prompt');
+    query.set('returnTo', REGISTRATION_DRAFT_DESTINATION);
+    void navigate({ pathname: location.pathname, search: query.toString() }, { replace: true });
+  }, [draft, location.pathname, location.search, navigate]);
+
   const actionData = useActionData<typeof action>() as
     | {
         errorCode?: SignupFeedbackCode;
@@ -286,7 +315,7 @@ export default function SignupPage() {
       eyebrow={t('auth.signup.eyebrow')}
       title={t('auth.signup.title')}
       description={t('auth.signup.description')}
-      error={error}
+      error={draftStorageFailed && hasDraft ? t('auth.signup.draftStorageFailed') : error}
       backTo="/"
       backLabel={t('auth.common.backHome')}
       heroEyebrow={t('auth.signup.heroEyebrow')}
@@ -326,6 +355,12 @@ export default function SignupPage() {
         <>
           {t('auth.signup.footerPrompt')}{' '}
           <Link
+            aria-disabled={hasDraft || undefined}
+            onClick={(event) => {
+              if (hasDraft) {
+                event.preventDefault();
+              }
+            }}
             to={returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'}
             className="vc-auth-link font-semibold hover:underline"
           >
@@ -359,6 +394,17 @@ export default function SignupPage() {
         </>
       }
     >
+      {draftStorageFailed && hasDraft ? (
+        <div className="space-y-2">
+          <label>
+            {t('auth.signup.reviewDraft')}
+            <textarea readOnly value={draft ?? ''} className="block w-full" />
+          </label>
+          <Link to={location.pathname} replace className="vc-auth-link underline">
+            {t('auth.signup.continueWithoutDraft')}
+          </Link>
+        </div>
+      ) : null}
       <Form method="post" className="space-y-4 sm:space-y-5">
         <AuthField
           label={t('auth.common.fullName')}
@@ -465,12 +511,12 @@ export default function SignupPage() {
           label={t('auth.signup.submit')}
           loadingLabel={t('auth.signup.submitting')}
           isSubmitting={isSubmitting}
-          disabled={pendingProvider !== null || password.length < PASSWORD_MIN_LENGTH}
+          disabled={hasDraft || pendingProvider !== null || password.length < PASSWORD_MIN_LENGTH}
         />
       </Form>
 
       <div className="vc-auth-secondary-actions mt-5 grid gap-3 border-t pt-5 sm:grid-cols-2">
-        {providerReady('github') ? (
+        {!hasDraft && providerReady('github') ? (
           <AuthOauthButton
             provider="github"
             label={t('auth.signup.github')}
@@ -481,7 +527,7 @@ export default function SignupPage() {
             returnTo={returnTo}
           />
         ) : null}
-        {providerReady('google') ? (
+        {!hasDraft && providerReady('google') ? (
           <AuthOauthButton
             provider="google"
             label={t('auth.signup.google')}

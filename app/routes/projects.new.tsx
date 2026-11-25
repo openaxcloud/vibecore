@@ -64,7 +64,7 @@ import { effacerLeJetonDuRelais, lireLeJetonDuRelais } from '~/lib/relais-idee.s
 import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
-import { lireIdeeRelayee, oublierLeRelais } from '~/utils/idee-relayee';
+import { lireIdeeRelayee, oublierLeRelais, REGISTRATION_DRAFT_KEY } from '~/utils/idee-relayee';
 import { clearModelHandoff, readModelHandoff, resolveHandoffModelSelection } from '~/utils/model-handoff';
 import { projectIdePath } from '~/utils/project-url';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
@@ -433,7 +433,7 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
    * who typed an idea on the landing page doesn't have to retype it.
    */
   const requestedPrompt = new URL(request.url).searchParams.get('prompt') ?? '';
-  const initialPrompt = requestedPrompt.trim().slice(0, PROMPT_MAX_CHARS);
+  const initialPrompt = requestedPrompt.trim();
 
   const serverEnv = context.cloudflare?.env as unknown as Record<string, string> | undefined;
   const llmManager = LLMManager.getInstance(serverEnv);
@@ -496,7 +496,9 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
     }
   }
 
-  return json<ModelsPayload & { initialPrompt: string; ideeRelayee: IdeeRelayeeParLeServeur | null }>(
+  return json<
+    ModelsPayload & { initialPrompt: string; registrationDraft: boolean; ideeRelayee: IdeeRelayeeParLeServeur | null }
+  >(
     {
       modelList: visibleModelList,
       providers: visibleProviders,
@@ -511,6 +513,7 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
         language,
       ),
       initialPrompt,
+      registrationDraft: new URL(request.url).searchParams.get('draft') === 'registration',
       ideeRelayee,
     },
     { headers: entetes },
@@ -773,6 +776,25 @@ export default function NewProjectPage() {
    * to this form doesn't re-fire an infinite create loop.
    */
   useEffect(() => {
+    if (initialModelsPayload.registrationDraft) {
+      if (!composerAutoSubmittedRef.current) {
+        composerAutoSubmittedRef.current = true;
+
+        try {
+          const draft = sessionStorage.getItem(REGISTRATION_DRAFT_KEY);
+
+          if (draft !== null) {
+            setPrompt(draft);
+            sessionStorage.removeItem(REGISTRATION_DRAFT_KEY);
+          }
+        } catch {
+          // Storage may be unavailable after returning to the application.
+        }
+      }
+
+      return;
+    }
+
     if (composerAutoSubmittedRef.current || initialModelsPayload.initialPrompt || initialModelsPayload.ideeRelayee) {
       return;
     }
@@ -852,7 +874,12 @@ export default function NewProjectPage() {
     }
 
     submit(submitBody, { method: 'post' });
-  }, [initialModelsPayload.initialPrompt, initialModelsPayload.modelList, submit]);
+  }, [
+    initialModelsPayload.registrationDraft,
+    initialModelsPayload.initialPrompt,
+    initialModelsPayload.modelList,
+    submit,
+  ]);
 
   /*
    * Seed the provider/model dropdowns from the landing hand-off (or a returning

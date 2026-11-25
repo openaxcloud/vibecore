@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { createRequire } from 'node:module';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -25,10 +26,12 @@ describe('inscription : disponibilité réelle des boutons sociaux', () => {
       [
         { query: '', returnTo: null },
         { query: '?returnTo=%2Fprojects%2Fnew', returnTo: '/projects/new' },
-        { query: '?prompt=Local+demo', returnTo: '/projects/new?prompt=Local%20demo' },
+        { query: '?prompt=Local+demo', returnTo: '/projects/new?draft=registration' },
       ].map((destination) => ({ ...providers, ...destination })),
     ),
   )('rend uniquement les boutons disponibles : $github / $google', async ({ github, google, query, returnTo }) => {
+    const { transferableAbortController } = createRequire(import.meta.url)('node:util') as typeof import('node:util');
+    vi.stubGlobal('AbortController', transferableAbortController().constructor);
     vi.stubEnv('SAAS_API_URL', 'http://api.test.local');
 
     const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
@@ -54,16 +57,33 @@ describe('inscription : disponibilité réelle des boutons sociaux', () => {
     const data = await toResponse(result).json();
 
     const router = createMemoryRouter(
-      [{ id: 'signup', path: '/register', loader: () => data, Component: SignupPage }],
-      { initialEntries: ['/register'], hydrationData: { loaderData: { signup: data } } },
+      [
+        {
+          id: 'signup',
+          path: '/register',
+          loader: ({ request }) => ({ ...data, returnTo: new URL(request.url).searchParams.get('returnTo') }),
+          Component: SignupPage,
+        },
+      ],
+      { initialEntries: [`/register${query}`], hydrationData: { loaderData: { signup: data } } },
     );
     render(<RouterProvider router={router} />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'auth.signup.submit' })).toBeDefined());
+
+    if (query.startsWith('?prompt=')) {
+      await waitFor(() =>
+        expect(router.state.location.search).toBe('?returnTo=%2Fprojects%2Fnew%3Fdraft%3Dregistration'),
+      );
+      expect(sessionStorage.getItem('registrationReviewDraft')).toBe('Local demo');
+    }
+
     expect(fetchSpy).toHaveBeenCalled();
     expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/auth/oauth/providers');
-    expect(Boolean(screen.queryByRole('link', { name: 'auth.signup.github' }))).toBe(github);
-    expect(Boolean(screen.queryByRole('link', { name: 'auth.signup.google' }))).toBe(google);
+    await waitFor(() => {
+      expect(Boolean(screen.queryByRole('link', { name: 'auth.signup.github' }))).toBe(github);
+      expect(Boolean(screen.queryByRole('link', { name: 'auth.signup.google' }))).toBe(google);
+    });
 
     for (const [provider, ready] of [
       ['github', github],

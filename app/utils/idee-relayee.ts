@@ -61,3 +61,7 @@ export function lireIdeeRelayee(rangement: Rangement, maintenant = Date.now()): 
 
   return idee;
 }
+
+// A registration draft is for review. It never sets the homepage build intent.
+export const REGISTRATION_DRAFT_DESTINATION = '/projects/new?draft=registration';
+export const REGISTRATION_DRAFT_KEY = 'registrationReviewDraft';

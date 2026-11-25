@@ -4,9 +4,7 @@ import { safeReturnTo } from '~/lib/enterprise-api.server';
  * The homepage builder form sends the visitor's app idea as ?prompt=. After registration we forward
  * it to the new-project composer so the first thing they see is their idea ready to build.
  */
-export function postRegisterDestination(request: Request): string;
-export function postRegisterDestination(request: Request, fallback: null): string | null;
-export function postRegisterDestination(request: Request, fallback: null | string = '/dashboard'): string | null {
+export function postRegisterDestination(request: Request): string {
   const params = new URL(request.url).searchParams;
   const prompt = params.get('prompt')?.trim();
 
@@ -19,5 +17,5 @@ export function postRegisterDestination(request: Request, fallback: null | strin
    * (`/projects/new`, où l'attend son idée relayée par l'accueil). Validée comme
    * à la connexion : un chemin interne, jamais une URL externe.
    */
-  return safeReturnTo(params.get('returnTo')) ?? fallback;
+  return safeReturnTo(params.get('returnTo')) ?? '/dashboard';
 }
