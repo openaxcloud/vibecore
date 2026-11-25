@@ -1,0 +1,26 @@
+{
+  "scope": "synthetic SQLite and filesystem",
+  "node": "v24.19.0",
+  "backupMs": 1.584,
+  "restoreMs": 1.007,
+  "rollbackMs": 0.36,
+  "restored": [
+    {
+      "id": 1,
+      "key": "trace-1.bin",
+      "digest": "26a66b061e8f48f39927c312f25293959729eee95978e2892d49d3512a5cc092"
+    },
+    {
+      "id": 2,
+      "key": "trace-2.bin",
+      "digest": "81f3b92f222078b1606cfc3eebfee22216cc40ac99e6524b00fbaa933a6bcd47"
+    }
+  ],
+  "excludedAfterCheckpoint": 3,
+  "rollbackIds": [
+    1,
+    2,
+    3
+  ],
+  "damagedObjectRejected": true
+}
