@@ -396,7 +396,10 @@ export function installCommandForStartCommand(command: string, packageManager?: 
 
 export class ActionRunner {
   #runtime: RuntimeAdapter;
-  #confirmedFileWrites = new Map<string, { filePath: string; runtime: RuntimeAdapter; abortSignal: AbortSignal }>();
+  #confirmedFileWrites = new Map<
+    string,
+    { content: string; filePath: string; runtime: RuntimeAdapter; abortSignal: AbortSignal }
+  >();
 
   /** One-shot evidence of the payload observed immediately after its write, not its current contents. */
   consumeConfirmedFileWrite(actionId: string) {
@@ -1306,7 +1309,12 @@ export class ActionRunner {
       const confirmed = await confirmAcceptedAgentFile(runtime, relativePath, payload);
 
       if (confirmed && !action.abortSignal.aborted && this.#runtime === runtime) {
-        this.#confirmedFileWrites.set(actionId, { filePath: relativePath, runtime, abortSignal: action.abortSignal });
+        this.#confirmedFileWrites.set(actionId, {
+          content: payload,
+          filePath: relativePath,
+          runtime,
+          abortSignal: action.abortSignal,
+        });
 
         while (this.#confirmedFileWrites.size > 32) {
           this.#confirmedFileWrites.delete(this.#confirmedFileWrites.keys().next().value!);

@@ -1291,6 +1291,7 @@ function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
   return {
     ...existing,
     ...incoming,
+    fileWriteClock: existing.fileWriteClock,
     chat: mergedChat,
     ui: { ...ideStateRecord(existing.ui), ...ideStateRecord(incoming.ui) },
     collaboration: mergedCollaboration,
@@ -5160,12 +5161,30 @@ async function syncProjectStorageWithFileManifest(
   });
 }
 
+// File mutations share the IDE row with chat/UI. Only an explicit file write
+// advances a path's clock. A whole-tree replacement also covers absent paths.
+function fileWriteClock(existing?: ProjectIdeStateRecord) {
+  const clock = ideStateRecord(ideStateRecord(existing?.state).fileWriteClock);
+  return { replaced: Number(clock.replaced) || 0, paths: ideStateRecord(clock.paths) };
+}
+
+function advanceFileWriteClock(existing: ProjectIdeStateRecord | undefined, paths?: Iterable<string>) {
+  const next = (existing?.version ?? 0) + 1;
+  if (!paths) return { replaced: next, paths: {} };
+
+  const clock = fileWriteClock(existing);
+  return {
+    replaced: clock.replaced,
+    paths: { ...clock.paths, ...Object.fromEntries(Array.from(paths, (path) => [path, next])) },
+  };
+}
+
 async function persistProjectFileManifest(
   store: ApiStore,
   projectId: string,
   files: Array<{ path: string; content: string }>,
   updatedByUserId?: string,
-  options: { clearRecoveredChatFiles?: boolean; ecrit?: boolean } = {},
+  options: { clearRecoveredChatFiles?: boolean; ecrit?: boolean; writtenPaths?: string[] } = {},
 ) {
   /*
    * Route through the version-guarded mutate loop instead of a bare read +
@@ -5176,12 +5195,13 @@ async function persistProjectFileManifest(
    * (authz-affecting) that committed inside the read/write window. mutate
    * re-reads + re-merges under the optimistic-concurrency version check.
    */
-  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) =>
-    mergeProjectIdeState(existing?.state, {
+  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) => ({
+    ...mergeProjectIdeState(existing?.state, {
       files: projectFileManifestState(files, { ecrit: options.ecrit }),
       ...(options.clearRecoveredChatFiles ? { chat: { clearMessages: true, messages: [] } } : {}),
     }),
-  );
+    fileWriteClock: advanceFileWriteClock(existing, options.writtenPaths),
+  }));
 }
 
 /**
@@ -5254,8 +5274,9 @@ async function mutateProjectFileManifestEntries(
   store: ApiStore,
   projectId: string,
   updatedByUserId: string | undefined,
-  transformer: (entrees: EntreeDeManifeste[]) => EntreeDeManifeste[],
+  transformer: (entrees: EntreeDeManifeste[], existing?: ProjectIdeStateRecord) => EntreeDeManifeste[],
   requireManifest = false,
+  explicitPath?: string,
 ) {
   /*
    * DEUX raisons de renoncer AVANT d'entrer dans `mutateProjectIdeState`, et
@@ -5277,13 +5298,17 @@ async function mutateProjectFileManifestEntries(
    * dans la boucle à version optimiste ne coûte rien et garde la relecture
    * sous contrôle de version.
    */
-  const entreesActuelles = entreesDuManifeste((await store.getProjectIdeState(projectId))?.state);
+  const current = await store.getProjectIdeState(projectId);
+  const entreesActuelles = entreesDuManifeste(current?.state);
 
   if (requireManifest && !entreesActuelles) {
     throw new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
   }
 
-  if (!entreesActuelles || !manifesteChange(entreesActuelles, transformer([...entreesActuelles]))) {
+  if (
+    !entreesActuelles ||
+    (!explicitPath && !manifesteChange(entreesActuelles, transformer([...entreesActuelles], current)))
+  ) {
     return;
   }
 
@@ -5299,9 +5324,19 @@ async function mutateProjectFileManifestEntries(
       return mergeProjectIdeState(existing?.state, {});
     }
 
-    return mergeProjectIdeState(existing?.state, {
-      files: { entries: transformer([...entrees]), updatedAt: new Date().toISOString() },
-    });
+    const after = transformer([...entrees], existing);
+    const unchanged = new Set(after);
+    const touched = new Set(entrees.filter((entry) => !unchanged.has(entry)).map((entry) => entry.path));
+    const original = new Set(entrees);
+    for (const entry of after) {
+      if (!original.has(entry)) touched.add(entry.path);
+    }
+    if (explicitPath) touched.add(explicitPath);
+
+    return {
+      ...mergeProjectIdeState(existing?.state, { files: { entries: after, updatedAt: new Date().toISOString() } }),
+      fileWriteClock: advanceFileWriteClock(existing, touched),
+    };
   });
 }
 
@@ -5364,6 +5399,7 @@ async function persistProjectFileEntry(
       return entrees;
     },
     true,
+    chemin,
   );
 
   /*
@@ -25416,15 +25452,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply;
     }
 
-    const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
+    const body = parse(
+      zipImportSchema.pick({ zipBase64: true, replaceExisting: true }).extend({
+        sourceVersion: z.number().int().nonnegative().optional(),
+        previousContents: z.record(z.string(), z.string().nullable()).optional(),
+      }),
+      request.body,
+    );
 
-    const files = await projectStorage.importZip(project.id, body.zipBase64, {
-      replaceExisting: body.replaceExisting === true,
-    });
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id, {
-      clearRecoveredChatFiles: body.replaceExisting === true,
-      ecrit: true,
-    });
+    let files: ProjectFile[] = [];
+    let skipped: string[] = [];
+
+    if (body.previousContents) {
+      if (body.sourceVersion === undefined) return reply.code(400).send({ code: 'FILE_SOURCE_VERSION_REQUIRED' });
+      const sourceVersion = body.sourceVersion;
+      const changes = await filesFromZipBase64(body.zipBase64);
+      const previous = body.previousContents;
+
+      // Compare each confirmed write against the authoritative manifest inside the
+      // version-checked mutation. Retrying a conflict must repeat the comparison.
+      await mutateProjectFileManifestEntries(
+        store,
+        project.id,
+        request.currentUser!.id,
+        (entries, existing) => {
+          const clock = fileWriteClock(existing);
+          const byPath = new Map(entries.map((entry) => [entry.path, entry]));
+          files = [];
+          skipped = [];
+
+          for (const change of changes) {
+            const path = normalizeProjectPath(change.path);
+            if (!path || !Object.hasOwn(previous, path) || change.encoding !== 'utf8') {
+              skipped.push(change.path);
+              continue;
+            }
+
+            const current = byPath.get(path);
+            if (current?.ecrit && !current.encoding && current.content === change.content) {
+              files.push({ ...change, updatedAt: existing!.updatedAt });
+              continue;
+            }
+
+            if (
+              Math.max(clock.replaced, Number(clock.paths[path]) || 0) > sourceVersion ||
+              current?.encoding ||
+              ((current?.content ?? null) !== previous[path] && current?.content !== change.content)
+            ) {
+              skipped.push(path);
+              continue;
+            }
+
+            files.push({ ...change, updatedAt: new Date().toISOString() });
+            byPath.set(path, { path, content: change.content, ecrit: true });
+          }
+          return [...byPath.values()];
+        },
+        true,
+      );
+    } else {
+      // Track only the paths supplied by a merge import, including same-byte writes.
+      // Parse their names before mutating the storage tree.
+      const writtenPaths = body.replaceExisting
+        ? undefined
+        : Object.values((await JSZip.loadAsync(body.zipBase64, { base64: true })).files)
+            .filter((entry) => !entry.dir)
+            .map((entry) => normalizeProjectPath(entry.name))
+            .filter((path): path is string => Boolean(path));
+      files = await projectStorage.importZip(project.id, body.zipBase64, {
+        replaceExisting: body.replaceExisting === true,
+      });
+      await persistProjectFileManifest(store, project.id, files, request.currentUser!.id, {
+        clearRecoveredChatFiles: body.replaceExisting === true,
+        ecrit: true,
+        writtenPaths,
+      });
+    }
 
     await store.recordProjectActivity({
       projectId: project.id,
@@ -25439,6 +25542,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: project.id,
       metadata: { files: files.length, replaceExisting: body.replaceExisting === true },
     });
+
+    if (skipped.length) {
+      return reply.code(409).send({ files: publicFiles(files), skipped });
+    }
 
     return { files: publicFiles(files) };
   });

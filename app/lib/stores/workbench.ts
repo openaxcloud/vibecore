@@ -118,6 +118,8 @@ export interface ArtifactState {
   type?: string;
   closed: boolean;
   runner: ActionRunner;
+  sourceVersion?: Promise<number | undefined>;
+  confirmedWrites?: Map<string, { previous: string | null; content: string }>;
 }
 
 export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
@@ -418,7 +420,11 @@ export class WorkbenchStore {
    * même milliseconde doivent rester ordonnés.
    */
   #horloge = 0;
-  #lectureDeLAgent: { fichiers: ReturnType<FilesStore['files']['get']>; instant: number } | null = null;
+  #lectureDeLAgent: {
+    fichiers: ReturnType<FilesStore['files']['get']>;
+    instant: number;
+    sourceVersion?: Promise<number | undefined>;
+  } | null = null;
 
   /** Dernier enregistrement de l'UTILISATEUR, par fichier, sur `#horloge`. */
   #enregistrementsUtilisateur = new Map<string, number>();
@@ -679,6 +685,7 @@ export class WorkbenchStore {
 
   configureProject(projectId?: string) {
     const changed = this.#projectId !== projectId;
+    if (changed) this.#lectureDeLAgent = null;
     const changedFileProject = Boolean(projectId && this.#filesProjectId && projectId !== this.#filesProjectId);
     const preserveEditorState = Boolean(this.#filesProjectId) && !changedFileProject;
     this.#projectId = projectId;
@@ -844,6 +851,14 @@ export class WorkbenchStore {
     return true;
   }
 
+  /*
+   * Interrupted-turn recovery belongs to the tab. A terminal proposal has already
+   * been removed from the server queue, even if its file has since changed.
+   */
+  #processedProposalKey(messageId: string, proposalId: string) {
+    return 'vibecore.processed-proposal:' + JSON.stringify([this.#projectId, messageId, proposalId]);
+  }
+
   #syncAgentPatchProposalToServer(proposalId: string) {
     const projectId = this.#projectId;
 
@@ -859,7 +874,13 @@ export class WorkbenchStore {
     }
 
     if (isTerminalAgentPatchStatus(proposal.status)) {
+      try {
+        sessionStorage.setItem(this.#processedProposalKey(proposal.messageId, proposalId), '1');
+      } catch {
+        // Session storage can be unavailable for this browser.
+      }
       void deleteAgentPatchProposalRemote(projectId, proposalId);
+
       return;
     }
 
@@ -2606,7 +2627,11 @@ export class WorkbenchStore {
    * Appelé à la préparation de chaque requête de conversation.
    */
   noterLaLectureDeLAgent() {
-    this.#lectureDeLAgent = { fichiers: this.#filesStore.files.get(), instant: ++this.#horloge };
+    this.#lectureDeLAgent = {
+      fichiers: this.#filesStore.files.get(),
+      instant: ++this.#horloge,
+      sourceVersion: this.#projectId ? this.#readFileSourceVersion(this.#projectId) : undefined,
+    };
   }
 
   setShowWorkbench(show: boolean) {
@@ -3317,6 +3342,12 @@ export class WorkbenchStore {
           return 'ignored';
         }
 
+        this.#recordConfirmedWrite(
+          proposal.artifactId,
+          proposal.relativePath,
+          freshBeforeWrite ?? null,
+          writtenContent,
+        );
         confirmerEcritureDeMessage(proposal.messageId, proposal.relativePath, proposal.id);
         this.#agentPatchOriginals.delete(proposal.actionId);
         this.resetAllFileModifications();
@@ -3844,6 +3875,31 @@ export class WorkbenchStore {
     this.#reloadedMessages.marquerHydrates(messages);
   }
 
+  async #readFileSourceVersion(projectId: string) {
+    const controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(), 4000);
+
+    try {
+      const response = await fetch('/api/projects/' + encodeURIComponent(projectId) + '/ide-state', {
+        credentials: 'include',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        return undefined;
+      }
+
+      const { ideState } = await response.json();
+
+      return Number.isSafeInteger(ideState?.version) ? Number(ideState.version) : undefined;
+    } catch {
+      return undefined;
+    } finally {
+      clearTimeout(deadline);
+    }
+  }
+
   addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
     if (this.agentPatchReviewRequired.get() && !this.#reloadedMessages.contient(messageId)) {
       observerEcrituresDeMessage(messageId);
@@ -3865,6 +3921,11 @@ export class WorkbenchStore {
       title,
       closed: false,
       type,
+      sourceVersion:
+        this.#projectId && !this.#reloadedMessages.contient(messageId)
+          ? (this.#lectureDeLAgent?.sourceVersion ?? this.#readFileSourceVersion(this.#projectId))
+          : undefined,
+      confirmedWrites: new Map(),
       runner: new ActionRunner(
         this.#runtime,
         () => this.boltTerminal,
@@ -3906,7 +3967,16 @@ export class WorkbenchStore {
     });
   }
 
-  updateArtifact({ artifactId, messageId }: ArtifactCallbackData, state: Partial<ArtifactUpdateState>) {
+  #recordConfirmedWrite(artifactId: string, path: string, previous: string | null, content: string) {
+    const writes = this.#getArtifact(artifactId)?.confirmedWrites;
+    const first = writes?.get(path);
+    writes?.set(path, { previous: first ? first.previous : previous, content });
+  }
+
+  updateArtifact(
+    { artifactId, messageId, fermetureDeSecours }: ArtifactCallbackData,
+    state: Partial<ArtifactUpdateState>,
+  ) {
     if (!artifactId) {
       return;
     }
@@ -3942,7 +4012,10 @@ export class WorkbenchStore {
 
         await artifact.runner.waitForIdle();
         await this.#validatePendingAgentPatchProposalsForArtifact(artifactId);
-        await this.#refreshPreviewAfterArtifactClose(artifactId, { enregistrer });
+        await this.#refreshPreviewAfterArtifactClose(artifactId, {
+          enregistrer,
+          interrupted: fermetureDeSecours || recovering,
+        });
       });
     }
   }
@@ -4231,6 +4304,7 @@ export class WorkbenchStore {
         return;
       }
 
+      const previous = this.#filesStore.getFile(fullPath)?.content ?? null;
       await artifact.runner.runAction(data);
 
       const writeReceipt = artifact.runner.consumeConfirmedFileWrite?.(data.actionId);
@@ -4318,6 +4392,7 @@ export class WorkbenchStore {
         completedAction?.status === 'complete' &&
         writeScopeIsCurrent()
       ) {
+        this.#recordConfirmedWrite(data.artifactId, writeReceipt.filePath, previous, writeReceipt.content);
         confirmerEcritureDeMessage(data.messageId, writeReceipt.filePath, `${data.artifactId}:${data.actionId}`);
       }
 
@@ -4477,6 +4552,14 @@ export class WorkbenchStore {
 
     /* Le tour repris ne propose que sa fermeture, et rien pour un fichier déjà identique. */
     if (aRevoir) {
+      try {
+        if (sessionStorage.getItem(this.#processedProposalKey(data.messageId, data.artifactId + ':' + data.actionId))) {
+          return;
+        }
+      } catch {
+        // The server queue and current file are still checked below.
+      }
+
       const actuel = this.#filesStore.getFile(path.join(this.#runtime.workdir, data.action.filePath));
 
       const restored = this.agentPatchProposals.get()[`${data.artifactId}:${data.actionId}`];
@@ -4687,7 +4770,10 @@ export class WorkbenchStore {
     });
   }
 
-  async #refreshPreviewAfterArtifactClose(artifactId: string, { enregistrer }: { enregistrer: boolean }) {
+  async #refreshPreviewAfterArtifactClose(
+    artifactId: string,
+    { enregistrer, interrupted }: { enregistrer: boolean; interrupted?: boolean },
+  ) {
     await this.loadRuntimeFiles('.').catch(() => {
       this.appendWorkspaceLog(workbenchText('workbenchRuntime.validation.previewRefreshSkipped'));
     });
@@ -4714,7 +4800,7 @@ export class WorkbenchStore {
      * whether the files are saved.
      */
     if (enregistrer) {
-      await this.#persistRuntimeFilesToProjectStorage(artifactId);
+      await this.#persistRuntimeFilesToProjectStorage(artifactId, interrupted);
     }
 
     // Persist first, but never restart over unresolved or failed file changes.
@@ -4903,7 +4989,7 @@ export class WorkbenchStore {
     return changed;
   }
 
-  async #persistRuntimeFilesToProjectStorage(artifactId: string) {
+  async #persistRuntimeFilesToProjectStorage(artifactId: string, interrupted = false) {
     /*
      * Capture projectId + runtime as a consistent snapshot up-front. This is a
      * long async flow (collect files, zip) and WorkbenchStore is a singleton
@@ -4920,10 +5006,28 @@ export class WorkbenchStore {
     }
 
     try {
-      const files = await collectRuntimeTextFiles(runtime, '.', {
-        excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
-        excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
-      });
+      const writes = this.#getArtifact(artifactId)?.confirmedWrites;
+
+      if (interrupted && !writes?.size) {
+        return;
+      }
+
+      const sourceVersion = interrupted ? await this.#getArtifact(artifactId)?.sourceVersion : undefined;
+
+      if (interrupted && sourceVersion === undefined) {
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.storage.skipped', { artifact: artifactId }));
+        return;
+      }
+
+      const previousContents = interrupted
+        ? Object.fromEntries(Array.from(writes!, ([path, write]) => [path, write.previous]))
+        : undefined;
+      const files = interrupted
+        ? Object.fromEntries(Array.from(writes!, ([path, write]) => [path, write.content]))
+        : await collectRuntimeTextFiles(runtime, '.', {
+            excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
+            excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
+          });
 
       const zip = new JSZip();
 
@@ -4959,7 +5063,12 @@ export class WorkbenchStore {
           accept: 'application/json',
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ zipBase64: await zip.generateAsync({ type: 'base64' }), replaceExisting: true }),
+        body: JSON.stringify({
+          zipBase64: await zip.generateAsync({ type: 'base64' }),
+          replaceExisting: !interrupted,
+          previousContents,
+          sourceVersion,
+        }),
       });
 
       if (!response.ok) {

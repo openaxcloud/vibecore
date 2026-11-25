@@ -18,6 +18,7 @@
  * Harnais repris de workbench.reprise-de-session.spec.ts (vrai WorkbenchStore).
  */
 
+import JSZip from 'jszip';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbenchStore, type AgentPatchProposal } from './workbench';
 import { fetchOpenAgentPatchProposals, putAgentPatchProposal } from '~/lib/persistence/agentPatchProposalSync';
@@ -256,6 +257,7 @@ const attendre = () => new Promise((resolve) => setTimeout(resolve, 200));
 
 describe('à la réouverture, le tour que CE navigateur n’a pas vu finir', () => {
   beforeEach(() => {
+    sessionStorage.clear();
     runtimeFiles.clear();
     propositionsEnBase.length = 0;
     runtimeAdapterMock.streamCommand.mockClear();
@@ -295,6 +297,69 @@ describe('à la réouverture, le tour que CE navigateur n’a pas vu finir', () 
 
     await expect(store.acceptAgentPatchProposal(id)).resolves.toBe('accepted');
     expect(runtimeFiles.get('src/App.tsx')).toBe(DE_L_AGENT);
+  });
+
+  it('sends only confirmed bytes with their original file and project revision on fallback close', async () => {
+    const requests = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async (url) =>
+        Response.json(String(url).endsWith('/ide-state') ? { ideState: { version: 12 } } : {}),
+      );
+
+    try {
+      const store = await rouvrir();
+      const messageId = 'confirmed-fallback';
+      const id = action(store, messageId, '0', { type: 'file', filePath: 'src/App.tsx', content: DE_L_AGENT });
+      await store.attendreLaFinDesTaches();
+      await expect(store.acceptAgentPatchProposal(id)).resolves.toBe('accepted');
+
+      const artifactId = messageId + '-artefact';
+      store.updateArtifact(
+        { id: artifactId, artifactId, messageId, title: 'App', type: 'bundled', fermetureDeSecours: true },
+        { closed: true },
+      );
+      await store.attendreLaFinDesTaches();
+
+      const posts = requests.mock.calls.filter(([url]) => String(url).endsWith('/files/import/zip'));
+      expect(posts).toHaveLength(1);
+
+      const body = JSON.parse(String(posts[0][1]?.body));
+      expect(body).toMatchObject({
+        sourceVersion: 12,
+        replaceExisting: false,
+        previousContents: { 'src/App.tsx': ORIGINAL },
+      });
+
+      const zip = await JSZip.loadAsync(body.zipBase64, { base64: true });
+      expect(
+        Object.values(zip.files)
+          .filter((entry) => !entry.dir)
+          .map((entry) => entry.name),
+      ).toEqual(['src/App.tsx']);
+      expect(await zip.file('src/App.tsx')?.async('string')).toBe(DE_L_AGENT);
+    } finally {
+      requests.mockRestore();
+    }
+  });
+
+  it('does not recreate a processed proposal when the same tab recovers after a later file edit', async () => {
+    const messageId = 'finished-turn';
+    const source = { type: 'file' as const, filePath: 'src/App.tsx', content: DE_L_AGENT };
+    const live = await rouvrir();
+    const id = action(live, messageId, '0', source);
+    await live.attendreLaFinDesTaches();
+    await expect(live.acceptAgentPatchProposal(id)).resolves.toBe('accepted');
+
+    const recovered = await rouvrir();
+    runtimeFiles.set(source.filePath, 'Later user revision.\n');
+    await recovered.loadRuntimeFiles();
+    recovered.markHydratedMessages([messageId]);
+    recovered.reprendreLeTourInterrompu(messageId);
+    vi.mocked(putAgentPatchProposal).mockClear();
+    action(recovered, messageId, '0', source);
+    await recovered.attendreLaFinDesTaches();
+    expect(putAgentPatchProposal).not.toHaveBeenCalled();
+    expect(recovered.agentPatchProposals.get()[id]).toBeUndefined();
   });
 
   it.each([true, false])('reconciles recovery after proposal hydration (same contents: %s)', async (sameContents) => {

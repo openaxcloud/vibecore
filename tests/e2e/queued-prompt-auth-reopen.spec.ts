@@ -387,3 +387,90 @@ for (const interruption of ['stop', 'length', 'stalled restore'] as const) {
     }
   });
 }
+
+for (const interveningSave of ['none', 'new bytes', 'same bytes', 'other path'] as const) {
+  test(`a delayed confirmed ZIP preserves a preexisting file (intervening save: ${interveningSave})`, async ({
+    page,
+    request,
+    baseURL,
+  }) => {
+    const { project, api, headers } = await createQueuedProject(request, page, baseURL!);
+    const endpoint = `${api}/projects/${project.id}`;
+    const path = 'finished.txt';
+    const previous = 'Earlier saved file.\n';
+    const accepted = 'Completed synthetic text.\n';
+    const later = 'Later user revision.\n';
+    const encode = (content: string, file = path) => new JSZip().file(file, content).generateAsync({ type: 'base64' });
+
+    const save = async (content: string, file = path) => {
+      const response = await request.post(endpoint + '/files/import/zip', {
+        headers,
+        data: { zipBase64: await encode(content, file) },
+      });
+      expect(response.status()).toBe(200);
+    };
+    const read = async (file = path) => {
+      const response = await request.get(endpoint + '/export/zip', { headers });
+      expect(response.status()).toBe(200);
+
+      const zip = await JSZip.loadAsync((await response.json()).archive.base64, { base64: true });
+
+      return zip.file(file)?.async('string');
+    };
+    await save(previous);
+    expect(await read()).toBe(previous);
+
+    const sourceVersion = (await (await request.get(endpoint + '/ide-state', { headers })).json()).ideState.version;
+    await page.goto('/robots.txt');
+
+    const routePath = `/api/projects/${project.id}/files/import/zip`;
+
+    let release!: () => void;
+
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**' + routePath, async (route) => {
+      await gate;
+      await route.continue();
+    });
+
+    const arrival = page.waitForRequest((req) => new URL(req.url()).pathname === routePath);
+
+    const pending = page.evaluate(
+      async ({ url, body }) =>
+        (
+          await fetch(url, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+        ).status,
+      {
+        url: routePath,
+        body: { zipBase64: await encode(accepted), previousContents: { [path]: previous }, sourceVersion },
+      },
+    );
+
+    try {
+      await arrival;
+
+      if (interveningSave !== 'none') {
+        const saved = interveningSave === 'same bytes' ? previous : later;
+        const editedPath = interveningSave === 'other path' ? 'independent.txt' : path;
+        await save(saved, editedPath);
+        expect(await read(editedPath)).toBe(saved);
+      }
+    } finally {
+      release();
+    }
+
+    const concurrentEdit = interveningSave === 'same bytes' || interveningSave === 'new bytes';
+    expect(await pending).toBe(concurrentEdit ? 409 : 200);
+    expect(await read()).toBe(!concurrentEdit ? accepted : interveningSave === 'same bytes' ? previous : later);
+
+    if (interveningSave === 'other path') {
+      expect(await read('independent.txt')).toBe(later);
+    }
+  });
+}
