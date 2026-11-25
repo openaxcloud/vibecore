@@ -40,7 +40,8 @@ describe('React Router document hydration contract', () => {
  * navigateur ne les a plus dans son graphe JavaScript. S'il hydratait sans
  * avoir chargé le JSON de sa langue, React remplacerait chaque libellé par
  * « Unavailable ». Ces gardes tiennent l'ordre : précharger dans <head>,
- * attendre, PUIS hydrater — et hydrater quand même si le JSON manque.
+ * attendre, PUIS hydrater — une panne propose une reprise sans remplacer
+ * les libellés SSR par « Unavailable ».
  */
 describe('le catalogue i18n de la langue du document', () => {
   const serverEntrySource = readFileSync(join(process.cwd(), 'app/entry.server.tsx'), 'utf8');
@@ -52,7 +53,7 @@ describe('le catalogue i18n de la langue du document', () => {
     expect(rootSource).toContain('crossOrigin="anonymous"');
   });
 
-  it('est attendu AVANT hydrateRoot, et l’échec n’empêche pas d’hydrater', () => {
+  it('est attendu AVANT hydrateRoot et délègue une panne au contrôleur de reprise', () => {
     const attente = clientEntrySource.indexOf('chargerLesCataloguesDuDocument(lang, window.location.pathname)');
     const hydratation = clientEntrySource.indexOf('hydrateRoot(document, <HydratedRouter />)');
 
@@ -62,7 +63,16 @@ describe('le catalogue i18n de la langue du document', () => {
     // Un seul appel à hydrateRoot, enfermé dans `hydrater()` — jamais au niveau du module.
     expect(clientEntrySource.match(/hydrateRoot\(/g)).toHaveLength(1);
     expect(clientEntrySource).toContain('function hydrater()');
-    expect(clientEntrySource).toMatch(/\.then\(demarrer,\s*\(erreur: unknown\) => \{[\s\S]*demarrer\(\);/);
+    expect(clientEntrySource).toContain("import { startCatalogueHydration } from './lib/i18n/startup-catalogues';");
+    expect(clientEntrySource).toContain(
+      'startCatalogueHydration(() => chargerLesCataloguesDuDocument(lang, window.location.pathname), demarrer);',
+    );
+
+    /*
+     * The controller, tested behaviorally in startup-catalogues.spec.ts, owns
+     * retry and the single successful handoff. No eager or failure-path start.
+     */
+    expect(clientEntrySource).not.toMatch(/\bdemarrer\(\);/);
   });
 
   it('est recréé côté instance si le registre change, sans divergence d’hydratation', () => {
