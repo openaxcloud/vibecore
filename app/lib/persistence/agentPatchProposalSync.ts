@@ -41,11 +41,18 @@ export async function fetchOpenAgentPatchProposals(
   projectId: string,
   projectSignal?: AbortSignal,
 ): Promise<AgentPatchProposal[] | undefined> {
-  const deadline = AbortSignal.timeout(8_000);
+  if (projectSignal?.aborted) {
+    return undefined;
+  }
+
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  const deadline = setTimeout(abort, 8_000);
+  projectSignal?.addEventListener('abort', abort, { once: true });
 
   try {
     const response = await fetch(endpoint(projectId), {
-      signal: projectSignal ? AbortSignal.any([projectSignal, deadline]) : deadline,
+      signal: controller.signal,
       credentials: 'include',
       headers: COMMON_HEADERS,
     });
@@ -61,6 +68,9 @@ export async function fetchOpenAgentPatchProposals(
   } catch (error) {
     logger.warn('Failed to fetch agent patch proposals:', error);
     return undefined;
+  } finally {
+    clearTimeout(deadline);
+    projectSignal?.removeEventListener('abort', abort);
   }
 }
 

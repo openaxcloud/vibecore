@@ -189,6 +189,14 @@ for (const interruption of ['stop', 'length', 'stalled restore'] as const) {
   test(title, async ({ page, request, baseURL }) => {
     test.setTimeout(120_000);
 
+    const missingMethods =
+      interruption === 'stalled restore' ? ['any', 'timeout'] : [interruption === 'stop' ? 'any' : 'timeout'];
+    await page.addInitScript((methods) => {
+      for (const method of methods) {
+        Object.defineProperty(AbortSignal, method, { configurable: true, value: undefined });
+      }
+    }, missingMethods);
+
     const { project, state, api, headers, prompt } = await createQueuedProject(request, page, baseURL!);
     const endpoint = api + '/projects/' + project.id;
     const completed = 'Completed synthetic text.\n';
