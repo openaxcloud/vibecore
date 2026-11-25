@@ -1,13 +1,39 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { access, link, lstat, mkdir, readFile, readdir, realpath, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { access, copyFile, link, lstat, mkdir, opendir, readFile, readdir, realpath, rename, rm, stat, statfs, unlink, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
-import { dirname, join, normalize, relative, sep } from 'node:path';
+import { dirname, join, normalize, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { resolveOutboundDestination, type OutboundUrlPolicy } from '@vibecore/security';
 import JSZip from 'jszip';
 import { appPublicEnglish } from './app-public-copy.js';
 
+import { checkImportTree, importTooLarge, IMPORT_WORKTREE_BYTES, withImportTransfer } from './git-import-budget.js';
+
 const execFile = promisify(execFileCallback);
+
+function remainingImportTime(deadline: number) {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw Object.assign(new Error('Git import timed out'), { code: 'ETIMEDOUT' });
+  return remaining;
+}
+
+async function untilImportDeadline<T>(operation: Promise<T>, deadline: number) {
+  const remaining = remainingImportTime(deadline);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(Object.assign(new Error('Git import timed out'), { code: 'ETIMEDOUT' })),
+          remaining,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 function commandStdout(result: unknown) {
   if (typeof result === 'string') {
@@ -1232,6 +1258,108 @@ export class GitCliProvider implements GitProvider {
     return raw ? commandStdout(result) : commandStdout(result).trim();
   }
 
+  private historyGit(args: string[], cwd: string, deadline: number, maxBuffer = 1024 * 1024) {
+    // GNU timeout signals the process group, including transport and index-pack children.
+    return execFile(
+      'timeout',
+      [
+        '--kill-after=1s',
+        `${remainingImportTime(deadline) / 1000}s`,
+        'prlimit',
+        '--fsize=67108864:67108864',
+        '--as=536870912:536870912',
+        '--',
+        'git',
+        '-c',
+        'fetch.unpackLimit=1',
+        '-c',
+        'index.threads=1',
+        '-c',
+        'core.deltaBaseCacheLimit=16m',
+        ...args,
+      ],
+      {
+        cwd,
+        maxBuffer,
+        encoding: 'buffer',
+        env: {
+          ...this.gitEnv(),
+          GIT_CONFIG_NOSYSTEM: '1',
+          GIT_CONFIG_GLOBAL: '/dev/null',
+          GIT_CONFIG_COUNT: '0',
+          GIT_CONFIG_PARAMETERS: '',
+          no_proxy: '',
+          NO_PROXY: '',
+        },
+      },
+    );
+  }
+
+  private async readImportedTree(target: string, deadline: number): Promise<ProjectFile[]> {
+    const hasHead = await this.historyGit(['rev-parse', '--verify', '--quiet', 'HEAD'], target, deadline)
+      .then(() => true)
+      .catch((error) => {
+        if (error.code === 1) return false;
+        throw error;
+      });
+    if (!hasHead) return [];
+
+    const tree = await this.historyGit(['ls-tree', '-r', '-t', '-l', '-z', 'HEAD'], target, deadline);
+    const blobs = checkImportTree(commandStdout(tree)).filter((blob) => !isRepositoryMetadataPath(blob.path));
+    if (!blobs.length) return [];
+    const batch = this.historyGit(['cat-file', '--batch'], target, deadline, IMPORT_WORKTREE_BYTES + 1024 * 1024);
+    batch.child.stdin?.on('error', () => {
+      /* execFile reports the child failure. */
+    });
+    batch.child.stdin?.end(blobs.map(({ oid }) => oid).join('\n') + '\n');
+    const { stdout } = await batch;
+    const updatedAt = now();
+    let offset = 0;
+    return blobs.map(({ oid, path, size }) => {
+      const header = Buffer.from(`${oid} blob ${size}\n`);
+      if (!stdout.subarray(offset, offset + header.length).equals(header)) throw new Error('Invalid Git object header');
+      const start = offset + header.length;
+      offset = start + size + 1;
+      if (stdout[offset - 1] !== 10) throw new Error('Incomplete Git object');
+      return { path, ...encodeFileBuffer(stdout.subarray(start, start + size)), updatedAt };
+    });
+  }
+
+  /** Transfer only native objects and generated pack indexes. Release temporary files as they are published. */
+  private async moveImportObjects(source: string, destination: string, deadline: number) {
+    let bytes = 0;
+    let entries = 0;
+    const check = () => {
+      if (Date.now() >= deadline) throw Object.assign(new Error('Git import timed out'), { code: 'ETIMEDOUT' });
+      if (++entries > 8192) throw importTooLarge();
+    };
+    for await (const dir of await opendir(source)) {
+      check();
+      if (!dir.isDirectory() || !(dir.name === 'pack' || /^[0-9a-f]{2}$/.test(dir.name))) continue;
+      const dest = join(destination, dir.name);
+      await mkdir(dest, { recursive: true });
+      for await (const entry of await opendir(join(source, dir.name))) {
+        check();
+        const allowed =
+          dir.name === 'pack'
+            ? /^pack-[a-f0-9]{40}(?:[a-f0-9]{24})?\.(pack|idx|rev)$/.test(entry.name)
+            : /^(?:[a-f0-9]{38}|[a-f0-9]{62})$/.test(entry.name);
+        if (!entry.isFile() || !allowed) continue;
+        const path = join(source, dir.name, entry.name);
+        bytes += (await stat(path)).size;
+        if (bytes > 96 * 1024 * 1024) throw importTooLarge();
+        const output = join(dest, entry.name);
+        try {
+          await rename(path, output);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'EXDEV') throw error;
+          await copyFile(path, output);
+          await unlink(path);
+        }
+      }
+    }
+  }
+
   /** Transfer branch objects into a fresh repository, excluding clone-local hooks, config and credentials. */
   private async prepareImportedHistory(
     projectId: string,
@@ -1239,6 +1367,7 @@ export class GitCliProvider implements GitProvider {
     defaultBranch: string,
     remoteUrl: string,
     resolveEntry: string,
+    deadline: number,
   ) {
     if (!SAFE_PROJECT_ID.test(projectId)) {
       throw new Error(appPublicEnglish('INVALID_PROJECT_PATH'));
@@ -1246,21 +1375,17 @@ export class GitCliProvider implements GitProvider {
 
     const stage = safeProjectPath(projectId);
     await mkdir(stage);
-    const options = {
-      cwd: stage,
-      env: { ...this.gitEnv(), GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' },
-      timeout: 120_000,
-    };
-    await execFile('git', ['check-ref-format', '--branch', defaultBranch], options);
-    await execFile('git', ['init', '--template=', '--initial-branch', defaultBranch], options);
-    await execFile('git', ['remote', 'add', 'origin', remoteUrl], options);
+    const git = (args: string[], cwd = stage) => this.historyGit(args, cwd, deadline);
+    await git(['check-ref-format', '--branch', defaultBranch]);
+    await git(['init', '--template=', '--initial-branch', defaultBranch]);
+    await git(['remote', 'add', 'origin', remoteUrl]);
     const ref = `refs/heads/${defaultBranch}`;
     const trackingRef = `refs/remotes/origin/${defaultBranch}`;
-    const head = await execFile('git', ['symbolic-ref', 'HEAD'], { ...options, cwd: target });
+    const head = await git(['symbolic-ref', 'HEAD'], target);
     if (commandStdout(head).trim() !== ref) {
       throw new Error('Imported revision is not the requested branch');
     }
-    const populated = await execFile('git', ['show-ref', '--verify', '--quiet', ref], { ...options, cwd: target })
+    const populated = await git(['show-ref', '--verify', '--quiet', ref], target)
       .then(() => true)
       .catch((error) => {
         if (error.code === 1) {
@@ -1269,25 +1394,23 @@ export class GitCliProvider implements GitProvider {
         throw error;
       });
     if (populated) {
-      await execFile(
-        'git',
-        ['fetch', '--no-tags', '--no-write-fetch-head', await realpath(target), `${ref}:${trackingRef}`],
-        options,
-      );
-      await execFile('git', ['reset', '--mixed', trackingRef], options);
+      const commit = commandStdout(await git(['rev-parse', '--verify', 'HEAD^{commit}'], target)).trim();
+      await this.moveImportObjects(join(target, '.git/objects'), join(stage, '.git/objects'), deadline);
+      await git(['update-ref', trackingRef, commit]);
+      await git(['reset', '--mixed', trackingRef]);
       // Storage omits symlinks and submodule directories. Keep those entries
       // in the index so a later commit does not silently delete them.
-      const index = await execFile('git', ['ls-files', '--stage', '-z'], { ...options, maxBuffer: 64 * 1024 * 1024 });
+      const index = await git(['ls-files', '--stage', '-z']);
       const omitted = commandStdout(index)
         .split('\0')
         .filter((entry) => /^(120000|160000) /.test(entry));
       const paths = omitted.map((entry) => entry.slice(entry.indexOf('\t') + 1));
       for (let offset = 0; offset < paths.length; offset += 32) {
-        await execFile('git', ['update-index', '--skip-worktree', '--', ...paths.slice(offset, offset + 32)], options);
+        await git(['update-index', '--skip-worktree', '--', ...paths.slice(offset, offset + 32)]);
       }
     }
-    await execFile('git', ['config', `branch.${defaultBranch}.remote`, 'origin'], options);
-    await execFile('git', ['config', `branch.${defaultBranch}.merge`, ref], options);
+    await git(['config', `branch.${defaultBranch}.remote`, 'origin']);
+    await git(['config', `branch.${defaultBranch}.merge`, ref]);
     // Bind subsequent HTTP operations on this origin to the approved destination.
     for (const [key, value] of Object.entries({
       proxy: '',
@@ -1295,11 +1418,11 @@ export class GitCliProvider implements GitProvider {
       followRedirects: 'false',
       curloptResolve: resolveEntry,
     })) {
-      await execFile('git', ['config', `http.${remoteUrl}.${key}`, value], options);
+      await git(['config', `http.${remoteUrl}.${key}`, value]);
     }
 
     // ProjectStorage materializes regular file contents independently of Unix modes.
-    await execFile('git', ['config', 'core.fileMode', 'false'], options);
+    await git(['config', 'core.fileMode', 'false']);
   }
 
   async importRepository(input: {
@@ -1309,8 +1432,10 @@ export class GitCliProvider implements GitProvider {
   }): Promise<ImportedRepository> {
     const projectId = `import-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+    const deadline = Date.now() + 120_000;
     return withProjectLock(projectId, async () => {
-      const target = safeProjectPath(projectId);
+      const scratch = input.destinationProjectId && process.env.GIT_IMPORT_SCRATCH_DIR;
+      const target = resolve(scratch ? join(scratch, projectId) : safeProjectPath(projectId));
 
       /*
        * AUDX-006 — the clone URL is caller-supplied and reached NO SSRF check.
@@ -1325,12 +1450,15 @@ export class GitCliProvider implements GitProvider {
        * "any git forge on the internet" and cannot be enumerated — the ADDRESS
        * checks still apply in full.
        */
-      const destination = await resolveOutboundDestination(input.repositoryUrl, {
+      const resolution = resolveOutboundDestination(input.repositoryUrl, {
         allowedHostSuffixes: [],
         allowAnyPublicHost: true,
         resolveHost: this._options.resolveHost,
       });
 
+      const destination = input.destinationProjectId
+        ? await untilImportDeadline(resolution, deadline)
+        : await resolution;
       if ('rejection' in destination) {
         throw Object.assign(new Error(appPublicEnglish('GIT_REMOTE_NOT_ALLOWED')), {
           statusCode: 400,
@@ -1346,11 +1474,12 @@ export class GitCliProvider implements GitProvider {
       const resolveEntry = `${url.hostname}:${port}:${addresses.map((address) => (address.includes(':') ? `[${address}]` : address)).join(',')}`;
 
       try {
-        await execFile(
-          'git',
-          [
+        const history = Boolean(input.destinationProjectId);
+        const clone = (proxy: string) => {
+          const args = [
             '-c',
-            'http.proxy=',
+            `http.proxy=${proxy}`,
+            ...(history ? ['-c', 'http.proxyAuthMethod=basic'] : []),
             '-c',
             'http.sslVerify=true',
             '-c',
@@ -1363,29 +1492,51 @@ export class GitCliProvider implements GitProvider {
             'protocol.file.allow=never',
             'clone',
             '--template=',
-            ...(input.destinationProjectId ? ['--single-branch', '--no-tags'] : ['--depth=1']),
+            ...(input.destinationProjectId ? ['--single-branch', '--no-tags', '--no-checkout'] : ['--depth=1']),
             ...(input.branch ? ['--branch', input.branch] : []),
             input.repositoryUrl,
             target,
-          ],
-
-          /*
-           * Network clone: hard timeout + raised maxBuffer so a stalled or chatty
-           * remote can't hang the worker or overflow the 1MB default output buffer.
-           */
-          {
-            env: { ...this.gitEnv(), GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' },
-            timeout: 120_000,
-            maxBuffer: 64 * 1024 * 1024,
-          },
-        );
-
-        const files = await walkFiles(target);
+          ];
+          return history
+            ? this.historyGit(args, dirname(target), deadline)
+            : execFile('git', args, {
+                env: { ...this.gitEnv(), GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' },
+                timeout: 120_000,
+                maxBuffer: 64 * 1024 * 1024,
+              });
+        };
+        let files: ProjectFile[];
+        if (history) {
+          await mkdir(storageRoot(), { recursive: true });
+          if (process.env.NODE_ENV === 'production') {
+            // The chart supplies a per-pod, size-limited tmpfs. Refuse a deployment
+            // that would instead let intermediate object files fill the shared PVC.
+            const scratchVolume = scratch ? await statfs(scratch) : undefined;
+            if (scratchVolume?.type !== 0x01021994 || scratchVolume.blocks * scratchVolume.bsize > 128 * 1024 * 1024) {
+              throw Object.assign(new Error('Bounded Git import scratch volume unavailable'), {
+                code: 'IMPORT_STORAGE_UNAVAILABLE',
+              });
+            }
+          }
+          const volume = await statfs(storageRoot());
+          if (volume.bavail * volume.bsize < 256 * 1024 * 1024) {
+            throw Object.assign(new Error('Import storage is busy'), { code: 'IMPORT_STORAGE_UNAVAILABLE' });
+          }
+          await withImportTransfer(url, addresses, async (proxy) => {
+            await clone(proxy);
+          });
+          files = await this.readImportedTree(target, deadline);
+        } else {
+          await clone('');
+          files = await walkFiles(target);
+        }
 
         const defaultBranch =
           input.branch ??
           commandStdout(
-            await execFile('git', ['symbolic-ref', '--short', 'HEAD'], { cwd: target, env: this.gitEnv() }),
+            history
+              ? await this.historyGit(['symbolic-ref', '--short', 'HEAD'], target, deadline)
+              : await execFile('git', ['symbolic-ref', '--short', 'HEAD'], { cwd: target, env: this.gitEnv() }),
           ).trim();
 
         const origin = new URL(url.href);
@@ -1398,7 +1549,14 @@ export class GitCliProvider implements GitProvider {
           return { files, defaultBranch, remoteUrl };
         }
 
-        await this.prepareImportedHistory(input.destinationProjectId, target, defaultBranch, remoteUrl, resolveEntry);
+        await this.prepareImportedHistory(
+          input.destinationProjectId,
+          target,
+          defaultBranch,
+          remoteUrl,
+          resolveEntry,
+          deadline,
+        );
         return { files, defaultBranch, remoteUrl };
       } finally {
         /*

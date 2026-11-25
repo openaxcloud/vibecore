@@ -21,7 +21,7 @@ export interface EchecDImport {
   statusCode: number;
 
   /** Code d'état stable, lu par l'interface pour choisir sa phrase. */
-  code: 'IMPORT_REPOSITORY_UNREACHABLE' | 'IMPORT_CLONE_TIMEOUT' | 'IMPORT_UPSTREAM_UNREACHABLE' | 'IMPORT_FAILED';
+  code: 'IMPORT_REPOSITORY_UNREACHABLE' | 'IMPORT_CLONE_TIMEOUT' | 'IMPORT_UPSTREAM_UNREACHABLE' | 'IMPORT_FAILED' | 'IMPORT_TOO_LARGE' | 'IMPORT_STORAGE_UNAVAILABLE';
 }
 
 /*
@@ -75,7 +75,16 @@ const AMONT_INJOIGNABLE = [
 export function classerEchecDImport(erreur: unknown): EchecDImport {
   const objet = (erreur ?? {}) as { killed?: unknown; signal?: unknown; code?: unknown; stderr?: unknown; message?: unknown };
 
-  if (objet.killed === true || objet.signal === 'SIGTERM' || objet.code === 'ETIMEDOUT') {
+  if (objet.code === 'IMPORT_STORAGE_UNAVAILABLE') return { statusCode: 503, code: 'IMPORT_STORAGE_UNAVAILABLE' };
+  if (
+    objet.code === 'IMPORT_TOO_LARGE' ||
+    objet.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' ||
+    objet.signal === 'SIGXFSZ' ||
+    objet.code === 153
+  ) {
+    return { statusCode: 413, code: 'IMPORT_TOO_LARGE' };
+  }
+  if (objet.code === 124 || objet.killed === true || objet.signal === 'SIGTERM' || objet.code === 'ETIMEDOUT') {
     return { statusCode: 504, code: 'IMPORT_CLONE_TIMEOUT' };
   }
 

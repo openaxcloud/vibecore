@@ -1,5 +1,14 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  truncateSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import JSZip from 'jszip';
@@ -10,6 +19,7 @@ afterEach(() => vi.unstubAllEnvs());
 
 it('retains branch ancestry and tracking while rebuilding local Git metadata', async () => {
   const root = mkdtempSync(join(tmpdir(), 'git-import-history-'));
+  const scratch = mkdtempSync(join(process.cwd(), '.git-import-scratch-test-'));
 
   try {
     const upstream = join(root, 'upstream');
@@ -39,7 +49,7 @@ set -eu
 for arg in "$@"; do
   if [ "$arg" = clone ]; then
     for target in "$@"; do :; done
-    "$FIXTURE_GIT" clone --quiet --no-local --template= "$FIXTURE_UPSTREAM" "$target"
+    "$FIXTURE_GIT" clone --quiet --no-local --no-checkout --template= "$FIXTURE_UPSTREAM" "$target"
     "$FIXTURE_GIT" -C "$target" config fixture.private-setting local-only
     mkdir -p "$target/.git/hooks"
     echo inert > "$target/.git/hooks/local-marker"
@@ -52,6 +62,7 @@ exec "$FIXTURE_GIT" "$@"
     );
     vi.stubEnv('PATH', bin + ':' + process.env.PATH);
     vi.stubEnv('PROJECT_STORAGE_DIR', storage);
+    vi.stubEnv('GIT_IMPORT_SCRATCH_DIR', scratch);
 
     const provider = new GitCliProvider({ resolveHost: async () => ['93.184.216.34'] });
     const projectId = 'reserved-project';
@@ -78,8 +89,39 @@ exec "$FIXTURE_GIT" "$@"
     await provider.commit({ projectId, message: 'third', files: [{ ...imported.files[0], content: 'edited' }] });
     expect(git(project, 'rev-parse', 'HEAD^')).toBe(git(upstream, 'rev-parse', 'HEAD'));
     expect(git(project, 'show', 'HEAD:link')).toBe('README');
+    const saved = git(project, 'rev-parse', 'HEAD');
+    const reloadedStorage = new LocalProjectStorage();
+    await reloadedStorage.restoreSnapshot({
+      projectId,
+      workspaceId: undefined,
+      files: await reloadedStorage.listFiles(projectId),
+    });
+    expect((await new GitCliProvider().status(projectId)).branch).toBe('release');
+    expect(git(project, 'rev-parse', 'HEAD')).toBe(saved);
+    expect(git(project, 'remote', 'get-url', 'origin')).toBe(imported.remoteUrl);
+
+    // An ordinary, highly compressible file: a small network pack must not
+    // authorize expansion of a file beyond the working-tree limit.
+    writeFileSync(join(upstream, 'large.dat'), '');
+    truncateSync(join(upstream, 'large.dat'), 26 * 1024 * 1024);
+    git(upstream, 'add', 'large.dat');
+    git(upstream, 'commit', '-qm', 'large test file');
+    await expect(
+      provider.importRepository({
+        repositoryUrl: imported.remoteUrl,
+        branch: 'release',
+        destinationProjectId: 'too-large-project',
+      }),
+    ).rejects.toMatchObject({ code: 'IMPORT_TOO_LARGE' });
+    expect(existsSync(join(storage, 'too-large-project'))).toBe(false);
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('GIT_IMPORT_SCRATCH_DIR', '');
+    await expect(
+      provider.importRepository({ repositoryUrl: imported.remoteUrl, destinationProjectId: 'unbounded-scratch' }),
+    ).rejects.toMatchObject({ code: 'IMPORT_STORAGE_UNAVAILABLE' });
   } finally {
     rmSync(root, { recursive: true, force: true });
+    rmSync(scratch, { recursive: true, force: true });
   }
 });
 

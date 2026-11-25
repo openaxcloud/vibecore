@@ -125,6 +125,14 @@ describe('import-github action error handling', () => {
     expect(JSON.stringify(readData(result))).not.toContain('Project limit reached');
   });
 
+  it.each([
+    [413, 'IMPORT_TOO_LARGE', 'tooLarge'],
+    [503, 'IMPORT_BUSY', 'busy'],
+  ] as const)('renders the local import limit for HTTP %s', async (status, code, errorCode) => {
+    globalThis.fetch = stubFetch(jsonResponse(status, { code }));
+    expect(readData(await action({ request: importRequest() } as never))).toEqual({ errorCode });
+  });
+
   it('returns a safe inline code on an upstream 500', async () => {
     globalThis.fetch = stubFetch(new Response('upstream boom', { status: 500 }));
 

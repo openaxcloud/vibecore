@@ -40,13 +40,15 @@ try {
   assert.equal(git(['remote', 'get-url', 'origin']), 'https://forge.example.invalid/qa/project.git');
   const name = 'qa-change-' + Date.now() + '.txt';
   const zip = new JSZip();
+  zip.file('proof.txt', execFileSync('git', ['show', 'HEAD:proof.txt'], { cwd }));
   zip.file(name, 'Local UI commit proof');
   const seed = await fetch(api + '/projects/' + project.id + '/files/import/zip', {
     method: 'POST',
     headers: { ...headers, 'content-type': 'application/json' },
-    body: JSON.stringify({ zipBase64: await zip.generateAsync({ type: 'base64' }) }),
+    body: JSON.stringify({ zipBase64: await zip.generateAsync({ type: 'base64' }), replaceExisting: true }),
   });
   assert.equal(seed.ok, true);
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('ide-dock-git').click();
   await page.getByRole('button', { name: /^(Tout indexer|Stage all)$/ }).click();
   await page.locator('textarea[name="message"],input[name="message"]').first().fill('UI history proof');

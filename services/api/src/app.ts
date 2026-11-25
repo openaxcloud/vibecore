@@ -23805,6 +23805,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   }
 
+  let historyImportActive = false;
+
   async function importRepositoryIntoProject(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -23820,6 +23822,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const destinationProjectId = randomUUID();
     let creationAttempted = false;
     let published = false;
+    if (historyImportActive) {
+      return reply
+        .header('Retry-After', '5')
+        .code(503)
+        .send({ code: 'IMPORT_BUSY', error: appPublicEnglish('IMPORT_BUSY') });
+    }
+    historyImportActive = true;
     try {
       const clone = await clonerLeDepotPourImport(request, body, destinationProjectId);
 
@@ -23875,8 +23884,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return reply.code(201).send({ project, files: publicFiles(files) });
     } finally {
-      if (!published && (!creationAttempted || !(await store.getProject(destinationProjectId)))) {
-        await supprimerFichiersDuProjet(destinationProjectId);
+      try {
+        if (!published && (!creationAttempted || !(await store.getProject(destinationProjectId)))) {
+          await supprimerFichiersDuProjet(destinationProjectId);
+        }
+      } finally {
+        historyImportActive = false;
       }
     }
   }

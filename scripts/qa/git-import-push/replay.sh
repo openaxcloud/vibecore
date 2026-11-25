@@ -8,6 +8,7 @@ export QA_ROOT
 export QA_API="http://127.0.0.1:${API_PROOF_PORT:-19317}"
 export QA_WEB="http://127.0.0.1:${WEB_PROOF_PORT:-19587}"
 export PROJECT_STORAGE_DIR="$QA_ROOT/projects"
+export GIT_IMPORT_SCRATCH_DIR="$QA_ROOT/scratch"
 mkdir "$QA_ROOT/bin"
 install -m 755 "$proof_dir/git-transport.py" "$QA_ROOT/bin/git"
 git init -q -b main "$QA_ROOT/seed"

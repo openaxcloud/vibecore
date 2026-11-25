@@ -50,7 +50,15 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 };
 
 type Project = { id: string; slug?: string };
-type ImportGitErrorCode = 'urlRequired' | 'inaccessible' | 'quota' | 'timeout' | 'upstream' | 'importFailed';
+type ImportGitErrorCode =
+  | 'urlRequired'
+  | 'inaccessible'
+  | 'quota'
+  | 'timeout'
+  | 'upstream'
+  | 'importFailed'
+  | 'tooLarge'
+  | 'busy';
 type ImportGitActionData = { errorCode: ImportGitErrorCode };
 
 /*
@@ -137,6 +145,8 @@ export async function action({ request }: EnterpriseActionArgs) {
       return actionError('inaccessible', error.status);
     }
 
+    if (isApiResponse(error, 413)) return actionError('tooLarge', 413);
+
     if (isApiResponse(error, 402) || isApiResponse(error, 429)) {
       return actionError('quota', error.status);
     }
@@ -162,6 +172,14 @@ export async function action({ request }: EnterpriseActionArgs) {
       return actionError('timeout', 504);
     }
 
+    if (isApiResponse(error, 503)) {
+      const payload = await error
+        .clone()
+        .json()
+        .catch(() => null);
+      if (payload?.code === 'IMPORT_BUSY' || payload?.code === 'IMPORT_STORAGE_UNAVAILABLE')
+        return actionError('busy', 503);
+    }
     if (isApiResponse(error, 502) || isApiResponse(error, 503)) {
       return actionError('upstream', error.status);
     }

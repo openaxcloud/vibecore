@@ -57,6 +57,8 @@ export const importRoutesEn = {
   'importRoutes.git.form.importing': 'Importing…',
   'importRoutes.git.form.submit': 'Import the repository',
   'importRoutes.git.form.progress': 'Importing the repository',
+  'importRoutes.git.error.busy': 'Git import capacity is temporarily unavailable. Try again shortly.',
+  'importRoutes.git.error.tooLarge': 'This branch exceeds the Git import size limit. Try a smaller repository.',
   'importRoutes.git.error.urlRequired': 'Enter the repository URL before continuing.',
   'importRoutes.git.error.inaccessible':
     'This repository could not be accessed. Check the URL and your permissions, then try again.',
@@ -129,6 +131,8 @@ export const importRoutesFr: ImportRoutesCopy = {
   'importRoutes.git.form.importing': 'Importation…',
   'importRoutes.git.form.submit': 'Importer le dépôt',
   'importRoutes.git.form.progress': 'Importation du dépôt',
+  'importRoutes.git.error.busy': 'Le service d’import Git est temporairement occupé. Réessayez dans un instant.',
+  'importRoutes.git.error.tooLarge': 'Cette branche dépasse la limite de taille de l’import Git. Essayez un dépôt plus petit.',
   'importRoutes.git.error.urlRequired': 'Saisissez l’URL du dépôt avant de continuer.',
   'importRoutes.git.error.inaccessible':
     'Impossible d’accéder à ce dépôt. Vérifiez l’URL et vos autorisations, puis réessayez.',
