@@ -101,11 +101,18 @@ export interface GitBlameLine {
   content: string;
 }
 
+export interface ImportedRepository {
+  files: ProjectFile[];
+  defaultBranch: string;
+  remoteUrl: string;
+}
+
 export interface GitProvider {
   importRepository(input: {
     repositoryUrl: string;
     branch?: string;
-  }): Promise<{ files: ProjectFile[]; defaultBranch: string; remoteUrl: string }>;
+    destinationProjectId?: string;
+  }): Promise<ImportedRepository>;
   status(
     projectId: string,
     workspaceId?: string,
@@ -245,6 +252,10 @@ export interface ProjectStorage {
 
 export const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
 
+function isRepositoryMetadataPath(path: string) {
+  return path.split(/[\\/]/).some((part) => ['.git', SECONDARY_WORKSPACES_DIR].includes(part.toLowerCase()));
+}
+
 const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 function workspaceSubpath(workspaceId: string, filePath = '') {
@@ -281,6 +292,13 @@ function safeWorkspacePath(projectId: string, workspaceId?: string, filePath = '
  * and require it to stay inside the canonical root.
  */
 async function assertContainedRealPath(root: string, target: string): Promise<void> {
+  if (isRepositoryMetadataPath(relative(root, target))) {
+    throw Object.assign(new Error(appPublicEnglish('INVALID_PROJECT_PATH')), {
+      statusCode: 400,
+      code: 'INVALID_PROJECT_PATH',
+    });
+  }
+
   // The root itself may sit under a symlink (macOS /var -> /private/var), so
   // compare against its canonical form or every check would report an escape.
   const realRoot = await realpath(root).catch(() => root);
@@ -333,7 +351,7 @@ async function assertContainedRealPath(root: string, target: string): Promise<vo
     if (real !== undefined) {
       const rel = relative(realRoot, real);
 
-      if (rel === '..' || rel.startsWith(`..${sep}`)) {
+      if (rel === '..' || rel.startsWith(`..${sep}`) || isRepositoryMetadataPath(rel)) {
         throw Object.assign(new Error(appPublicEnglish('INVALID_PROJECT_PATH')), {
           statusCode: 400,
           code: 'INVALID_PROJECT_PATH',
@@ -825,6 +843,11 @@ export async function filesFromZip(
   let totalBytes = 0;
 
   for (const [path, entry] of entries) {
+    // Archives supply working files only. Git state is installed by the validated clone path.
+    if (isRepositoryMetadataPath(path)) {
+      continue;
+    }
+
     /*
      * Reject an entry whose declared uncompressed size already exceeds the cap
      * BEFORE decompressing it, so a malicious header can't force a huge inflate.
@@ -1209,7 +1232,81 @@ export class GitCliProvider implements GitProvider {
     return raw ? commandStdout(result) : commandStdout(result).trim();
   }
 
-  async importRepository(input: { repositoryUrl: string; branch?: string }) {
+  /** Transfer branch objects into a fresh repository, excluding clone-local hooks, config and credentials. */
+  private async prepareImportedHistory(
+    projectId: string,
+    target: string,
+    defaultBranch: string,
+    remoteUrl: string,
+    resolveEntry: string,
+  ) {
+    if (!SAFE_PROJECT_ID.test(projectId)) {
+      throw new Error(appPublicEnglish('INVALID_PROJECT_PATH'));
+    }
+
+    const stage = safeProjectPath(projectId);
+    await mkdir(stage);
+    const options = {
+      cwd: stage,
+      env: { ...this.gitEnv(), GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' },
+      timeout: 120_000,
+    };
+    await execFile('git', ['check-ref-format', '--branch', defaultBranch], options);
+    await execFile('git', ['init', '--template=', '--initial-branch', defaultBranch], options);
+    await execFile('git', ['remote', 'add', 'origin', remoteUrl], options);
+    const ref = `refs/heads/${defaultBranch}`;
+    const trackingRef = `refs/remotes/origin/${defaultBranch}`;
+    const head = await execFile('git', ['symbolic-ref', 'HEAD'], { ...options, cwd: target });
+    if (commandStdout(head).trim() !== ref) {
+      throw new Error('Imported revision is not the requested branch');
+    }
+    const populated = await execFile('git', ['show-ref', '--verify', '--quiet', ref], { ...options, cwd: target })
+      .then(() => true)
+      .catch((error) => {
+        if (error.code === 1) {
+          return false;
+        }
+        throw error;
+      });
+    if (populated) {
+      await execFile(
+        'git',
+        ['fetch', '--no-tags', '--no-write-fetch-head', await realpath(target), `${ref}:${trackingRef}`],
+        options,
+      );
+      await execFile('git', ['reset', '--mixed', trackingRef], options);
+      // Storage omits symlinks and submodule directories. Keep those entries
+      // in the index so a later commit does not silently delete them.
+      const index = await execFile('git', ['ls-files', '--stage', '-z'], { ...options, maxBuffer: 64 * 1024 * 1024 });
+      const omitted = commandStdout(index)
+        .split('\0')
+        .filter((entry) => /^(120000|160000) /.test(entry));
+      const paths = omitted.map((entry) => entry.slice(entry.indexOf('\t') + 1));
+      for (let offset = 0; offset < paths.length; offset += 32) {
+        await execFile('git', ['update-index', '--skip-worktree', '--', ...paths.slice(offset, offset + 32)], options);
+      }
+    }
+    await execFile('git', ['config', `branch.${defaultBranch}.remote`, 'origin'], options);
+    await execFile('git', ['config', `branch.${defaultBranch}.merge`, ref], options);
+    // Bind subsequent HTTP operations on this origin to the approved destination.
+    for (const [key, value] of Object.entries({
+      proxy: '',
+      sslVerify: 'true',
+      followRedirects: 'false',
+      curloptResolve: resolveEntry,
+    })) {
+      await execFile('git', ['config', `http.${remoteUrl}.${key}`, value], options);
+    }
+
+    // ProjectStorage materializes regular file contents independently of Unix modes.
+    await execFile('git', ['config', 'core.fileMode', 'false'], options);
+  }
+
+  async importRepository(input: {
+    repositoryUrl: string;
+    branch?: string;
+    destinationProjectId?: string;
+  }): Promise<ImportedRepository> {
     const projectId = `import-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
     return withProjectLock(projectId, async () => {
@@ -1265,7 +1362,8 @@ export class GitCliProvider implements GitProvider {
             '-c',
             'protocol.file.allow=never',
             'clone',
-            '--depth=1',
+            '--template=',
+            ...(input.destinationProjectId ? ['--single-branch', '--no-tags'] : ['--depth=1']),
             ...(input.branch ? ['--branch', input.branch] : []),
             input.repositoryUrl,
             target,
@@ -1287,15 +1385,25 @@ export class GitCliProvider implements GitProvider {
         const defaultBranch =
           input.branch ??
           commandStdout(
-            await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target, env: this.gitEnv() }),
+            await execFile('git', ['symbolic-ref', '--short', 'HEAD'], { cwd: target, env: this.gitEnv() }),
           ).trim();
 
-        return { files, defaultBranch, remoteUrl: input.repositoryUrl };
+        const origin = new URL(url.href);
+        origin.username = '';
+        origin.password = '';
+        origin.search = '';
+        origin.hash = '';
+        const remoteUrl = origin.href;
+        if (!input.destinationProjectId) {
+          return { files, defaultBranch, remoteUrl };
+        }
+
+        await this.prepareImportedHistory(input.destinationProjectId, target, defaultBranch, remoteUrl, resolveEntry);
+        return { files, defaultBranch, remoteUrl };
       } finally {
         /*
-         * The throwaway clone (including its full .git history) has been read into
-         * `files`; the caller copies those into the real project dir, so remove the
-         * temp dir here. Without this, every GitHub import permanently leaked a repo
+         * Files and requested branch history have been transferred. Remove the
+         * temporary checkout, including its transient transport configuration. Without this, every GitHub import permanently leaked a repo
          * copy on the shared API pod's disk until /tmp filled and writes failed for
          * all tenants (cross-tenant availability).
          */

@@ -187,10 +187,13 @@ describe('GARDE — les deux routes d’import passent par le point qui `try`', 
     expect(corps.indexOf('try {')).toBeLessThan(corps.indexOf('gitProvider.importRepository('));
   });
 
-  it('les deux routes d’import consomment le refus au lieu de l’ignorer', () => {
+  it('les trois routes utilisent le gestionnaire commun qui consomme le refus', () => {
     const consommations = APP.match(/if \(clone\.echec\) \{/g) ?? [];
 
-    expect(consommations).toHaveLength(2);
+    expect(consommations).toHaveLength(1);
+    for (const provider of ['github', 'gitlab', 'bitbucket']) {
+      expect(APP).toContain(`importRepositoryIntoProject(request, reply, '${provider}')`);
+    }
   });
 
   it('le journal ne recopie ni le stderr ni le message de `git`', () => {

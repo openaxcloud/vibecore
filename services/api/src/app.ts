@@ -23768,9 +23768,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * (`app/routes/import-github.tsx`, branche par défaut). « Réessayez » sur un
    * dépôt privé est un conseil FAUX : réessayer ne peut pas marcher.
    *
-   * Un seul point de passage pour les deux routes (règle 7 : même mécanisme,
-   * un seul correctif) — GitHub ici, GitLab et Bitbucket via
-   * `importRepositoryIntoProject` juste en dessous.
+   * Les trois fournisseurs passent par `importRepositoryIntoProject`.
    *
    * ⚠️ Le `stderr` de `git` ne sort PAS d'ici, ni vers le client ni vers les
    * journaux : une URL de clone porte parfois un jeton
@@ -23785,10 +23783,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   async function clonerLeDepotPourImport(
     request: FastifyRequest,
     body: { repositoryUrl: string; branch?: string },
+    destinationProjectId: string,
   ): Promise<CloneDImport> {
     try {
       return {
-        imported: await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch }),
+        imported: await gitProvider.importRepository({
+          repositoryUrl: body.repositoryUrl,
+          branch: body.branch,
+          destinationProjectId,
+        }),
       };
     } catch (error) {
       const echec = classerEchecDImport(error);
@@ -23802,84 +23805,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   }
 
-  app.post('/orgs/:orgId/projects/import/github', async (request, reply) => {
-    const { orgId } = parse(orgParams, request.params);
-    const body = parse(githubImportSchema, request.body);
-    await requireOrg(request, store, orgId, 'projects:write');
-    await requireOrganizationNotSuspended(store, orgId);
-
-    /*
-     * Cheap pre-check to reject an over-quota org before the (slow) clone; the
-     * authoritative atomic check is inside the serialized block below.
-     */
-    await ensureQuota(request, orgId, 'projects.count');
-
-    const clone = await clonerLeDepotPourImport(request, body);
-
-    if (clone.echec) {
-      return reply
-        .code(clone.echec.statusCode)
-        .send({ error: appPublicEnglish(clone.echec.code), code: clone.echec.code });
-    }
-
-    const imported = clone.imported;
-
-    const name =
-      body.name ??
-      body.repositoryUrl
-        .split('/')
-        .pop()
-        ?.replace(/\.git$/, '') ??
-      'Imported project';
-
-    /*
-     * Re-check quota + create atomically (the slow clone is intentionally OUTSIDE
-     * the advisory-lock transaction).
-     */
-    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
-      await ensureQuota(request, orgId, 'projects.count');
-
-      return store.createProject({
-        organizationId: orgId,
-        name,
-        slug: body.slug ?? slugify(name),
-        sourceType: 'github',
-        gitRepositoryUrl: imported.remoteUrl,
-        gitDefaultBranch: imported.defaultBranch,
-      });
-    });
-
-    const files = await projectStorage.writeFiles(project.id, imported.files);
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await recordUsage(request, orgId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: 'project.import_github',
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-    await audit(request, store, {
-      organizationId: orgId,
-      action: 'project.import_github',
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-
-    return reply.code(201).send({ project, files: publicFiles(files) });
-  });
-
-  /*
-   * GitLab / Bitbucket repo import — parity with the GitHub import above so these
-   * connectors create a real, persistent project (not deploy-only). Reuses the
-   * same SSRF-safe githubImportSchema (HTTPS/SSH only, blocks file://+internal
-   * hosts) and the same gitProvider.importRepository → createProject → writeFiles
-   * chain, org-scoped and quota-gated. sourceType records the origin per provider.
-   */
   async function importRepositoryIntoProject(
     request: FastifyRequest,
     reply: FastifyReply,
-    provider: 'gitlab' | 'bitbucket',
+    provider: 'github' | 'gitlab' | 'bitbucket',
   ) {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(githubImportSchema, request.body);
@@ -23887,57 +23816,74 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrganizationNotSuspended(store, orgId);
     await ensureQuota(request, orgId, 'projects.count');
 
-    const clone = await clonerLeDepotPourImport(request, body);
+    // Prepare the files and Git repository before publishing a project ID to readers.
+    const destinationProjectId = randomUUID();
+    let creationAttempted = false;
+    let published = false;
+    try {
+      const clone = await clonerLeDepotPourImport(request, body, destinationProjectId);
 
-    if (clone.echec) {
-      return reply
-        .code(clone.echec.statusCode)
-        .send({ error: appPublicEnglish(clone.echec.code), code: clone.echec.code });
-    }
+      if (clone.echec) {
+        return reply
+          .code(clone.echec.statusCode)
+          .send({ error: appPublicEnglish(clone.echec.code), code: clone.echec.code });
+      }
 
-    const imported = clone.imported;
+      const imported = clone.imported;
 
-    const name =
-      body.name ??
-      body.repositoryUrl
-        .split('/')
-        .pop()
-        ?.replace(/\.git$/, '') ??
-      'Imported project';
+      const name =
+        body.name ??
+        imported.remoteUrl
+          .split('/')
+          .pop()
+          ?.replace(/\.git$/, '') ??
+        'Imported project';
 
-    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
-      await ensureQuota(request, orgId, 'projects.count');
+      const files = await projectStorage.writeFiles(destinationProjectId, imported.files);
+      const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+        await ensureQuota(request, orgId, 'projects.count');
 
-      return store.createProject({
-        organizationId: orgId,
-        name,
-        slug: body.slug ?? slugify(name),
-        sourceType: provider,
-        gitRepositoryUrl: imported.remoteUrl,
-        gitDefaultBranch: imported.defaultBranch,
+        creationAttempted = true;
+        return store.createProject(
+          {
+            organizationId: orgId,
+            name,
+            slug: body.slug ?? slugify(name),
+            sourceType: provider,
+            gitRepositoryUrl: imported.remoteUrl,
+            gitDefaultBranch: imported.defaultBranch,
+          },
+          destinationProjectId,
+        );
       });
-    });
+      published = true;
+      await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
+      await recordUsage(request, orgId, 'projects.count');
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser!.id,
+        action: `project.import_${provider}`,
+        metadata: { repositoryUrl: imported.remoteUrl },
+      });
+      await audit(request, store, {
+        organizationId: orgId,
+        action: `project.import_${provider}`,
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: { repositoryUrl: imported.remoteUrl },
+      });
 
-    const files = await projectStorage.writeFiles(project.id, imported.files);
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await recordUsage(request, orgId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: `project.import_${provider}`,
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-    await audit(request, store, {
-      organizationId: orgId,
-      action: `project.import_${provider}`,
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-
-    return reply.code(201).send({ project, files: publicFiles(files) });
+      return reply.code(201).send({ project, files: publicFiles(files) });
+    } finally {
+      if (!published && (!creationAttempted || !(await store.getProject(destinationProjectId)))) {
+        await supprimerFichiersDuProjet(destinationProjectId);
+      }
+    }
   }
 
+  app.post('/orgs/:orgId/projects/import/github', (request, reply) =>
+    importRepositoryIntoProject(request, reply, 'github'),
+  );
   app.post('/orgs/:orgId/projects/import/gitlab', (request, reply) =>
     importRepositoryIntoProject(request, reply, 'gitlab'),
   );

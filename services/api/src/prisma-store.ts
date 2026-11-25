@@ -908,7 +908,7 @@ export class PrismaApiStore implements ApiStore {
     templateName?: string;
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
-  }) {
+  }, reservedId?: string) {
     const base = projectSlugBase(input);
 
     /*
@@ -925,6 +925,7 @@ export class PrismaApiStore implements ApiStore {
         return mapProject(
           await this.prisma.project.create({
             data: {
+              id: reservedId,
               organizationId: input.organizationId,
               name: input.name,
               slug,
