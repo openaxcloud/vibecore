@@ -71,6 +71,10 @@ export const baseChatAstEn = {
   'baseChatAst.panel.submitting': 'Submitting action…',
   'baseChatAst.panel.actionFailedHttp': 'The panel action failed (HTTP {status}).',
   'baseChatAst.panel.actionFailed': 'The panel action failed. Try again.',
+  'baseChatAst.panel.publicationLegacyTarget':
+    'This older deployment has no recorded workspace. Open Manage and create a new publication from the current workspace.',
+  'baseChatAst.panel.publicationSaveFailed':
+    'Publication has not started: your current files could not be saved. Check your project and save your edits, then try again.',
   'baseChatAst.panel.shareCreated': 'Share link created.',
   'baseChatAst.panel.action.destructiveSubmitted': 'The action was submitted.',
   'baseChatAst.panel.action.started': 'The action started.',
@@ -809,6 +813,10 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.panel.submitting': 'Envoi de l’action…',
   'baseChatAst.panel.actionFailedHttp': 'Échec de l’action du panneau (HTTP {status}).',
   'baseChatAst.panel.actionFailed': 'Échec de l’action du panneau. Réessayez.',
+  'baseChatAst.panel.publicationLegacyTarget':
+    'Cet ancien déploiement n’a pas d’espace de travail enregistré. Ouvrez Gérer et créez une nouvelle publication depuis l’espace actuel.',
+  'baseChatAst.panel.publicationSaveFailed':
+    'La publication n’a pas démarré : vos fichiers actuels n’ont pas pu être enregistrés. Vérifiez le projet et enregistrez vos modifications, puis réessayez.',
   'baseChatAst.panel.shareCreated': 'Lien de partage créé.',
   'baseChatAst.panel.action.destructiveSubmitted': 'Action envoyée.',
   'baseChatAst.panel.action.started': 'Action démarrée.',

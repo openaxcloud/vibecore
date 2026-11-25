@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import { PublicationSaveError } from '~/lib/publication-save-error';
 import { requireMaterializedPreviewManifest } from './preview-manifest-materialization';
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
 import { createSingleFlight } from '~/lib/ide/single-flight';
@@ -2903,6 +2904,64 @@ export class WorkbenchStore {
     if (formatted !== value) {
       this.setDocumentContent(documentPath, formatted);
     }
+  }
+
+  /**
+   * Save the current editor draft before starting a publication request.
+   * A save receipt is scoped to its original project/runtime; never continue a
+   * snapshot across navigation or silently publish edits made during the save.
+   */
+  async withSavedFilesForPublication<T>(
+    projectId: string,
+    publish: () => Promise<T>,
+    workspaceId?: string,
+  ): Promise<T> {
+    const isCurrentScope = this.captureRuntimeScope();
+    const binding = this.#projectStorageBinding;
+
+    const assertScope = () => {
+      if (this.#projectId !== projectId || !isCurrentScope()) {
+        throw new PublicationSaveError('PUBLICATION_SAVE_SCOPE_CHANGED');
+      }
+    };
+
+    const assertWorkspace = async () => {
+      if (this.#runtime.mode === 'remote-kubernetes') {
+        /*
+         * Query the bound adapter, not the requested id: querying the latter
+         * would prove only that a different target exists, not what we saved.
+         */
+        const session = await this.#runtime.getWorkspaceStatus();
+        assertScope();
+
+        if (!workspaceId || session.id !== workspaceId) {
+          throw new PublicationSaveError('PUBLICATION_SAVE_WORKSPACE_CHANGED');
+        }
+      }
+    };
+
+    assertScope();
+    await assertWorkspace();
+    assertScope();
+
+    for (const filePath of [...this.unsavedFiles.get()]) {
+      assertScope();
+      await this.saveFile(filePath);
+    }
+
+    assertScope();
+    await assertWorkspace();
+    assertScope();
+
+    if (
+      this.unsavedFiles.get().size > 0 ||
+      [...this.#pendingFileSaves.keys()].some((key) => key.startsWith(`${binding}:`))
+    ) {
+      throw new PublicationSaveError('PUBLICATION_FILES_NOT_SAVED');
+    }
+
+    // Invoke synchronously after the last guard: no extra await before POST.
+    return publish();
   }
 
   async saveAllFiles() {
