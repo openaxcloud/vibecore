@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildApiApp } from '../app.js';
 import { TestApiStore } from './test-api-store.js';
@@ -97,6 +97,41 @@ describe('accepter une invitation vaut vérification de l’adresse — à trois
 
     await app.close();
   });
+
+  it.each(['member', 'viewer'] as const)(
+    'confirme le rôle %s malgré une panne de relecture après acceptation',
+    async (role) => {
+      const { app, store, inscrire, inviter, accepter, organisation } = await banc();
+      const email = 'accepted-invitation@local.test';
+      const invite = await inviter(email);
+      const collegue = await inscrire(email, 'Perso');
+
+      if (role === 'viewer') {
+        await store.addMember({ organizationId: organisation, userId: collegue.user.id, roleKey: role });
+      }
+
+      const consume = store.consumeOrganizationInvite.bind(store);
+
+      vi.spyOn(store, 'consumeOrganizationInvite').mockImplementationOnce(async (token, userId) => {
+        const result = await consume(token, userId);
+        vi.spyOn(store, 'getMembership').mockRejectedValue(new Error('Membership read unavailable'));
+
+        return result;
+      });
+
+      try {
+        const reponse = await accepter(collegue.token, invite.token);
+        expect(reponse.statusCode).toBe(200);
+        expect(reponse.json().roleKey).toBe(role);
+
+        vi.mocked(store.getMembership).mockRestore();
+        expect((await store.getMembership(collegue.user.id, organisation))?.roleKey).toBe(role);
+        expect((await accepter(collegue.token, invite.token)).statusCode).toBe(400);
+      } finally {
+        await app.close();
+      }
+    },
+  );
 
   it('condition 1 — invitation envoyée à une AUTRE adresse : refus, et l’adresse du compte reste non vérifiée', async () => {
     const { app, inscrire, inviter, accepter, verifie } = await banc();

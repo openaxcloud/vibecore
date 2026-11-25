@@ -3658,11 +3658,11 @@ export class TestApiStore implements ApiStore {
     // Mirror prisma-store: do not overwrite an existing member's role on accept.
     const existingMembership = await this.getMembership(userId, invite.organizationId);
 
-    if (!existingMembership) {
-      await this.addMember({ organizationId: invite.organizationId, userId, roleKey: invite.roleKey });
-    }
+    const membership =
+      existingMembership ??
+      (await this.addMember({ organizationId: invite.organizationId, userId, roleKey: invite.roleKey }));
 
-    return invite;
+    return { invitation: invite, roleKey: membership.roleKey };
   }
 
   async listOrganizationInvites(organizationId: string) {
