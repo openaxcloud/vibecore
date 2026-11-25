@@ -2963,7 +2963,13 @@ export const Preview = memo(
                 ref={windowMenuTriggerRef}
                 icon="i-ph:browser"
                 ariaExpanded={isWindowSizeDropdownOpen}
-                onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
+                onClick={(event) => {
+                  if (!isWindowSizeDropdownOpen) {
+                    event.currentTarget.focus();
+                  }
+
+                  setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen);
+                }}
                 title={t('idePanels.preview.windowOptions')}
               />
 

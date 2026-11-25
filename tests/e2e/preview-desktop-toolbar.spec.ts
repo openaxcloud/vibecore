@@ -123,6 +123,7 @@ test('desktop Webview keeps commands visible beside Library and after resizing',
 
   await windowOptions.click();
   await expect(page.locator('.bolt-preview-window-menu')).toBeVisible();
+  await expect(windowOptions).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await expect(page.locator('.bolt-preview-window-menu')).toBeHidden();
   await expect(logs).toBeFocused();
