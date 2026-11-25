@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
-import { buildApiApp } from './src/app.js';
-import { TestApiStore } from './src/tests/test-api-store.js';
+import { buildApiApp } from 'services/api/src/app';
+import { TestApiStore } from 'services/api/src/tests/test-api-store';
 
 const web = 'http://127.0.0.1:19871';
 const google = 'http://127.0.0.1:19873';

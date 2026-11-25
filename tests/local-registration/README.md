@@ -3,7 +3,7 @@
 Use a clean checkout with workspace dependencies installed. Start these processes from the repository root in separate terminals. The web app, API, and Google double use loopback ports 19871, 19872, and 19873. The API uses an in-memory store and dummy provider credentials.
 
 ```sh
-env -i PATH="$PATH" HOME=/tmp NODE_ENV=test node_modules/.bin/tsx services/api/local-registration-provider.ts
+env -i PATH="$PATH" HOME=/tmp NODE_ENV=test node_modules/.bin/tsx tests/local-registration/provider.mts
 ```
 
 ```sh
