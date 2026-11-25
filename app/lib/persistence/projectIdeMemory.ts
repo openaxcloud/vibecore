@@ -90,6 +90,9 @@ export interface ProjectIdeMemory {
     messages?: Message[];
     archivedMessages?: Message[];
     clearMessages?: boolean;
+
+    /** A rejected provider credential requires user action before retrying this queued prompt. */
+    manualRetryPromptId?: string;
     pendingPrompt?: {
       id: string;
       prompt: string;
