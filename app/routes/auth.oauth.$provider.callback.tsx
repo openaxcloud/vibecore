@@ -125,10 +125,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     return redirect(`/account-settings/connected?linked=${provider}`, { headers: clearAuthCookies() });
   }
 
-  let result: { token?: string };
+  let result: { token?: unknown } | null;
 
   try {
-    result = (await response.json()) as { token?: string };
+    result = (await response.json()) as typeof result;
   } catch (error) {
     /*
      * A 200 with an empty body or non-JSON payload (e.g. an upstream proxy/HTML
@@ -142,7 +142,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw failRedirect('bad_response');
   }
 
-  if (!result.token || typeof result.token !== 'string') {
+  if (!result?.token || typeof result.token !== 'string') {
     console.error('[oauth-callback]', provider, 'missing token in successful response');
     throw failRedirect('missing_token');
   }
