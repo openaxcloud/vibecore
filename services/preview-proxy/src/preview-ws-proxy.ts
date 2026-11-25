@@ -260,11 +260,11 @@ export function attachPreviewWebSocketProxy(server: ReturnType<typeof createServ
         );
 
         if (upstreamHead && upstreamHead.length) {
-          clientSocket.unshift(upstreamHead);
+          clientSocket.write(upstreamHead);
         }
 
         if (head && head.length) {
-          upstreamSocket.unshift(head);
+          upstreamSocket.write(head);
         }
 
         const ping = setInterval(() => {

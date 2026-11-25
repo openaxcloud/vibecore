@@ -1,6 +1,10 @@
+import { once } from 'node:events';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import WebSocket, { WebSocketServer } from 'ws';
 import { describe, expect, it } from 'vitest';
 
-import { buildUpstreamUpgradeHeaders, resolvePreviewWsTarget } from './preview-ws-proxy';
+import { attachPreviewWebSocketProxy, buildUpstreamUpgradeHeaders, resolvePreviewWsTarget } from './preview-ws-proxy';
 
 describe('resolvePreviewWsTarget', () => {
   it('resolves a preview host + ws path to the agent upstream path', () => {
@@ -46,5 +50,59 @@ describe('buildUpstreamUpgradeHeaders', () => {
     expect(headers.host).toBe('agent.internal:8080');
     expect(headers.authorization).toBe('Bearer tok');
     expect(headers.cookie).toBeUndefined();
+  });
+});
+
+describe('preview WebSocket relay', () => {
+  it.each(['server-first', 'client-first'])('relays %s messages and a normal close', async (order) => {
+    const upstream = createServer();
+    const relay = createServer();
+    const sockets = new WebSocketServer({ noServer: true });
+    upstream.on('upgrade', (req, socket, head) => {
+      // Deliver the greeting in the same write as the upgrade response.
+      socket.cork();
+      sockets.handleUpgrade(req, socket, head, (peer) => {
+        peer.on('error', () => peer.terminate());
+        peer.on('message', (message) => peer.send(message.toString()));
+        if (order === 'server-first') peer.send('ready');
+      });
+      socket.uncork();
+    });
+    await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+    const baseUrl = `http://127.0.0.1:${(upstream.address() as AddressInfo).port}`;
+    attachPreviewWebSocketProxy(relay, {
+      previewDomain: 'preview.test',
+      resolveAgent: async () => ({ baseUrl, token: 'fixture' }),
+    });
+    await new Promise<void>((resolve) => relay.listen(0, '127.0.0.1', resolve));
+    const client = new WebSocket(`ws://127.0.0.1:${(relay.address() as AddressInfo).port}`, {
+      headers: { host: 'ws-1-5173.preview.test' },
+    });
+    try {
+      const received = await new Promise<string[]>((resolve, reject) => {
+        const messages: string[] = [];
+        client.once('error', reject);
+        client.once('close', () => reject(new Error('closed before echo')));
+        client.once('open', () => {
+          if (order === 'client-first') client.send('echo');
+        });
+        client.on('message', (message) => {
+          messages.push(message.toString());
+          if (message.toString() === 'ready') client.send('echo');
+          else resolve(messages);
+        });
+      });
+      expect(received).toEqual(order === 'server-first' ? ['ready', 'echo'] : ['echo']);
+      const closed = once(client, 'close');
+      client.close(1000, 'done');
+      const [code, reason] = await closed;
+      expect([code, reason.toString()]).toEqual([1000, 'done']);
+    } finally {
+      client.terminate();
+      for (const peer of sockets.clients) peer.terminate();
+      sockets.close();
+      relay.close();
+      upstream.close();
+    }
   });
 });
