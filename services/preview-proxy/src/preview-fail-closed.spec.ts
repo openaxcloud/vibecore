@@ -265,7 +265,7 @@ describe('AUDX-005 WebSocket gates', () => {
       'vc_preview=valid',
     );
 
-    expect(resolveAgent).toHaveBeenCalled();
+    expect(resolveAgent).toHaveBeenCalledWith('ws-1', 'org-1');
   });
 });
 

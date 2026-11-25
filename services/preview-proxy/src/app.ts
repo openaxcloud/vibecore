@@ -1462,13 +1462,11 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
      * cookie). Public ports skip this entirely. Dark-launched off.
      */
     if (enforcePrivatePorts && (await isPortPrivate(params.workspaceId, String(portNumber)))) {
-      const sessionOrgId =
-        requesterOrgId ??
-        (tenantSecret
-          ? verifyPreviewTenantToken(readCookie(request.headers.cookie, 'vc_preview'), tenantSecret, Date.now())
-          : undefined);
+      requesterOrgId ??= tenantSecret
+        ? verifyPreviewTenantToken(readCookie(request.headers.cookie, 'vc_preview'), tenantSecret, Date.now())
+        : undefined;
 
-      if (!sessionOrgId) {
+      if (!requesterOrgId) {
         applyPreviewProxyLocale(reply, request);
 
         return reply.code(401).type('text/html').send(previewProxyHtml(request, 'private-port'));
