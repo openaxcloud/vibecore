@@ -13,6 +13,7 @@ export function recipeManifests(
   tokenSecret: string,
   managerSecret: string,
   jwtSecret: string,
+  sandboxScheduling = false,
 ) {
   assertRecipeClusterName(name);
 
@@ -197,7 +198,7 @@ export function recipeManifests(
       environment: {
         ...common,
         NODE_ENV: 'test',
-        WORKSPACE_DISABLE_SANDBOX_SCHEDULING: '1',
+        ...(sandboxScheduling ? {} : { WORKSPACE_DISABLE_SANDBOX_SCHEDULING: '1' }),
         WORKSPACE_MANAGER_PORT: '3010',
       },
     }),

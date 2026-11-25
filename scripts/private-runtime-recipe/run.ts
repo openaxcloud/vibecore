@@ -9,7 +9,16 @@ import { dependencyImages, recipeManifests } from './manifests.js';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
-assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+const browser = process.argv.includes('--browser');
+if (browser && process.env.GITHUB_EVENT_NAME === 'schedule') {
+  assert.equal(
+    process.env.GITHUB_WORKFLOW_REF,
+    `${process.env.GITHUB_REPOSITORY}/.github/workflows/e2e-runtime.yml@refs/heads/main`,
+  );
+  assert.equal(process.env.GITHUB_REF, 'refs/heads/main');
+} else {
+  assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+}
 assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
 assert.equal(process.env.RUNNER_OS, 'Linux');
 assert.ok(process.env.RUNNER_TEMP);
@@ -210,11 +219,26 @@ async function main() {
   let stage = 'create-local-cluster';
 
   try {
+    const config = join(directory, 'kind.yaml');
+    if (browser) {
+      writeFileSync(
+        config,
+        [
+          'kind: Cluster',
+          'apiVersion: kind.x-k8s.io/v1alpha4',
+          'containerdConfigPatches:',
+          '- |-',
+          '  [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]',
+          '    runtime_type = "io.containerd.runsc.v1"',
+        ].join('\n'),
+      );
+    }
     await run(
       'kind',
       [
         'create',
         'cluster',
+        ...(browser ? ['--config', config] : []),
         '--name',
         name,
         '--image',
@@ -228,6 +252,12 @@ async function main() {
     );
     await assertLocalCluster();
     await kubectl(['get', 'storageclass', 'standard']);
+    if (browser) {
+      stage = 'configure-gvisor';
+      await run('bash', ['scripts/qa/install-kind-runsc.sh', `${name}-control-plane`], { timeout: 300_000 });
+      await kubectl(['apply', '-f', 'infra/kubernetes/workspaces-runtime/runtimeclass-gvisor.yaml']);
+      await kubectl(['label', 'node', `${name}-control-plane`, 'vibecore.ai/node-pool=sandbox']);
+    }
     stage = 'build-local-images';
     await docker(
       [
@@ -327,6 +357,7 @@ async function main() {
     const resources = recipeManifests(
       name,
       ...(Array.from({ length: 4 }, () => randomBytes(32).toString('hex')) as [string, string, string, string]),
+      browser,
     );
     const late = resources.filter(
       (resource) =>
@@ -370,10 +401,19 @@ async function main() {
     process.env.RUNTIME_API_E2E_RUNTIME_URL = 'http://127.0.0.1:3001/api/runtime';
     process.env.RUNTIME_API_E2E_WORKSPACE_MANAGER_URL = 'http://127.0.0.1:3010';
 
+    if (browser) {
+      stage = 'runtime-preflight';
+      await run('node_modules/.bin/tsx', ['scripts/qa/runtime-e2e-preflight.ts']);
+      process.env.RUNTIME_E2E_BROWSER_PREFLIGHT = '1';
+    }
     const result = await run('node_modules/.bin/tsx', ['scripts/validate-runtime-api-kubernetes.ts'], {
       timeout: 900_000,
       progressFile: join(evidence, 'validation-progress.txt'),
     });
+    if (browser) {
+      stage = 'chromium-project-creation-and-execution';
+      await run('bash', ['scripts/qa/runtime-e2e-browser.sh'], { timeout: 2_400_000, stream: true });
+    }
     writeFileSync(join(evidence, 'checks.txt'), result);
     writeFileSync(
       join(evidence, 'result.json'),
