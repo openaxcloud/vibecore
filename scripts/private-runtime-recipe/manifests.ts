@@ -221,7 +221,7 @@ export function recipeManifests(
           deployment('preview-proxy', platform, 3020, {
             command: ['pnpm', '--filter', '@vibecore/preview-proxy', 'exec', 'tsx', 'src/server.ts'],
             probePath: '/health',
-            environment: { WORKSPACE_MANAGER_URL: common.WORKSPACE_MANAGER_URL },
+            environment: { WORKSPACE_MANAGER_URL: common.WORKSPACE_MANAGER_URL, PREVIEW_PROXY_PORT: '3020' },
             previewCredentials: true,
           }),
         ]

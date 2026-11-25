@@ -457,7 +457,7 @@ async function main() {
 
       if (browser) {
         const services = [];
-        for (const service of ['api', 'manager']) {
+        for (const service of ['api', 'manager', 'preview-proxy']) {
           try {
             const log = await kubectl(['-n', name, 'logs', `deployment/${service}`, '--limit-bytes=1048576']);
             services.push({ service, available: true, ...summarizeRuntimeLog(log) });
