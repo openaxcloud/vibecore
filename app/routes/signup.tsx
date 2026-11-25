@@ -25,7 +25,6 @@ import {
   formObject,
   json,
   redirect,
-  safeReturnTo,
   sessionCookie,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -125,7 +124,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   return json({
     language: resolveRequestLocale(request).language,
     providers,
-    returnTo: safeReturnTo(new URL(request.url).searchParams.get('returnTo')) ?? null,
+    returnTo: postRegisterDestination(request, null),
   });
 }
 

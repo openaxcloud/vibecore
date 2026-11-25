@@ -21,8 +21,14 @@ describe('inscription : disponibilité réelle des boutons sociaux', () => {
       { github: true, google: true },
       { github: false, google: true },
       { github: false, google: false },
-    ].flatMap((providers) => [null, '/projects/new'].map((returnTo) => ({ ...providers, returnTo }))),
-  )('rend uniquement les boutons disponibles : $github / $google', async ({ github, google, returnTo }) => {
+    ].flatMap((providers) =>
+      [
+        { query: '', returnTo: null },
+        { query: '?returnTo=%2Fprojects%2Fnew', returnTo: '/projects/new' },
+        { query: '?prompt=Local+demo', returnTo: '/projects/new?prompt=Local%20demo' },
+      ].map((destination) => ({ ...providers, ...destination })),
+    ),
+  )('rend uniquement les boutons disponibles : $github / $google', async ({ github, google, query, returnTo }) => {
     vi.stubEnv('SAAS_API_URL', 'http://api.test.local');
 
     const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
@@ -40,7 +46,7 @@ describe('inscription : disponibilité réelle des boutons sociaux', () => {
     vi.stubGlobal('fetch', fetchSpy);
 
     const result = await loader({
-      request: new Request(`http://localhost/register${returnTo ? '?returnTo=%2Fprojects%2Fnew' : ''}`),
+      request: new Request(`http://localhost/register${query}`),
       params: {},
       context: {},
     } as Parameters<typeof loader>[0]);
@@ -65,7 +71,7 @@ describe('inscription : disponibilité réelle des boutons sociaux', () => {
     ] as const) {
       if (ready) {
         expect(screen.getByRole('link', { name: `auth.signup.${provider}` }).getAttribute('href')).toBe(
-          `/auth/oauth/${provider}${returnTo ? '?returnTo=%2Fprojects%2Fnew' : ''}`,
+          `/auth/oauth/${provider}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`,
         );
       }
     }
