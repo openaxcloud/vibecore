@@ -7531,10 +7531,10 @@ function terminalManagerEvidence(pod) {
   const status = pod.status;
   const conditions = status?.conditions;
   const ready = Array.isArray(conditions) ? conditions.filter((condition) => condition?.type === "Ready") : [];
-  const readyCondition = conditions !== void 0 && !Array.isArray(conditions) ? "Invalid" : ready.some((condition) => condition.status === "True") ? "True" : ready.some((condition) => condition.status !== "False") ? "Other" : ready.length ? "False" : "Absent";
-  const stopped = (containers, regular = false) => {
+  const readyCondition = conditions !== void 0 && (!Array.isArray(conditions) || conditions.some((item) => !item?.type || typeof item.status !== "string") || ready.length > 1) ? "Invalid" : ready.some((condition) => condition.status === "True") ? "True" : ready.some((condition) => condition.status !== "False") ? "Other" : ready.length ? "False" : "Absent";
+  const stopped = (containers, declared, regular = false) => {
     if (containers === void 0) {
-      return regular ? "Missing" : "Absent";
+      return regular || declared?.length ? "Missing" : "Absent";
     }
     if (!Array.isArray(containers)) {
       return "Invalid";
@@ -7545,14 +7545,19 @@ function terminalManagerEvidence(pod) {
     const terminated = containers.every(
       (container) => container?.state?.terminated && typeof container.state.terminated === "object" && Number.isInteger(container.state.terminated.exitCode) && !container.state.running && !container.state.waiting && (!regular || container.ready === false)
     );
-    return terminated ? "Stopped" : "NotTerminated";
+    if (!terminated) return "NotTerminated";
+    const names = new Set(containers.map((item) => item.name));
+    if (names.size !== containers.length || names.has(void 0) || containers.length !== (declared?.length ?? 0) || !(declared ?? []).every((item) => names.has(item?.name))) {
+      return "Incomplete";
+    }
+    return "Stopped";
   };
   return {
     phaseTerminal: ["Failed", "Succeeded"].includes(status?.phase),
     readyCondition,
-    regular: stopped(status?.containerStatuses, true),
-    init: stopped(status?.initContainerStatuses),
-    ephemeral: stopped(status?.ephemeralContainerStatuses)
+    regular: stopped(status?.containerStatuses, pod.spec?.containers, true),
+    init: stopped(status?.initContainerStatuses, pod.spec?.initContainers),
+    ephemeral: stopped(status?.ephemeralContainerStatuses, pod.spec?.ephemeralContainers)
   };
 }
 function terminalManagerPod(pod) {
@@ -7564,7 +7569,7 @@ function managerReadinessDiagnostic(deployment, pods, expectedDigest) {
   const identity = (value) => typeof value === "string" && value.length <= 253 && /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(value) ? value : null;
   const uid = (value) => typeof value === "string" && /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(value) ? value : null;
   const count = (value) => Number.isSafeInteger(value) && value >= 0 ? value : null;
-  const ready = (pod) => Array.isArray(pod.status?.conditions) && pod.status.conditions.some((condition) => condition.type === "Ready" && condition.status === "True");
+  const ready = (pod) => Array.isArray(pod.status?.conditions) && pod.status.conditions.some((condition) => condition?.type === "Ready" && condition.status === "True");
   const terminal = items.filter(terminalManagerPod).length;
   return {
     expected: count(deployment.spec?.replicas ?? 1),
@@ -7613,7 +7618,7 @@ function assertManagerReady(deployment, pods, expectedImage, expectedDigest) {
   }
   for (const pod of active) {
     const container = pod.status?.containerStatuses;
-    if (pod.status?.phase !== "Running" || Boolean(pod.metadata?.deletionTimestamp) || pod.spec.containers.length !== 1 || pod.spec.containers[0].image !== expectedImage || container?.length !== 1 || container[0].ready !== true || !container[0].state?.running || typeof container[0].state.running !== "object" || Boolean(container[0].state.terminated || container[0].state.waiting) || container[0].imageID?.match(/(?:^|@|:\/\/)(sha256:[a-f0-9]{64})$/)?.[1] !== expectedDigest || !pod.status.conditions?.some((condition) => condition.type === "Ready" && condition.status === "True")) {
+    if (pod.status?.phase !== "Running" || Boolean(pod.metadata?.deletionTimestamp) || pod.spec.containers.length !== 1 || pod.spec.containers[0].image !== expectedImage || container?.length !== 1 || container[0].ready !== true || !container[0].state?.running || typeof container[0].state.running !== "object" || Boolean(container[0].state.terminated || container[0].state.waiting) || container[0].imageID?.match(/(?:^|@|:\/\/)(sha256:[a-f0-9]{64})$/)?.[1] !== expectedDigest || !pod.status.conditions?.some((condition) => condition?.type === "Ready" && condition.status === "True")) {
       reject("MANAGER_POD_UNVERIFIED");
     }
   }

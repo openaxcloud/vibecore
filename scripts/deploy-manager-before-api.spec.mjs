@@ -628,6 +628,7 @@ describe('manager pod lifecycle attestation', () => {
       const pod = terminal(phase);
       pod.status.conditions = conditions;
       expect(() => verify([readyPod, pod])).not.toThrow();
+      expect(execute({ pods: [readyPod, pod] }).error).toBeUndefined();
     }
   });
 
@@ -711,7 +712,7 @@ describe('manager pod lifecycle attestation', () => {
     },
   );
 
-  it.each([null, {}, [{ type: 'Ready', status: 'Unknown' }]])(
+  it.each([null, {}, [null], [{}], [{ type: 'Ready', status: 'Unknown' }]])(
     'refuses invalid or unknown Ready evidence %j',
     (conditions) => {
       const pod = terminal('Failed');
@@ -719,6 +720,25 @@ describe('manager pod lifecycle attestation', () => {
       expect(() => verify([readyPod, pod])).toThrow('MANAGER_POD_COUNT');
     },
   );
+
+  it('rejects incomplete container identity and declared sidecars without status', () => {
+    for (const mutate of [
+      (pod) => {
+        pod.status.containerStatuses[0].name = 'other';
+      },
+      (pod) => {
+        pod.spec.initContainers = [{ name: 'init' }];
+      },
+      (pod) => {
+        pod.spec.ephemeralContainers = [{ name: 'debug' }];
+      },
+    ]) {
+      const pod = terminal('Failed');
+      delete pod.status.conditions;
+      mutate(pod);
+      expect(() => verify([readyPod, pod])).toThrow('MANAGER_POD_COUNT');
+    }
+  });
 
   it('retains live replica counts for HPA and refuses absent or extra nonterminal pods', () => {
     const deployment = structuredClone(prepared[1]);
