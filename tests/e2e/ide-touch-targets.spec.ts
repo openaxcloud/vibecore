@@ -167,3 +167,41 @@ test('la coque compacte tient la cible tactile de 44px, à 390 comme à 768', as
   expect(controlesVus, 'aucun contrôle mesuré — le balayage ne prouve rien').toBeGreaterThan(10);
   expect(echecs, `contrôles sous ${CIBLE_MIN}px :\n${echecs.join('\n')}`).toEqual([]);
 });
+
+test('the compact dock keeps Run and keyboard navigation reachable after opening Files', async ({
+  page,
+  context,
+  request,
+}, testInfo) => {
+  test.skip(!['mobile', 'webkit-iphone'].includes(testInfo.project.name), 'requires an emulated touch device');
+  await page.setViewportSize({ width: 320, height: 568 });
+
+  const auth = await authenticate(request);
+  const projectId = await createProject(request, auth);
+  await context.addCookies([{ name: 'vc_session', value: auth.token, url: appBaseUrl, httpOnly: true }]);
+  await page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=activity`);
+
+  const more = page.getByTestId('mobile-ide-header').getByTestId('button-more');
+  await more.tap();
+
+  const sheet = page.getByTestId('mobile-more-menu-sheet');
+  await expect(sheet).toBeVisible();
+
+  const grid = sheet.locator('.bolt-mobile-more-menu-grid');
+  await grid.getByRole('button').last().scrollIntoViewIfNeeded();
+  await expect.poll(() => grid.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect(sheet.getByTestId('mobile-more-menu-close')).toBeInViewport();
+  await page.keyboard.press('Escape');
+  await expect(more).toBeFocused();
+  await more.tap();
+  await sheet.getByTestId('mobile-more-menu-files').tap();
+  await expect(sheet).toBeHidden();
+
+  const run = page.getByTestId('button-play-stop');
+  await run.tap({ trial: true });
+
+  const bounds = await run.boundingBox();
+  expect(bounds!.width).toBeGreaterThanOrEqual(44);
+  expect(bounds!.height).toBeGreaterThanOrEqual(44);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
