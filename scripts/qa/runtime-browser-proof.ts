@@ -7,6 +7,8 @@ export default class RuntimeBrowserProof implements Reporter {
     ['Register synthetic user', 'pending'],
     ['Create project from template', 'pending'],
     ['Wait for running workspace', 'pending'],
+    ['Open Webview', 'pending'],
+    ['Load workspace preview document', 'pending'],
     ['Read generated app in Webview', 'pending'],
   ]);
 

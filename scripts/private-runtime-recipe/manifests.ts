@@ -221,7 +221,11 @@ export function recipeManifests(
           deployment('preview-proxy', platform, 3020, {
             command: ['pnpm', '--filter', '@vibecore/preview-proxy', 'exec', 'tsx', 'src/server.ts'],
             probePath: '/health',
-            environment: { WORKSPACE_MANAGER_URL: common.WORKSPACE_MANAGER_URL, PREVIEW_PROXY_PORT: '3020' },
+            environment: {
+              WORKSPACE_MANAGER_URL: common.WORKSPACE_MANAGER_URL,
+              PREVIEW_PROXY_PORT: '3020',
+              PREVIEW_DOMAIN: 'localhost',
+            },
             previewCredentials: true,
           }),
         ]
@@ -241,7 +245,7 @@ export function recipeManifests(
         ...(previewSecret
           ? {
               API_CORS_ORIGINS: 'http://127.0.0.1:5173',
-              PREVIEW_URL_TEMPLATE: 'http://127.0.0.1:3020/p/{workspaceId}/{port}/',
+              PREVIEW_URL_TEMPLATE: 'http://{workspaceId}-{port}.localhost:3020/',
               AUTH_REGISTER_RATE_LIMIT_MAX: '2000',
               AUTH_LOGIN_RATE_LIMIT_MAX: '2000',
             }

@@ -202,7 +202,7 @@ test(
   'template-created project boots and renders the generated app in preview',
   { tag: '@runtime' },
   async ({ page }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(360_000);
 
     await test.step('Register synthetic user', () => authenticate(page));
     await test.step('Create project from template', async () => {
@@ -211,16 +211,22 @@ test(
       await expect(page).toHaveURL(/\/@[^/]+\/react-saas-[a-z0-9]+(?:\?.*)?$/, { timeout: 120_000 });
     });
     await test.step('Wait for running workspace', () => expectWorkspaceRunning(page, 180_000));
+    await test.step('Open Webview', async () => {
+      const target = new URL(page.url());
+      target.searchParams.set('panel', 'preview');
+      await page.goto(target.href, { waitUntil: 'domcontentloaded' });
+      const run = page.getByRole('button', { name: 'Run', exact: true });
+      if (await run.isVisible()) {
+        await run.click();
+      }
+    });
+    await test.step('Load workspace preview document', async () => {
+      const frame = page.locator('iframe[title="preview"]:visible');
+      await expect(frame).toHaveAttribute('src', /^http:\/\/ws-[a-z0-9-]+-[0-9]+\.localhost:3020\//, {
+        timeout: 120_000,
+      });
+    });
     await test.step('Read generated app in Webview', async () => {
-      const runButton = page.getByTestId('button-run-stop');
-      await expect(runButton).toBeVisible();
-      if ((await runButton.innerText()).trim() === 'Run') {
-        await runButton.click();
-      }
-      const previewTab = page.getByRole('button', { name: 'Switch to Webview tab', exact: true });
-      if (await previewTab.isVisible()) {
-        await previewTab.click();
-      }
       const app = page.frameLocator('iframe[title="preview"]:visible').locator('[data-gallery-app-id="react-saas"]');
       await expect(app.getByRole('heading', { name: 'Active opportunities' })).toBeVisible({ timeout: 180_000 });
       await app.getByRole('button', { name: '+ Add lead' }).click();
