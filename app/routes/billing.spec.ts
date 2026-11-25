@@ -75,7 +75,7 @@ function actionRequest(body: Record<string, string>, cookie = 'vc_session=token'
 
 const args = (request: Request) => ({ request, params: {}, context: {} }) as unknown as Parameters<typeof action>[0];
 
-describe('billing action — set-limits rejects a $0 cap (silently blocks all PAYG)', () => {
+describe('billing form actions', () => {
   let originals: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
 
   beforeEach(() => {
@@ -127,6 +127,33 @@ describe('billing action — set-limits rejects a $0 cap (silently blocks all PA
       }),
     );
   }
+
+  it.each([
+    ['checkout', 'pro'],
+    ['checkout', 'team'],
+    ['portal', ''],
+  ])('redirects the %s form for %s to its provider session', async (intent, planKey) => {
+    const destination = `https://provider.example.test/${intent}/session`;
+
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ organizations: [{ id: 'org1' }] }))
+      .mockResolvedValueOnce(Response.json({ [`${intent}Url`]: destination }));
+    vi.stubGlobal('fetch', fetch);
+
+    const result = toResponse(await action(args(actionRequest({ intent, planKey }))));
+    expect(result.status).toBe(302);
+    expect(result.headers.get('location')).toBe(destination);
+
+    const [url, init] = fetch.mock.calls[1];
+    expect(String(url)).toBe(`https://api.example.com/orgs/org1/billing/${intent}`);
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body)).toEqual(
+      intent === 'portal'
+        ? { returnUrl: 'http://localhost/billing' }
+        : { planKey, successUrl: 'http://localhost/billing', cancelUrl: 'http://localhost/billing' },
+    );
+  });
 
   it('rejects a literal $0 cap with 400 and never POSTs it to the server', async () => {
     const calls: string[] = [];
