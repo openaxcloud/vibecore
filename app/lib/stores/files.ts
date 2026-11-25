@@ -258,7 +258,10 @@ export class FilesStore {
    * Ne renvoie jamais de contenu inventé : une lecture impossible laisse le
    * tampon intact et le dit (`illisible`). L'appelant décide.
    */
-  async adoptRemoteContent(filePath: string): Promise<'adopte' | 'inchange' | 'illisible' | 'hors-portee'> {
+  async adoptRemoteContent(
+    filePath: string,
+    viewIsCurrent = () => true,
+  ): Promise<'adopte' | 'inchange' | 'illisible' | 'hors-portee'> {
     const binding = this.#runtimeBinding;
 
     if (this.#runtime.mode !== 'remote-kubernetes') {
@@ -286,7 +289,7 @@ export class FilesStore {
       .then((resultat) => resultat.content)
       .catch(() => undefined);
 
-    if (binding !== this.#runtimeBinding) {
+    if (!viewIsCurrent() || binding !== this.#runtimeBinding) {
       return 'hors-portee';
     }
 
@@ -303,7 +306,7 @@ export class FilesStore {
     return 'adopte';
   }
 
-  async reloadFromRuntime(rootPath = '.', options: { reparer?: boolean } = {}) {
+  async reloadFromRuntime(rootPath = '.', options: { reparer?: boolean } = {}, viewIsCurrent = () => true) {
     const runtime = this.#runtime;
     const binding = this.#runtimeBinding;
     const filesBeforeListing = this.files.get();
@@ -314,7 +317,7 @@ export class FilesStore {
     // `reparer` : rafraîchissement demandé par l'utilisateur → le runtime distant réconcilie d'abord (BUG-IDE-007).
     const nodes = await runtime.listFiles(rootPath, options.reparer ? { reparer: true } : undefined);
 
-    if (this.#runtime !== runtime || this.#runtimeBinding !== binding) {
+    if (!viewIsCurrent() || this.#runtime !== runtime || this.#runtimeBinding !== binding) {
       return;
     }
 
@@ -414,7 +417,21 @@ export class FilesStore {
     this.#loadLockedFiles();
   }
 
-  replaceWithProjectStorageFiles(files: ProjectStorageFile[], preservePaths: ReadonlySet<string> = new Set()) {
+  replaceWithProjectStorageFiles(
+    files: ProjectStorageFile[],
+    preservePaths: ReadonlySet<string> = new Set(),
+    options: { restoredSnapshot?: boolean } = {},
+  ) {
+    if (options.restoredSnapshot) {
+      /*
+       * The server replaced the tree, so deletions from before the restore no
+       * longer describe it. Persist the reset before the file map notifies the IDE.
+       */
+      this.#deletedPaths.clear();
+      this.#persistDeletedPaths();
+      this.#modifiedFiles.clear();
+    }
+
     const nextFiles: FileMap = {};
 
     let fileCount = 0;
@@ -911,6 +928,10 @@ export class FilesStore {
 
   resetFileModifications() {
     this.#modifiedFiles.clear();
+  }
+
+  hasPendingSaves() {
+    return Boolean(this.#saveQueues.get(this.#writeDestination)?.size);
   }
 
   async saveFile(filePath: string, content: string, options?: SaveFileOptions) {
