@@ -817,6 +817,32 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('enforces the numeric Starter project creation limit at one million', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    try {
+      const auth = await register(app, { email: 'creation-limit@example.test', organizationName: 'Limit fixture' });
+      const create = (name: string) =>
+        app.inject({
+          method: 'POST',
+          url: `/orgs/${auth.organization.id}/projects`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { name },
+        });
+
+      const count = vi.spyOn(store, 'countProjects').mockResolvedValue(999_999);
+      expect((await create('Last available project')).statusCode).toBe(201);
+      count.mockResolvedValue(1_000_000);
+
+      const denied = await create('One project over');
+      expect(denied.statusCode).toBe(429);
+      expect(denied.json().code).toBe('QUOTA_EXCEEDED');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('enforces organization isolation on project resources', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
