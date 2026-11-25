@@ -114,6 +114,19 @@ async function main() {
     `runCommand failed: ${JSON.stringify(command)}`,
   );
 
+  if (privateRecipe && process.env.RUNTIME_E2E_BROWSER_PREFLIGHT === '1') {
+    await podIdentity(session.id);
+    const runtime = await execFile(
+      'kubectl',
+      ['-n', namespace, 'get', `pod/workspace-${session.id}`, '-o', 'jsonpath={.spec.runtimeClassName}'],
+      { timeout: 15_000 },
+    );
+    assert(runtime.stdout === 'gvisor', 'Expected gVisor workspace');
+    portForward.kill();
+    checkpoint('workspace-command-verified');
+    return;
+  }
+
   checkpoint('terminal-websocket');
 
   const terminal = await adapter.openTerminal({ terminal: { cols: 100, rows: 30 } });

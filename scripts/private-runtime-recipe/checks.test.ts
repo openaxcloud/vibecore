@@ -223,3 +223,10 @@ test('evidence retains runtime image IDs and exit codes without arbitrary messag
   assert.match(evidence, /sha256:actual/);
   assert.match(evidence, /"exitCode":1/);
 });
+
+test('nightly manager keeps sandbox scheduling enabled', () => {
+  const resources = recipeManifests(name, 'local-password', 'local-agent', 'local-manager', 'local-jwt', true);
+  const manager = resources.find((resource) => resource.kind === 'Deployment' && resource.metadata.name === 'manager');
+  assert.ok(manager);
+  assert.doesNotMatch(JSON.stringify(manager), /WORKSPACE_DISABLE_SANDBOX_SCHEDULING/);
+});
