@@ -263,6 +263,16 @@ describe('à la réouverture, le tour que CE navigateur n’a pas vu finir', () 
     commandesDuTerminal.appels.length = 0;
   });
 
+  it('accepts all bytes of a completed new file', async () => {
+    const store = await rouvrir();
+    const content = 'Completed synthetic text.\n';
+    const id = action(store, 'live', '0', { type: 'file', filePath: 'finished.txt', content });
+    await store.attendreLaFinDesTaches();
+    expect(store.agentPatchProposals.get()[id]?.proposedContent).toBe(content);
+    await expect(store.acceptAgentPatchProposal(id)).resolves.toBe('accepted');
+    expect(runtimeFiles.get('finished.txt')).toBe(content);
+  });
+
   it('LE CONSTAT : sans reprise, un message relu n’écrit rien — le projet reste à moitié construit', async () => {
     const store = await rouvrir();
     const id = action(store, 'aimsg_a1', '0', { type: 'file', filePath: 'src/App.tsx', content: DE_L_AGENT });

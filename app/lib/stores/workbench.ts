@@ -3110,6 +3110,7 @@ export class WorkbenchStore {
       try {
         let acceptedContent = applyReviewableDiffHunks({
           originalContent: proposal.originalContent,
+          proposedContent: proposal.proposedContent,
           hunks: proposal.hunks,
           acceptedHunkIds: acceptedIds,
         });
