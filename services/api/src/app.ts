@@ -22342,7 +22342,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: invitation.id,
     });
 
-    return { invitation: { ...invitation, tokenHash: undefined } };
+    // An invite can be accepted after the recipient has already joined with another role.
+    const membership = await store.getMembership(request.currentUser!.id, invitation.organizationId);
+
+    return { invitation: { ...invitation, tokenHash: undefined }, roleKey: membership?.roleKey };
   });
 
   app.get('/orgs/:orgId/enterprise-settings', async (request) => {

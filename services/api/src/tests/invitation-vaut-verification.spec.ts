@@ -76,8 +76,24 @@ describe('accepter une invitation vaut vérification de l’adresse — à trois
 
     // Mesuré AVANT correctif : 403 EMAIL_NOT_VERIFIED.
     expect(reponse.statusCode, reponse.body).toBe(200);
+    expect(reponse.json().roleKey).toBe('member');
     expect(await store.getMembership(collegue.user.id, organisation)).toBeTruthy();
     expect(await verifie(collegue.user.id)).toBe(true);
+
+    await app.close();
+  });
+
+  it('confirme le rôle effectif si le collègue est déjà membre', async () => {
+    const { app, store, inscrire, inviter, accepter, organisation } = await banc();
+    const email = 'existing-member@local.test';
+    const invite = await inviter(email);
+    const collegue = await inscrire(email, 'Perso');
+    await store.addMember({ organizationId: organisation, userId: collegue.user.id, roleKey: 'viewer' });
+
+    const reponse = await accepter(collegue.token, invite.token);
+    expect(reponse.statusCode).toBe(200);
+    expect(reponse.json()).toMatchObject({ roleKey: 'viewer', invitation: { roleKey: 'member' } });
+    expect((await store.getMembership(collegue.user.id, organisation))?.roleKey).toBe('viewer');
 
     await app.close();
   });
