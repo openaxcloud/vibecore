@@ -17874,6 +17874,7 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
   padding: 6px 10px;
   cursor: grab;
+  touch-action: none;
   user-select: none;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-subtle, var(--vc-ide-bg-app));
