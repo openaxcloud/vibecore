@@ -742,6 +742,7 @@ export const Preview = memo(
     const previewBootSteps = useMemo(() => getPreviewBootSteps(t), [t]);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const logsButtonRef = useRef<HTMLButtonElement>(null);
     const windowMenuRef = useRef<HTMLDivElement>(null);
     const windowMenuTriggerRef = useRef<HTMLButtonElement>(null);
 
@@ -823,11 +824,20 @@ export const Preview = memo(
           setIsWindowSizeDropdownOpen(false);
         }
       };
-      const dismissWithEscape = (event: KeyboardEvent) => {
-        if (event.key === 'Escape' && event.target instanceof Node && windowMenuRef.current?.contains(event.target)) {
+      const handleWindowMenuKey = (event: KeyboardEvent) => {
+        if (!(event.target instanceof Node) || !windowMenuRef.current?.contains(event.target)) {
+          return;
+        }
+
+        if (event.key === 'Escape') {
           event.preventDefault();
           setIsWindowSizeDropdownOpen(false);
           windowMenuTriggerRef.current?.focus();
+        } else if (event.key === 'Tab' && event.shiftKey && event.target === windowMenuTriggerRef.current) {
+          // WebKit can retain focus on the opener when tabbing backwards across the popover.
+          event.preventDefault();
+          setIsWindowSizeDropdownOpen(false);
+          logsButtonRef.current?.focus();
         }
       };
 
@@ -842,12 +852,12 @@ export const Preview = memo(
        * The IDE keybinding listener consumes Escape during window capture.
        * Listen on the same target so it cannot strand this focused popover.
        */
-      window.addEventListener('keydown', dismissWithEscape, true);
+      window.addEventListener('keydown', handleWindowMenuKey, true);
 
       return () => {
         document.removeEventListener('pointerdown', dismissOutside, true);
         document.removeEventListener('focusin', dismissOutside);
-        window.removeEventListener('keydown', dismissWithEscape, true);
+        window.removeEventListener('keydown', handleWindowMenuKey, true);
       };
     }, [isWindowSizeDropdownOpen]);
 
@@ -2950,6 +2960,7 @@ export const Preview = memo(
               <span>{t('idePanels.preview.open')}</span>
             </button>
             <IconButton
+              ref={logsButtonRef}
               icon="i-ph:terminal-window"
               onClick={() => {
                 setActiveLogTab('webview');
