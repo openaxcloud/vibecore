@@ -113,6 +113,7 @@ jobs:
             runtime-diagnostics/
             private-runtime-evidence/cluster-services.json
             private-runtime-evidence/browser.json
+            private-runtime-evidence/readme.json
             private-runtime-evidence/result.json
             private-runtime-evidence/pod-status.json
           retention-days: 7
