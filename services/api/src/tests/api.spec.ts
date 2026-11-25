@@ -4185,7 +4185,15 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'zip@example.com', organizationName: 'Zip Org' });
     const zip = new JSZip();
-    zip.file('README.md', '# Zip import\n');
+    const originals = {
+      'binary.bin': Buffer.from([0, 255, 128, 65]),
+      'README.md': Buffer.from('Été 東京 🌍\n', 'utf8'),
+      'empty.txt': Buffer.alloc(0),
+    };
+
+    for (const [path, bytes] of Object.entries(originals)) {
+      zip.file(path, bytes);
+    }
     zip.file('src/index.ts', 'export const value = 1;\n');
 
     const zipBase64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64');
@@ -4205,7 +4213,11 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().archive.base64).toEqual(expect.any(String));
+    const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
+
+    for (const [path, bytes] of Object.entries(originals)) {
+      expect(await archive.file(path)!.async('nodebuffer'), path).toEqual(bytes);
+    }
 
     const replacementZip = new JSZip();
     replacementZip.file('README.md', '# Replaced project\n');

@@ -7656,7 +7656,7 @@ async function archiveProjectFiles(projectId: string, files: ProjectFile[]) {
   const zip = new JSZip();
 
   for (const file of files) {
-    zip.file(file.path, file.content);
+    zip.file(file.path, decodeFileContent(file.content, file.encoding));
   }
 
   const content = await zip.generateAsync({ type: 'nodebuffer' });
