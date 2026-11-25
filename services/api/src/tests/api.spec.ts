@@ -255,6 +255,7 @@ async function startRuntimeServices(
     packageCapabilityMissing?: boolean;
     managerWorkspaceEmpty?: boolean;
     managerStopNotFound?: boolean;
+    beforeAgentToken?: Promise<void>;
   } = {},
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
@@ -368,7 +369,11 @@ async function startRuntimeServices(
 
         // Echo back stdin the way a shell would, still JSON-framed.
         try {
-          const parsed = JSON.parse(text) as { type?: string; data?: string };
+          const parsed = JSON.parse(text) as { type?: string; data?: string; payload?: (typeof commandBodies)[number] };
+
+          if (parsed.payload && url.pathname === '/commands/stream' && parsed.type === 'hello') {
+            commandBodies.push(parsed.payload);
+          }
 
           if (parsed.type === 'stdin' && parsed.data) {
             socket.send(JSON.stringify({ type: 'stdout', data: parsed.data, timestamp: 'now' }));
@@ -394,7 +399,9 @@ async function startRuntimeServices(
       managerCalls.push({ pathname: url.pathname, body: body ? JSON.parse(body) : {} });
 
       if (url.pathname.endsWith('/agent-token')) {
-        response.end(JSON.stringify({ token: 'runtime-token' }));
+        void Promise.resolve(options.beforeAgentToken).then(() =>
+          response.end(JSON.stringify({ token: 'runtime-token' })),
+        );
       } else if (url.pathname.endsWith('/logs')) {
         response.end(JSON.stringify({ logs: options.logs ?? ['workspace ready'] }));
       } else if (
@@ -5704,6 +5711,48 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     } finally {
       await runtime.close();
       await app.close();
+    }
+  });
+
+  it('delivers the initial install command once after asynchronous agent-token resolution', async () => {
+    let releaseToken!: () => void;
+    const tokenGate = new Promise<void>((resolve) => {
+      releaseToken = resolve;
+    });
+    const runtime = await startRuntimeServices({ beforeAgentToken: tokenGate });
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'command-stream@example.com', organizationName: 'Command Stream' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Command stream project' },
+    });
+    const address = await app.listen({ port: 0, host: '127.0.0.1' });
+    const target = `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${project.json().project.id}/commands/stream`;
+    const socket = new WebSocket(`${target}?token=${encodeURIComponent(auth.token)}`);
+    const payload = {
+      command: 'npm',
+      args: ['install', '--include=dev', '--prefer-offline', '--no-audit', '--no-fund'],
+    };
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.once('error', reject);
+        socket.once('open', () =>
+          socket.send(JSON.stringify({ type: 'hello', payload }), (err) => (err ? reject(err) : resolve())),
+        );
+      });
+      await vi.waitFor(() =>
+        expect(runtime.managerCalls.some((call) => call.pathname.endsWith('/agent-token'))).toBe(true),
+      );
+      expect(runtime.calls).not.toContain('WS /commands/stream');
+      releaseToken();
+      await vi.waitFor(() => expect(runtime.commandBodies).toEqual([payload]));
+    } finally {
+      releaseToken();
+      socket.close();
+      await app.close();
+      await runtime.close();
     }
   });
 
