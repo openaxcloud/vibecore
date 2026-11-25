@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   buildPreviewProxyApp,
   computeHostPreviewSubpath,
@@ -869,10 +869,11 @@ describe('preview-proxy', () => {
     it('allows a private port when a valid vc_preview session cookie is present', async () => {
       const token = signPreviewTenantToken('org_1', Date.now() + 60_000, 'tenant-secret');
 
+      const resolveAgent = vi.fn(async () => fakeAgent);
       const app = await buildPreviewProxyApp({
         ...privateOpts,
         fetchImpl: fetchFor(true),
-        resolveAgent: async () => fakeAgent,
+        resolveAgent,
       });
 
       const response = await app.inject({
@@ -883,6 +884,7 @@ describe('preview-proxy', () => {
 
       // Passes the gate -> reaches the (unreachable) dev server -> 503 holding page, not 401.
       expect(response.statusCode).not.toBe(401);
+      expect(resolveAgent).toHaveBeenCalledWith('ws_1', 'org_1');
       await app.close();
     });
 

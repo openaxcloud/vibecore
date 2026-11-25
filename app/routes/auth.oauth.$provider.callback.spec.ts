@@ -164,6 +164,19 @@ describe('oauth callback success-path response parsing', () => {
     expect(response.headers.get('location')).toBe('/login?oauth=google&error=callback_failed&detail=bad_response');
   });
 
+  it('returns to login when the API sends JSON null instead of a session', async () => {
+    stubFetch(Response.json(null));
+
+    const response = await runLoader(
+      '/auth/oauth/google/callback?code=abc&state=tok',
+      { provider: 'google' },
+      validCookie,
+    );
+
+    expect(response.headers.get('location')).toBe('/login?oauth=google&error=callback_failed&detail=missing_token');
+    expect(response.headers.getSetCookie().some((cookie) => cookie.startsWith('vc_session='))).toBe(false);
+  });
+
   it('still rejects a well-formed 200 that is missing the token', async () => {
     stubFetch(
       new Response(JSON.stringify({ ok: true }), {
