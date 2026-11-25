@@ -852,7 +852,10 @@ export class WorkbenchStore {
       return;
     }
 
-    void putAgentPatchProposal(projectId, proposal);
+    // Stream deltas update the local preview. Only the closed file is ready for review after a reload.
+    if (!proposal.enFlux) {
+      void putAgentPatchProposal(projectId, proposal);
+    }
   }
 
   async loadRuntimeFiles(rootPath = '.', options: { reparer?: boolean } = {}) {

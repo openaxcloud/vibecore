@@ -117,3 +117,64 @@ test('stopping a queued turn keeps its prompt and reopening never dispatches it 
   await expect(page.getByText(followUp, { exact: true }).filter({ visible: true })).toHaveCount(1, { timeout: 30_000 });
   expect(requests).toBe(2);
 });
+
+test('a streamed file proposal persists only the completed contents', async ({ page, request, baseURL }) => {
+  test.setTimeout(90_000);
+
+  const { project } = await createQueuedProject(request, page, baseURL!);
+
+  const chunks = [
+    '<boltArtifact id="fixture" title="Synthetic file"><boltAction type="file" filePath="fixture.txt">',
+    'Synthetic first line.\n',
+    'Second line.\n',
+    'Last line.\n',
+    '</boltAction></boltArtifact>',
+  ];
+  await page.addInitScript((parts) => {
+    const original = window.fetch.bind(window);
+
+    window.fetch = (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : String(input), location.href);
+
+      if (url.pathname !== '/api/chat') {
+        return original(input, init);
+      }
+
+      const encoder = new TextEncoder();
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          const frame = (type: string, value: unknown) =>
+            controller.enqueue(encoder.encode(type + ':' + JSON.stringify(value) + '\n'));
+          frame('f', { messageId: 'synthetic-file' });
+
+          for (const part of parts) {
+            frame('0', part);
+            await new Promise((resolve) => setTimeout(resolve, 400));
+          }
+          frame('d', { finishReason: 'stop', usage: { promptTokens: 0, completionTokens: 0 } });
+          controller.close();
+        },
+      });
+
+      return Promise.resolve(new Response(stream, { headers: { 'x-vercel-ai-data-stream': 'v1' } }));
+    };
+  }, chunks);
+
+  const writes: string[] = [];
+  page.on('request', (req) => {
+    if (req.method() === 'PUT' && new URL(req.url()).pathname.includes('/agent-patch-proposals/')) {
+      const body = req.postDataJSON();
+
+      if (body.relativePath === 'fixture.txt' && body.status === 'pending') {
+        writes.push(body.proposedContent);
+      }
+    }
+  });
+  await page.goto(`/projects/${project.id}/ide`, { waitUntil: 'domcontentloaded' });
+
+  const complete = chunks.slice(1, -1).join('');
+  await expect.poll(() => writes.includes(complete), { timeout: 60_000 }).toBe(true);
+  await expect(page.getByTestId('project-agent-run-status')).toBeHidden();
+  expect(writes).toEqual([complete]);
+});
