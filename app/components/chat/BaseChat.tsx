@@ -11807,6 +11807,18 @@ function ProjectDeploymentsServicePanel(props: React.ComponentProps<typeof Proje
   );
 }
 
+function ProjectSnapshotsServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
+  const { currentWorkspaceId } = useCurrentWorkspace();
+
+  return (
+    <ProjectIdeApiServicePanel
+      {...props}
+      key={`${props.projectId}:${currentWorkspaceId ?? ''}`}
+      requestedWorkspaceId={currentWorkspaceId}
+    />
+  );
+}
+
 /*
  * BUG-IDE-013 — « Problèmes » n'est pas alimenté par `/ide-panel/:panel` mais
  * par le store `diagnostics`, côté client.
@@ -11821,6 +11833,10 @@ function ProjectDeploymentsServicePanel(props: React.ComponentProps<typeof Proje
 function ProjectIdeServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
   if (props.panel === 'deployments') {
     return <ProjectDeploymentsServicePanel {...props} />;
+  }
+
+  if (props.panel === 'snapshots') {
+    return <ProjectSnapshotsServicePanel {...props} />;
   }
 
   if (props.panel === 'domains') {
@@ -12218,6 +12234,29 @@ function ProjectIdeApiServicePanel({
       entree instanceof FormData ? entree : donneesDuFormulaire(entree as React.FormEvent<HTMLFormElement>);
 
     const intent = String(formData.get('intent') ?? 'default');
+    const isSnapshotRestore = panel === 'snapshots' && intent === 'restore';
+
+    const snapshotRefresh = isSnapshotRestore
+      ? workbenchStore.prepareSnapshotFileRefresh(projectId, requestedWorkspaceId)
+      : undefined;
+
+    if (isSnapshotRestore && !snapshotRefresh) {
+      setError(t('baseChatAst.panel.snapshotRestoreWaitForEdits'));
+      setActionNotice(undefined);
+      setBusy(false);
+
+      return false;
+    }
+
+    const archiveWorkspaceId = snapshotRefresh ? requestedWorkspaceId?.trim() : undefined;
+
+    if (snapshotRefresh && archiveWorkspaceId) {
+      formData.set('includeEditorArchive', '1');
+      formData.set('editorWorkspaceId', archiveWorkspaceId);
+    } else if (snapshotRefresh) {
+      formData.delete('includeEditorArchive');
+      formData.delete('editorWorkspaceId');
+    }
 
     try {
       const response = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
@@ -12227,6 +12266,10 @@ function ProjectIdeApiServicePanel({
 
       const result = (await response.json().catch(() => ({}))) as {
         ok?: boolean;
+        filesRestore?: string;
+        editorArchive?: string;
+        editorWorkspaceId?: string;
+        editorRuntimeSynced?: boolean;
         run?: { status?: string };
         scan?: { status?: string };
         session?: { id?: string; status?: string; persistencePending?: boolean };
@@ -12265,6 +12308,42 @@ function ProjectIdeApiServicePanel({
         }
 
         return false;
+      }
+
+      if (snapshotRefresh) {
+        const restoreAcknowledged = result.ok === true && result.filesRestore === 'restored';
+
+        const refresh = restoreAcknowledged
+          ? archiveWorkspaceId
+            ? await snapshotRefresh.refresh(
+                result.editorArchive,
+                result.editorWorkspaceId,
+                result.editorRuntimeSynced === true,
+              )
+            : await snapshotRefresh.refresh()
+          : 'unavailable';
+
+        if (refresh === 'superseded') {
+          return false;
+        }
+
+        if (refresh !== 'refreshed') {
+          await loadPanel({ silent: true });
+          setError(
+            t(
+              refresh === 'newer-edits'
+                ? 'baseChatAst.panel.snapshotRestoredNewerEdits'
+                : refresh === 'runtime-pending'
+                  ? 'baseChatAst.panel.snapshotRestoredRuntimePending'
+                  : restoreAcknowledged && !archiveWorkspaceId
+                    ? 'baseChatAst.panel.snapshotRestoredWithoutWorkspace'
+                    : 'baseChatAst.panel.snapshotRestoreRefreshUnavailable',
+            ),
+          );
+          setActionNotice(undefined);
+
+          return false;
+        }
       }
 
       if (result.shareLink?.url) {
@@ -12307,6 +12386,7 @@ function ProjectIdeApiServicePanel({
 
       return false;
     } finally {
+      snapshotRefresh?.release();
       setBusy(false);
     }
   }

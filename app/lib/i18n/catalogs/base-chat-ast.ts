@@ -69,6 +69,15 @@ export const baseChatAstEn = {
   'baseChatAst.panel.loadFailedHttp': 'The IDE panel could not be loaded (HTTP {status}).',
   'baseChatAst.panel.loadFailed': 'The IDE panel could not be loaded. Try again.',
   'baseChatAst.panel.submitting': 'Submitting action…',
+  'baseChatAst.panel.snapshotRestoreWaitForEdits': 'Save pending editor changes before restoring a checkpoint.',
+  'baseChatAst.panel.snapshotRestoredNewerEdits':
+    'The checkpoint was restored, but newer editor changes were kept. Resolve them before reloading the editor.',
+  'baseChatAst.panel.snapshotRestoredRuntimePending':
+    'The checkpoint is restored in the project, but the remote workspace did not sync. Reopen the workspace before editing the files.',
+  'baseChatAst.panel.snapshotRestoredWithoutWorkspace':
+    'The checkpoint was restored in the project. The active workspace was unknown, so the editor was not refreshed.',
+  'baseChatAst.panel.snapshotRestoreRefreshUnavailable':
+    'The editor could not confirm the restored files. Check the checkpoint history and reload the editor.',
   'baseChatAst.panel.actionFailedHttp': 'The panel action failed (HTTP {status}).',
   'baseChatAst.panel.actionFailed': 'The panel action failed. Try again.',
   'baseChatAst.panel.shareCreated': 'Share link created.',
@@ -807,6 +816,16 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.panel.loadFailedHttp': 'Impossible de charger le panneau de l’IDE (HTTP {status}).',
   'baseChatAst.panel.loadFailed': 'Impossible de charger le panneau de l’IDE. Réessayez.',
   'baseChatAst.panel.submitting': 'Envoi de l’action…',
+  'baseChatAst.panel.snapshotRestoreWaitForEdits':
+    'Enregistrez les modifications en cours avant de restaurer un point de contrôle.',
+  'baseChatAst.panel.snapshotRestoredNewerEdits':
+    'Le point de contrôle a été restauré, mais les modifications plus récentes ont été conservées. Traitez-les avant de recharger l’éditeur.',
+  'baseChatAst.panel.snapshotRestoredRuntimePending':
+    'Le point de contrôle est restauré dans le projet, mais l’espace de travail distant n’a pas été synchronisé. Rouvrez l’espace avant de modifier les fichiers.',
+  'baseChatAst.panel.snapshotRestoredWithoutWorkspace':
+    'Le point de contrôle a été restauré dans le projet. L’espace de travail actif était inconnu, donc l’éditeur n’a pas été actualisé.',
+  'baseChatAst.panel.snapshotRestoreRefreshUnavailable':
+    'L’éditeur n’a pas pu confirmer les fichiers restaurés. Vérifiez l’historique des points de contrôle et rechargez l’éditeur.',
   'baseChatAst.panel.actionFailedHttp': 'Échec de l’action du panneau (HTTP {status}).',
   'baseChatAst.panel.actionFailed': 'Échec de l’action du panneau. Réessayez.',
   'baseChatAst.panel.shareCreated': 'Lien de partage créé.',
