@@ -270,6 +270,17 @@ export function DomainValue({ url }: { url: string }) {
           readOnly
           value={url}
           onFocus={(event) => event.currentTarget.select()}
+          onPointerDown={(event) => {
+            if (event.button !== 0) {
+              return;
+            }
+
+            // Place focus without letting WebKit collapse the selection to a caret.
+            event.preventDefault();
+            const field = event.currentTarget;
+            field.focus();
+            field.setSelectionRange(0, field.value.length);
+          }}
           className="min-w-0 w-full rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-2 text-sm text-bolt-elements-textPrimary"
         />
       ) : null}
