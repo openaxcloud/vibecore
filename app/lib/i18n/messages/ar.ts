@@ -8,6 +8,10 @@
 import type { TranslationBundle } from '~/lib/i18n/dictionary';
 
 export const ar: TranslationBundle = {
+  'root.startupFailureTitle': 'تعذر إكمال تحميل هذه الصفحة',
+  'root.startupFailureDetail': 'لم تصل بعض الموارد. تحقق من اتصالك ثم حاول مرة أخرى.',
+  'root.startupRetry': 'حاول مرة أخرى',
+
   // Patch review panel
   'patchReview.title': 'الملفات المعدّلة',
   'patchReview.filesCount': '{count} ملفات',

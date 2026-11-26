@@ -26,7 +26,7 @@ const steps = job.steps;
 const production = readFileSync('infra/helm/stage-manager-before-api.mjs', 'utf8');
 
 const referenceSource = production.slice(
-  production.indexOf('function terminalManagerPod('),
+  production.indexOf('function terminalManagerEvidence('),
   production.indexOf('/** Only bounded structural identities'),
 );
 
@@ -40,10 +40,10 @@ const context = {
   GITHUB_SHA: 'a'.repeat(40),
 };
 
-const stop = () => ({ ready: false, state: { terminated: { exitCode: 1 } } });
+const stop = () => ({ name: 'fixture', ready: false, state: { terminated: { exitCode: 1 } } });
 
 const pod = () => ({
-  spec: { containers: [{}] },
+  spec: { containers: [{ name: 'fixture' }] },
   status: { phase: 'Failed', conditions: [{ type: 'Ready', status: 'False' }], containerStatuses: [stop()] },
 });
 
@@ -146,16 +146,29 @@ const negatives = [
       p.status.phase = 'Running';
     },
   ],
+  ['duplicate Ready', (p) => p.status.conditions.push({ type: 'Ready', status: 'False' })],
   [
-    'conditions absent',
+    'ambiguous Ready',
     (p) => {
-      delete p.status.conditions;
+      p.status.conditions[0].status = 'Unknown';
     },
   ],
   [
-    'conditions empty',
+    'wrong container',
     (p) => {
-      p.status.conditions = [];
+      p.status.containerStatuses[0].name = 'other';
+    },
+  ],
+  [
+    'missing init status',
+    (p) => {
+      p.spec.initContainers = [{ name: 'init' }];
+    },
+  ],
+  [
+    'missing ephemeral status',
+    (p) => {
+      p.spec.ephemeralContainers = [{ name: 'debug' }];
     },
   ],
   [
@@ -264,7 +277,7 @@ const negatives = [
 
 describe('bounded diagnostic projection, not a new production predicate', () => {
   it('matches the actual production function, including all 512 combinations', () => {
-    expect(referenceSource.startsWith('function terminalManagerPod(')).toBe(true);
+    expect(referenceSource.startsWith('function terminalManagerEvidence(')).toBe(true);
 
     for (let bits = 0; bits < 512; bits++) {
       const p = pod();
@@ -318,6 +331,8 @@ describe('bounded diagnostic projection, not a new production predicate', () => 
   it.each(['Failed', 'Succeeded'])('accepts %s only with every required condition', (phase) => {
     const p = pod();
     p.status.phase = phase;
+    p.spec.initContainers = [{ name: 'fixture' }];
+    p.spec.ephemeralContainers = [{ name: 'fixture' }];
     p.status.initContainerStatuses = [stop()];
     p.status.ephemeralContainerStatuses = [stop()];
     expect(projectPod(p).terminal).toBe(true);

@@ -860,13 +860,54 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
       const terminal = await adapter.openTerminal();
       const firstTerminalSocket = FakeWebSocket.instances.at(-1)!;
+      await terminal.resize(92, 46);
       firstTerminalSocket.emit('close', {});
       await vi.advanceTimersByTimeAsync(1000);
       await Promise.resolve();
+      const reconnectedUrl = new URL(FakeWebSocket.instances.at(-1)!.url);
+      expect(reconnectedUrl.searchParams.get('cols')).toBe('92');
+      expect(reconnectedUrl.searchParams.get('rows')).toBe('46');
       terminal.write('echo after reconnect\n');
       expect(FakeWebSocket.instances.at(-1)!.sent).toContain(
         JSON.stringify({ type: 'stdin', data: 'echo after reconnect\n' }),
       );
+      terminal.kill();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('applies a resize received during reconnection without replaying input', async () => {
+    vi.useFakeTimers();
+    try {
+      const authToken = vi.fn<() => Promise<string>>().mockResolvedValue('test-token');
+      const adapter = new RemoteKubernetesRuntimeAdapter({
+        baseUrl: 'https://runtime.example.com',
+        authToken,
+        workspaceId: 'ws-1',
+        fetchImpl: createFetchMock() as typeof fetch,
+        WebSocketImpl: FakeWebSocket,
+      });
+      const terminal = await adapter.openTerminal();
+      const original = FakeWebSocket.instances.at(-1)!;
+      terminal.write('pwd\n');
+      await terminal.resize(92, 46);
+      let release!: (value: string) => void;
+      const pendingToken = new Promise<string>((resolve) => {
+        release = resolve;
+      });
+      authToken.mockReturnValueOnce(pendingToken);
+      original.readyState = 3;
+      original.emit('close', {});
+      await vi.advanceTimersByTimeAsync(1000);
+      await terminal.resize(100, 48);
+      release('test-token');
+      await vi.advanceTimersByTimeAsync(0);
+
+      const reopened = FakeWebSocket.instances.at(-1)!;
+      expect(reopened).not.toBe(original);
+      expect(reopened.sent).toContain(JSON.stringify({ type: 'resize', cols: 100, rows: 48 }));
+      expect(reopened.sent).not.toContain(JSON.stringify({ type: 'stdin', data: 'pwd\n' }));
       terminal.kill();
     } finally {
       vi.useRealTimers();
