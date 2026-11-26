@@ -64,6 +64,17 @@ function containers(values) {
   };
 }
 
+function namesMatch(statuses, declarations) {
+  if (!Array.isArray(statuses)) return statuses === undefined && !declarations?.length;
+  const names = new Set(statuses.map((entry) => entry.name));
+  return (
+    names.size === statuses.length &&
+    !names.has(undefined) &&
+    statuses.length === (declarations?.length ?? 0) &&
+    (declarations ?? []).every((entry) => names.has(entry?.name))
+  );
+}
+
 /** Diagnostic conjunction mirrors terminalManagerPod, never changes its decision. */
 export function projectPod(pod) {
   validatePod(pod);
@@ -76,11 +87,15 @@ export function projectPod(pod) {
 
   const required = {
     terminalPhase: ['Failed', 'Succeeded'].includes(status.phase),
-    conditionsArray: Array.isArray(conditions),
-    readyFalsePresent:
-      Array.isArray(conditions) && conditions.some((value) => value.type === 'Ready' && value.status === 'False'),
-    readyTrueAbsent:
-      Array.isArray(conditions) && !conditions.some((value) => value.type === 'Ready' && value.status === 'True'),
+    readyEvidenceConsistent:
+      conditions === undefined ||
+      (Array.isArray(conditions) &&
+        conditions.every((item) => item.type && typeof item.status === 'string') &&
+        conditions.filter((item) => item.type === 'Ready').length <= 1 &&
+        conditions.every((item) => item.type !== 'Ready' || item.status === 'False')),
+    mainNamesMatch: namesMatch(main, pod.spec?.containers),
+    initNamesMatch: namesMatch(init, pod.spec?.initContainers),
+    ephemeralNamesMatch: namesMatch(ephemeral, pod.spec?.ephemeralContainers),
     mainStatusesArray: Array.isArray(main),
     mainStatusesNonempty: Array.isArray(main) && main.length > 0,
     mainStatusCountMatchesSpec: Array.isArray(main) && main.length === pod.spec?.containers?.length,
