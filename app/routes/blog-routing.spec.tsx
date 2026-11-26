@@ -8,20 +8,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import BlogRoute, { loader as blogLoader } from './blog';
 import BlogDetailRoute, { loader as detailLoader } from './blog.$slug';
 import type { MarketingPageDefinition } from '~/components/marketing/EcodeMarketingPages';
+import { getMarketingExactLegalBlogCopy } from '~/lib/i18n/catalogs/marketing-exact-legal-blog';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '~/lib/i18n/language';
 import { createI18nInstance } from '~/lib/i18n/runtime';
-
-/*
- * Isolate the route outlet from the visual renderers. The real router, route
- * components and article loader run; these links do not certify the blog cards.
- */
-vi.mock('~/components/marketing/ecode-exact/pages/Blog', () => ({
-  default: () => (
-    <main>
-      <h1>Blog index fixture</h1>
-      <Link to="/blog/introducing-e-code?lang=en">Known article fixture</Link>
-    </main>
-  ),
-}));
+import { getEcodeBlogPosts } from '~/lib/marketing/ecode-public-api-data.server';
 
 vi.mock('~/components/marketing/EcodeMarketingPages', () => ({
   MarketingStaticPage: ({ page }: { page: MarketingPageDefinition }) => (
@@ -41,7 +31,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mount(path: string) {
+function mount(path: string, language: SupportedLanguage = 'en') {
   vi.stubGlobal('Request', FetchRequest);
 
   const router = createMemoryRouter(
@@ -51,14 +41,23 @@ function mount(path: string) {
         Component: BlogRoute,
         loader: blogLoader,
         HydrateFallback: () => null,
-        children: [{ path: ':slug', Component: BlogDetailRoute, loader: detailLoader }],
+        children: [
+          {
+            path: ':slug',
+            Component: BlogDetailRoute,
+            loader: (args) => {
+              args.request.headers.set('Accept-Language', language);
+              return detailLoader(args);
+            },
+          },
+        ],
       },
     ],
     { initialEntries: [path] },
   );
   routers.push(router);
   render(
-    <I18nextProvider i18n={createI18nInstance('en')}>
+    <I18nextProvider i18n={createI18nInstance(language)}>
       <RouterProvider router={router} />
     </I18nextProvider>,
   );
@@ -70,19 +69,35 @@ describe('nested blog route rendering', () => {
   it('renders the known article from its child loader on direct entry with one shell', async () => {
     mount('/blog/introducing-e-code?lang=en');
     expect(await screen.findByRole('heading', { name: 'Introducing E-Code AI Agent 2.0' })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Blog index fixture' })).toBeNull();
+    expect(
+      screen.queryByRole('heading', { name: getMarketingExactLegalBlogCopy('en').exactBlog.hero.title }),
+    ).toBeNull();
     expect(screen.getAllByRole('main')).toHaveLength(1);
   });
 
-  it('switches from index to child and restores the index through browser history', async () => {
-    const router = mount('/blog?lang=en');
-    await screen.findByRole('heading', { name: 'Blog index fixture' });
-    fireEvent.click(screen.getByRole('link', { name: 'Known article fixture' }));
-    expect(await screen.findByRole('heading', { name: 'Introducing E-Code AI Agent 2.0' })).toBeTruthy();
-    expect(screen.getAllByRole('main')).toHaveLength(1);
-    await act(async () => router.navigate(-1));
-    expect(await screen.findByRole('heading', { name: 'Blog index fixture' })).toBeTruthy();
-    expect(router.state.location.pathname).toBe('/blog');
-    expect(screen.getAllByRole('main')).toHaveLength(1);
-  });
+  it.each(SUPPORTED_LANGUAGES)(
+    'opens the published featured article from the real %s index and returns',
+    async (language) => {
+      const copy = getMarketingExactLegalBlogCopy(language).exactBlog;
+      const router = mount('/blog', language);
+      const indexHeading = { name: copy.hero.title };
+
+      await screen.findByRole('heading', indexHeading);
+
+      const links = screen.getAllByRole('link', { name: copy.articles.readMore });
+      expect(links).toHaveLength(1);
+
+      const destination = links[0].getAttribute('href');
+      const post = getEcodeBlogPosts(language).find((article) => article.featured && article.published);
+      expect(destination).toBe(`/blog/${post?.slug}`);
+      expect(post?.content).toBeTruthy();
+
+      fireEvent.click(links[0]);
+      await screen.findByRole('heading', { name: post!.title });
+      expect(router.state.location.pathname).toBe(destination);
+      expect(screen.getAllByRole('main')).toHaveLength(1);
+      await act(async () => router.navigate(-1));
+      await screen.findByRole('heading', indexHeading);
+    },
+  );
 });

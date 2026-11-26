@@ -141,7 +141,7 @@ describe('exact legal registry and blog catalogs', () => {
     expect(markup).toContain('Comment des sous-agents parallèles');
     expect(markup).toContain('Passez de la lecture à la création');
     expect(markup).toContain('Commencer gratuitement');
-    expect(markup).toContain('href="/blog"');
+    expect(markup).toContain('href="/blog/introducing-e-code"');
     expect(markup).toContain('/ecode-static/assets/product/ide.png');
     expect(markup).not.toContain('The E-Code blog');
     expect(markup).not.toContain('Latest posts');
