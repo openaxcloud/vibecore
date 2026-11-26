@@ -1,0 +1,31 @@
+.urlActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+
+  > a {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  > button {
+    flex-shrink: 0;
+  }
+}
+
+.qrImage {
+  display: block;
+  width: min(216px, 100%);
+  height: auto;
+  margin-top: 4px;
+  image-rendering: pixelated;
+}
+
+@container project-deploy (max-width: 600px) {
+  div:has(> dd .qrImage) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
