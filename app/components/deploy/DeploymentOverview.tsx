@@ -277,6 +277,7 @@ export function DomainValue({ url }: { url: string }) {
 
             // Place focus without letting WebKit collapse the selection to a caret.
             event.preventDefault();
+
             const field = event.currentTarget;
             field.focus();
             field.setSelectionRange(0, field.value.length);
