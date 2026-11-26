@@ -22332,18 +22332,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * so concurrent accepts for the same org can't both pass ensureQuota via TOCTOU
      * and over-seat the org past team.members.
      */
-    const invitation = existingMembership
+    const accepted = existingMembership
       ? await store.consumeOrganizationInvite(body.token, request.currentUser!.id)
       : await store.withSerializedMutation(`org-members:${pendingInvitation.organizationId}`, async () => {
           await ensureQuota(request, pendingInvitation.organizationId, 'team.members');
           return store.consumeOrganizationInvite(body.token, request.currentUser!.id);
         });
 
-    if (!invitation) {
+    if (!accepted) {
       return reply
         .code(400)
         .send({ error: appPublicEnglish('INVITATION_TOKEN_INVALID'), code: 'INVITE_INVALID_TOKEN' });
     }
+
+    const { invitation, roleKey } = accepted;
 
     if (adresseAVerifier) {
       await store.updateUser({ userId: request.currentUser!.id, emailVerifiedAt: new Date().toISOString() });
@@ -22367,7 +22369,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: invitation.id,
     });
 
-    return { invitation: { ...invitation, tokenHash: undefined } };
+    return { invitation: { ...invitation, tokenHash: undefined }, roleKey };
   });
 
   app.get('/orgs/:orgId/enterprise-settings', async (request) => {

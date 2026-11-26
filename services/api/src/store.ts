@@ -2563,7 +2563,10 @@ export interface ApiStore {
     expiresAt: Date;
   }): Promise<OrganizationInviteRecord>;
   findOrganizationInviteByToken(token: string): Promise<OrganizationInviteRecord | undefined>;
-  consumeOrganizationInvite(token: string, userId: string): Promise<OrganizationInviteRecord | undefined>;
+  consumeOrganizationInvite(
+    token: string,
+    userId: string,
+  ): Promise<{ invitation: OrganizationInviteRecord; roleKey: string } | undefined>;
   listOrganizationInvites(organizationId: string): Promise<OrganizationInviteRecord[]>;
   resendOrganizationInvite(
     inviteId: string,
