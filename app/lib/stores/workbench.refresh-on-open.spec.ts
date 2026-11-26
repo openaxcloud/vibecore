@@ -81,7 +81,11 @@ vi.mock('./files', async () => {
         return [];
       }
       resetFileModifications = vi.fn();
-      adoptRemoteContent = vi.fn(async (filePath: string) => {
+      adoptRemoteContent = vi.fn(async (filePath: string, viewIsCurrent: () => boolean) => {
+        if (!viewIsCurrent()) {
+          return 'hors-portee' as const;
+        }
+
         const distant = distantMock.get(filePath);
 
         if (distant === undefined) {

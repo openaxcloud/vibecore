@@ -84,7 +84,7 @@ export function boltFileActionsFromContent(content: string, normalizeProjectPath
       continue;
     }
 
-    files.push({ path: normalizedPath, content: corps.replace(/^\n/, '').replace(/\n$/, '') });
+    files.push({ path: normalizedPath, content: corps.replace(/^\n/, '') });
   }
 
   return files;

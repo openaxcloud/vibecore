@@ -24,7 +24,7 @@ async function invoke(fields: Record<string, unknown>, language = 'en') {
   const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
   const result = await action(args(fields, language)).catch((error: unknown) => error);
 
-  return result as { data: Record<string, unknown>; init: { status?: number } };
+  return result as { data: Record<string, unknown>; init: { status?: number; headers?: HeadersInit } };
 }
 
 function writes() {
@@ -83,6 +83,35 @@ describe('snapshot restore orchestration refuses unavailable combined operations
       });
     },
   );
+
+  it('only returns an inline, non-cacheable archive for an opted-in file restore', async () => {
+    apiRequest.mockResolvedValue({
+      editorArchive: 'local-fixture-archive',
+      editorWorkspaceId: 'fixture-runtime',
+      editorRuntimeSynced: true,
+    });
+
+    const result = await invoke({ includeEditorArchive: '1', editorWorkspaceId: 'fixture-runtime' });
+    expect(writes().map(([, path]) => path)).toEqual([
+      '/projects/project-restore/snapshots/snapshot%2Fone/restore?editorArchive=1&editorWorkspaceId=fixture-runtime',
+    ]);
+    expect(result.data).toMatchObject({
+      ok: true,
+      filesRestore: 'restored',
+      editorArchive: 'local-fixture-archive',
+      editorWorkspaceId: 'fixture-runtime',
+      editorRuntimeSynced: true,
+    });
+    expect(new Headers(result.init.headers).get('cache-control')).toBe('no-store');
+  });
+
+  it('does not leak unexpected payloads or propose an upload when inline bytes are omitted', async () => {
+    apiRequest.mockResolvedValue({ editorArchive: { base64: 'unexpected' } });
+
+    const result = await invoke({ includeEditorArchive: '1', editorWorkspaceId: 'fixture-runtime' });
+    expect(result.data).toMatchObject({ ok: true, filesRestore: 'restored' });
+    expect(result.data).not.toHaveProperty('editorArchive');
+  });
 
   it('reports successful requested agent-memory restoration separately from skipped database restoration', async () => {
     const result = await invoke({
