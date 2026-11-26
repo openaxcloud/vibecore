@@ -15,3 +15,17 @@
     flex-shrink: 0;
   }
 }
+
+.qrImage {
+  display: block;
+  width: min(216px, 100%);
+  height: auto;
+  margin-top: 4px;
+  image-rendering: pixelated;
+}
+
+@container project-deploy (max-width: 600px) {
+  div:has(> dd .qrImage) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

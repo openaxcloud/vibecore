@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Locator } from '@playwright/test';
+import jsQR from 'jsqr';
 
 const api = process.env.SAAS_API_URL ?? 'http://127.0.0.1:3001';
 const longHost = `${'a'.repeat(63)}.${'b'.repeat(63)}.example.test`;
@@ -282,7 +283,32 @@ for (const scenario of [
         await host.getByRole('button', { name: 'Copy URL', exact: true }).click();
         await expect(page.locator('html')).toHaveAttribute('data-copied-url', deployment.url);
         await host.getByRole('button', { name: 'Show QR code', exact: true }).click();
-        await expect(host.locator('canvas')).toBeVisible();
+
+        const qrImage = host.getByRole('img', { name: deployment.url, exact: true });
+        await expect(qrImage).toBeVisible();
+
+        // Decode the displayed screenshot, including CSS layout and browser scaling.
+        const screenshot = await qrImage.screenshot();
+
+        const pixels = await page.evaluate(async (png) => {
+          const image = new Image();
+          image.src = 'data:image/png;base64,' + png;
+          await image.decode();
+
+          const sample = document.createElement('canvas');
+          sample.width = image.width;
+          sample.height = image.height;
+
+          const context = sample.getContext('2d')!;
+          context.drawImage(image, 0, 0);
+
+          return {
+            width: sample.width,
+            height: sample.height,
+            data: Array.from(context.getImageData(0, 0, sample.width, sample.height).data),
+          };
+        }, screenshot.toString('base64'));
+        expect(jsQR(Uint8ClampedArray.from(pixels.data), pixels.width, pixels.height)?.data).toBe(deployment.url);
         await host.getByRole('button', { name: 'Hide QR code', exact: true }).click();
       }
 
