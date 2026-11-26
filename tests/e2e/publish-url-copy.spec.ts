@@ -214,6 +214,10 @@ for (const language of ['en', 'fr']) {
     ).toBeVisible();
     expect(await page.evaluate(() => (window as any).__clipboardWrites)).toEqual([deployment.url, deployment.url]);
     await expect(manual).toHaveCount(0);
-    expect(blockedMutations.filter((value) => !value.endsWith('/ide-state'))).toEqual([]);
+
+    // Both IDE startup requests were intercepted locally, alongside any unexpected mutation.
+    expect(
+      blockedMutations.filter((value) => value !== 'POST /api/runtime/runtime/boot' && !value.endsWith('/ide-state')),
+    ).toEqual([]);
   });
 }

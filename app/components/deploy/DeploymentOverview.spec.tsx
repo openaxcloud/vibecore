@@ -5,11 +5,9 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { I18nextProvider } from 'react-i18next';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { DeploymentOverview } from './DeploymentOverview';
 import { createI18nInstance } from '~/lib/i18n/runtime';
-
-vi.mock('react-qrcode-logo', () => ({ QRCode: () => null }));
 
 afterEach(cleanup);
 
