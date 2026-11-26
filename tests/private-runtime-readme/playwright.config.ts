@@ -5,5 +5,7 @@ export default defineConfig({
   testMatch: 'readme.playwright.ts',
   workers: 1,
   retries: 0,
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+
+  // Keep the Linux recipe's native user agent. A Windows UA defaults a one-line Monaco model to CRLF.
+  projects: [{ name: 'chromium', use: { browserName: 'chromium', viewport: devices['Desktop Chrome'].viewport } }],
 });
