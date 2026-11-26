@@ -13224,10 +13224,12 @@ function ProjectTerminalPanel({ projectId, paneId }: { projectId?: string; paneI
           status: response.status,
           serverError: result.error,
         });
+
         if (result.code === 'PANEL_EXECUTION_FAILED' && result.run) {
           // The API has already persisted the failed command and its output.
           await loadPanel();
         }
+
         setError(t('baseChatAst.terminal.actionFailedHttp', { status: response.status }));
 
         return;
