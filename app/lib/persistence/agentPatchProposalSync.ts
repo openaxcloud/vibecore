@@ -36,21 +36,30 @@ function endpoint(projectId: string, proposalId?: string) {
   return proposalId ? `${base}/${encodeURIComponent(proposalId)}` : base;
 }
 
-/**
- * Fetch every non-terminal proposal for the project. Returns an empty
- * array on any error so the caller can treat "no proposals" and "server
- * unreachable" identically — the user just sees an empty review queue.
- */
-export async function fetchOpenAgentPatchProposals(projectId: string): Promise<AgentPatchProposal[]> {
+// An unavailable snapshot must not be interpreted as an empty queue during recovery.
+export async function fetchOpenAgentPatchProposals(
+  projectId: string,
+  projectSignal?: AbortSignal,
+): Promise<AgentPatchProposal[] | undefined> {
+  if (projectSignal?.aborted) {
+    return undefined;
+  }
+
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  const deadline = setTimeout(abort, 8_000);
+  projectSignal?.addEventListener('abort', abort, { once: true });
+
   try {
     const response = await fetch(endpoint(projectId), {
+      signal: controller.signal,
       credentials: 'include',
       headers: COMMON_HEADERS,
     });
 
     if (!response.ok) {
       logger.warn(`Failed to fetch agent patch proposals: ${response.status}`);
-      return [];
+      return undefined;
     }
 
     const payload = (await response.json()) as ListResponse;
@@ -58,7 +67,10 @@ export async function fetchOpenAgentPatchProposals(projectId: string): Promise<A
     return payload.proposals ?? [];
   } catch (error) {
     logger.warn('Failed to fetch agent patch proposals:', error);
-    return [];
+    return undefined;
+  } finally {
+    clearTimeout(deadline);
+    projectSignal?.removeEventListener('abort', abort);
   }
 }
 

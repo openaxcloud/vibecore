@@ -9,6 +9,7 @@ const enveloppe = () => ({
     state: {
       ui: { rightPanelOpen: true, rightPanelWidth: 320 },
       chat: { messages: [] },
+      fileWriteClock: { replaced: 1, paths: { 'src/App.tsx': 6 } },
       files: {
         updatedAt: '2026-09-04T16:00:00.000Z',
         entries: [
@@ -25,6 +26,7 @@ describe('projectIdeStateForBrowser — sens 1 : le navigateur ne reçoit plus l
   it('drops files from what the browser gets', () => {
     const sortie = projectIdeStateForBrowser(enveloppe()) as any;
     expect(sortie.ideState.state.files).toBeUndefined();
+    expect(sortie.ideState.state.fileWriteClock).toBeUndefined();
   });
 
   it('keeps everything the browser actually reads', () => {
