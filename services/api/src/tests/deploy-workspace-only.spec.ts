@@ -95,6 +95,74 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
     });
   }
 
+  it('worker publication forwards its explicit workspace to the pod build', async () => {
+    const podBuild = vi.fn<WorkspacePodStaticBuild>(async () => ({
+      handled: true as const,
+      result: { ok: false as const, logs: [] },
+      tempDir: tempStaticRoot,
+    }));
+    const { app, store, auth, projectId } = await setup({ buildStaticInWorkspacePod: podBuild });
+    await store.createWorkspace({ id: 'workspace-secondary', projectId, name: 'Secondary', runtimeMode: 'remote' });
+    const queued = await store.createDeployment({
+      projectId,
+      workspaceId: 'workspace-secondary',
+      provider: 'static',
+      status: 'QUEUED',
+    });
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/internal/deployments/build',
+        headers: { authorization: 'Bearer internal-secret-test' },
+        payload: {
+          projectId,
+          deploymentId: queued.id,
+          userId: auth.user.id,
+          buildInput: {
+            provider: 'static',
+            buildCommand: 'npm run build',
+            outputDirectory: 'dist',
+            workspaceId: 'workspace-secondary',
+          },
+        },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(podBuild).toHaveBeenCalledTimes(1);
+      expect(podBuild.mock.calls[0]?.[2]).toMatchObject({ workspaceId: 'workspace-secondary' });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it.each(['workspace-secondary', undefined])(
+    'redeploy forwards the exact saved workspace (%s)',
+    async (workspaceId) => {
+      const podBuild = vi.fn<WorkspacePodStaticBuild>(async () => ({
+        handled: true as const,
+        result: { ok: false as const, logs: [] },
+        tempDir: tempStaticRoot,
+      }));
+      const { app, store, auth, projectId } = await setup({ buildStaticInWorkspacePod: podBuild });
+      await store.createWorkspace({ id: 'workspace-primary', projectId, name: 'Primary', runtimeMode: 'remote' });
+      await store.createWorkspace({ id: 'workspace-secondary', projectId, name: 'Secondary', runtimeMode: 'remote' });
+      const source = await store.createDeployment({ projectId, workspaceId, provider: 'static', status: 'READY' });
+
+      try {
+        const response = await app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/deployments/${source.id}/redeploy`,
+          headers: { authorization: `Bearer ${auth.token}` },
+        });
+        expect(response.statusCode).toBe(201);
+        expect(podBuild).toHaveBeenCalledTimes(1);
+        expect(podBuild.mock.calls[0]?.[2]).toMatchObject({ workspaceId });
+      } finally {
+        await app.close();
+      }
+    },
+  );
+
   it('FAILS cleanly when the workspace pod is unreachable — never builds in the api pod', async () => {
     // The in-api build spy: if this is ever called the fallback is back.
     const inApiBuildSpy = vi.fn(async () => ({ ok: true as const, outputDir: undefined, logs: [] }));
@@ -196,7 +264,11 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
       await mkdir(outputDir, { recursive: true });
       await writeFile(join(outputDir, 'index.html'), '<!doctype html><h1>Pod build</h1>', 'utf8');
       progress?.onPhase?.('building');
-      progress?.onLog?.({ timestamp: new Date().toISOString(), level: 'info', message: 'Workspace deploy: built in pod' });
+      progress?.onLog?.({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'Workspace deploy: built in pod',
+      });
 
       return {
         handled: true as const,
