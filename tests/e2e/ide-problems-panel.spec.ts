@@ -78,4 +78,11 @@ test('Problems status bar opens diagnostics in the desktop bottom drawer', async
   } finally {
     await page.screenshot({ path: info.outputPath('statusbar-opened.png') });
   }
+
+  const drawer = page.locator('.bolt-project-bottom-terminal');
+  await drawer.getByRole('button', { name: 'Close terminal panel' }).click();
+  await expect(drawer.locator('.bolt-project-problems-panel')).toBeHidden();
+
+  const editor = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="editor"]');
+  await expect(editor).toHaveAttribute('aria-selected', 'true');
 });

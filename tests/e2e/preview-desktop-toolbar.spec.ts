@@ -73,10 +73,10 @@ async function clippedControls(toolbar: Locator) {
         return (
           rect.width > 0 &&
           rect.height > 0 &&
-          (rect.left < bounds.left - 1 ||
-            rect.right > bounds.right + 1 ||
-            rect.top < bounds.top - 1 ||
-            rect.bottom > bounds.bottom + 1)
+          (rect.left < Math.max(0, bounds.left) - 1 ||
+            rect.right > Math.min(window.innerWidth, bounds.right) + 1 ||
+            rect.top < Math.max(0, bounds.top) - 1 ||
+            rect.bottom > Math.min(window.innerHeight, bounds.bottom) + 1)
         );
       })
       .map((control) => control.getAttribute('aria-label') ?? control.getAttribute('title') ?? control.textContent);
@@ -89,8 +89,10 @@ test('desktop Webview keeps commands visible beside Library and after resizing',
 
   const toolbar = page.locator('.bolt-project-webview-toolbar');
 
-  for (const width of [1440, 1024, 1920]) {
+  // At 1199px the IDE switches to the tablet shell with a separate preview panel.
+  for (const width of [1440, 1200, 1920]) {
     await page.setViewportSize({ width, height: 900 });
+    await expect(page.locator('.bolt-responsive-ide-desktop')).toBeVisible();
     await expect(toolbar).toBeVisible();
     await expect.poll(() => clippedControls(toolbar)).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`preview-toolbar-${width}.png`) });
