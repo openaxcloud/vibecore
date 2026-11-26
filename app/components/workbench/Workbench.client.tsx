@@ -805,7 +805,11 @@ export const Workbench = memo(
                 {/* Keep off-screen views mounted without letting their overflowing content
                     scroll this shared viewport when a descendant receives focus. */}
                 <div className="relative min-h-0 flex-1 overflow-clip" data-testid="workbench-view-viewport">
-                  <View initial={{ x: '0%' }} animate={{ x: activeWorkbenchView === 'code' ? '0%' : '-100%' }}>
+                  <View
+                    active={activeWorkbenchView === 'code'}
+                    initial={{ x: '0%' }}
+                    animate={{ x: activeWorkbenchView === 'code' ? '0%' : '-100%' }}
+                  >
                     <EditorPanel
                       paneId={paneId}
                       editorDocument={currentDocument}
@@ -830,6 +834,7 @@ export const Workbench = memo(
                     />
                   </View>
                   <View
+                    active={activeWorkbenchView === 'diff'}
                     initial={{ x: '100%' }}
                     animate={{
                       x: activeWorkbenchView === 'diff' ? '0%' : activeWorkbenchView === 'code' ? '100%' : '-100%',
@@ -839,7 +844,11 @@ export const Workbench = memo(
                       <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
                     </PanelBoundary>
                   </View>
-                  <View initial={{ x: '100%' }} animate={{ x: activeWorkbenchView === 'preview' ? '0%' : '100%' }}>
+                  <View
+                    active={activeWorkbenchView === 'preview'}
+                    initial={{ x: '100%' }}
+                    animate={{ x: activeWorkbenchView === 'preview' ? '0%' : '100%' }}
+                  >
                     <PanelBoundary title={copy['workbenchSurface.tab.preview']}>
                       <Preview
                         setSelectedElement={setSelectedElement}
@@ -852,7 +861,11 @@ export const Workbench = memo(
                       />
                     </PanelBoundary>
                   </View>
-                  <View initial={{ x: '100%' }} animate={{ x: activeWorkbenchView === 'git' ? '0%' : '100%' }}>
+                  <View
+                    active={activeWorkbenchView === 'git'}
+                    initial={{ x: '100%' }}
+                    animate={{ x: activeWorkbenchView === 'git' ? '0%' : '100%' }}
+                  >
                     <PanelBoundary title={copy['workbenchSurface.tab.git']}>
                       {projectId ? (
                         <GitTab projectId={projectId} />
@@ -875,12 +888,19 @@ export const Workbench = memo(
 
 // View component for rendering content with motion transitions
 interface ViewProps extends HTMLMotionProps<'div'> {
+  active: boolean;
   children: JSX.Element;
 }
 
-const View = memo(({ children, ...props }: ViewProps) => {
+const View = memo(({ active, children, ...props }: ViewProps) => {
   return (
-    <motion.div className="absolute inset-0" transition={viewTransition} {...props}>
+    <motion.div
+      className="absolute inset-0"
+      transition={viewTransition}
+      {...props}
+      aria-hidden={active ? undefined : true}
+      {...(active ? {} : { inert: '' })}
+    >
       {children}
     </motion.div>
   );
