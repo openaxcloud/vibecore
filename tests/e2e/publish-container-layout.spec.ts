@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Locator } from '@playwright/test';
+import jsQR from 'jsqr';
 
 const api = process.env.SAAS_API_URL ?? 'http://127.0.0.1:3001';
 const longHost = `${'a'.repeat(63)}.${'b'.repeat(63)}.example.test`;
@@ -256,6 +257,61 @@ for (const scenario of [
       const tab = host.locator('.bolt-project-tool-tabs').getByRole('button', { name: view, exact: true });
       await tab.click();
 
+      if (view === 'Overview' && scenario.history) {
+        const link = host.getByRole('link', { name: deployment.url, exact: true });
+        await expect(link).toHaveAttribute('href', deployment.url);
+
+        const availableWidth = await host.evaluate((element) => element.clientWidth);
+        expect((await link.boundingBox())!.width).toBeLessThanOrEqual(availableWidth);
+
+        const target = new URL(deployment.url).href;
+        await page
+          .context()
+          .route(target, (route) => route.fulfill({ contentType: 'text/html', body: '<h1>Published fixture</h1>' }));
+
+        const [published] = await Promise.all([page.waitForEvent('popup'), link.click()]);
+        await expect(published).toHaveURL(target);
+        await expect(published.getByRole('heading', { name: 'Published fixture' })).toBeVisible();
+        await published.close();
+
+        await page.evaluate(() => {
+          Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText: async (value: string) => (document.documentElement.dataset.copiedUrl = value) },
+          });
+        });
+        await host.getByRole('button', { name: 'Copy URL', exact: true }).click();
+        await expect(page.locator('html')).toHaveAttribute('data-copied-url', deployment.url);
+        await host.getByRole('button', { name: 'Show QR code', exact: true }).click();
+
+        const qrImage = host.getByRole('img', { name: deployment.url, exact: true });
+        await expect(qrImage).toBeVisible();
+
+        // Decode the displayed screenshot, including CSS layout and browser scaling.
+        const screenshot = await qrImage.screenshot();
+
+        const pixels = await page.evaluate(async (png) => {
+          const image = new Image();
+          image.src = 'data:image/png;base64,' + png;
+          await image.decode();
+
+          const sample = document.createElement('canvas');
+          sample.width = image.width;
+          sample.height = image.height;
+
+          const context = sample.getContext('2d')!;
+          context.drawImage(image, 0, 0);
+
+          return {
+            width: sample.width,
+            height: sample.height,
+            data: Array.from(context.getImageData(0, 0, sample.width, sample.height).data),
+          };
+        }, screenshot.toString('base64'));
+        expect(jsQR(Uint8ClampedArray.from(pixels.data), pixels.width, pixels.height)?.data).toBe(deployment.url);
+        await host.getByRole('button', { name: 'Hide QR code', exact: true }).click();
+      }
+
       if (view === 'Domains') {
         await expect(host.locator('.bolt-project-dns-record')).toHaveCount(4);
 
@@ -339,7 +395,11 @@ for (const scenario of [
       expect(keyboard.connected).toBe(true);
       await page.screenshot({ path: info.outputPath(`${view}-${scenario.width}.png`) });
     }
-    expect(blockedMutations.filter((value) => !value.endsWith('/ide-state'))).toEqual([]);
+
+    // Both IDE startup requests were intercepted locally, alongside any unexpected mutation.
+    expect(
+      blockedMutations.filter((value) => value !== 'POST /api/runtime/runtime/boot' && !value.endsWith('/ide-state')),
+    ).toEqual([]);
     await info.attach('layout-matrix.json', {
       body: JSON.stringify({ scenario, measurements, blockedMutations }, null, 2),
       contentType: 'application/json',
