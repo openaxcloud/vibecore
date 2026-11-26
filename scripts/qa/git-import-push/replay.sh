@@ -18,14 +18,12 @@ for change in first second third; do
   git -C "$QA_ROOT/seed" -c user.email=qa@example.invalid -c user.name=Fixture commit -qm "$change"
 done
 git clone --quiet --bare "$QA_ROOT/seed" "$QA_ROOT/origin.git"
-PATH="$QA_ROOT/bin:$PATH" GIT_ALLOW_PROTOCOL=file NODE_ENV=test services/api/node_modules/.bin/tsx "$proof_dir/server.mjs" >"$QA_ROOT/api.log" 2>&1 &
-api_pid=$!
 API_BASE_URL="$QA_API" SAAS_API_URL="$QA_API" node_modules/.bin/react-router dev --strictPort --host 127.0.0.1 --port "${WEB_PROOF_PORT:-19587}" >"$QA_ROOT/web.log" 2>&1 &
 web_pid=$!
-trap 'kill "$api_pid" "$web_pid" 2>/dev/null || true; rm -rf -- "$QA_ROOT"' EXIT
+trap 'kill "$web_pid" 2>/dev/null || true; rm -rf -- "$QA_ROOT"' EXIT
 for n in {1..120}; do
-  kill -0 "$api_pid" "$web_pid"
-  if curl -fsS "$QA_API/health" >/dev/null 2>&1 && (echo > /dev/tcp/127.0.0.1/${WEB_PROOF_PORT:-19587}) 2>/dev/null; then break; fi
+  kill -0 "$web_pid"
+  if (echo > /dev/tcp/127.0.0.1/${WEB_PROOF_PORT:-19587}) 2>/dev/null; then break; fi
   sleep 1
 done
 node "$proof_dir/browser.mjs" | tee "$QA_ROOT/browser.log"

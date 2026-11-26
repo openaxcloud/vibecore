@@ -1,9 +1,28 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, fork } from 'node:child_process';
+import { once } from 'node:events';
+import { rm } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import JSZip from 'jszip';
 
 const { QA_WEB: web, QA_API: api, QA_ROOT: root } = process.env;
+let server;
+async function startApi(rows = {}) {
+  server = fork(new URL('./server.mjs', import.meta.url), [], {
+    execArgv: ['--import', './services/api/node_modules/tsx/dist/loader.mjs'],
+    serialization: 'advanced',
+    env: { ...process.env, PATH: root + '/bin:' + process.env.PATH, GIT_ALLOW_PROTOCOL: 'file', NODE_ENV: 'test' },
+    stdio: ['ignore', 'ignore', 'inherit', 'ipc'],
+  });
+  const ready = Promise.race([
+    once(server, 'message').then(([message]) => assert.equal(message, 'ready')),
+    once(server, 'exit').then(() => { throw Error('API exited before signalling readiness'); }),
+  ]);
+  server.send(rows);
+  await ready;
+}
+process.on('exit', () => server?.kill('SIGKILL'));
+await startApi();
 const auth = await (
   await fetch(api + '/auth/register', {
     method: 'POST',
@@ -48,8 +67,24 @@ try {
     body: JSON.stringify({ zipBase64: await zip.generateAsync({ type: 'base64' }), replaceExisting: true }),
   });
   assert.equal(seed.ok, true);
+  const oldPid = server.pid;
+  const rows = once(server, 'message');
+  const stopped = once(server, 'exit');
+  server.send('stop');
+  const [database] = await rows;
+  assert.deepEqual(await stopped, [0, null]);
+  await rm(process.env.GIT_IMPORT_SCRATCH_DIR, { recursive: true, force: true });
+  await startApi(database);
+  assert.notEqual(server.pid, oldPid);
+  assert.equal((await fetch(api + '/orgs/' + org + '/projects')).status, 401);
+  const reopened = await (await fetch(api + '/orgs/' + org + '/projects', { headers })).json();
+  assert.ok(reopened.projects.some((item) => item.id === project.id));
+  assert.equal(git(['rev-parse', 'HEAD']), before);
+  assert.equal(git(['remote', 'get-url', 'origin']), 'https://forge.example.invalid/qa/project.git');
+  const projectUrl = page.url();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('ide-dock-git').click();
+  assert.equal(page.url(), projectUrl);
   await page.getByRole('button', { name: /^(Tout indexer|Stage all)$/ }).click();
   await page.locator('textarea[name="message"],input[name="message"]').first().fill('UI history proof');
   const commit = page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('ide-panel/git'));
@@ -67,5 +102,6 @@ try {
   if (!response.ok() || git(['rev-parse', 'main'], bare) !== expected) throw Error('push did not update bare remote');
   console.log('verified bare main', expected);
 } finally {
+  server.kill();
   await browser.close();
 }
