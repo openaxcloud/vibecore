@@ -69,8 +69,24 @@ export const baseChatAstEn = {
   'baseChatAst.panel.loadFailedHttp': 'The IDE panel could not be loaded (HTTP {status}).',
   'baseChatAst.panel.loadFailed': 'The IDE panel could not be loaded. Try again.',
   'baseChatAst.panel.submitting': 'Submitting action…',
+  'baseChatAst.panel.snapshotRestoreWaitForEdits':
+    'Save pending changes and wait for any publication request to finish before restoring a checkpoint.',
+  'baseChatAst.panel.snapshotRestoredNewerEdits':
+    'The checkpoint was restored, but newer editor changes were kept. Resolve them before reloading the editor.',
+  'baseChatAst.panel.snapshotRestoredRuntimePending':
+    'The checkpoint is restored in the project, but the remote workspace did not sync. Reopen the workspace before editing the files.',
+  'baseChatAst.panel.snapshotRestoredWithoutWorkspace':
+    'The checkpoint was restored in the project. The active workspace was unknown, so the editor was not refreshed.',
+  'baseChatAst.panel.snapshotRestoreRefreshUnavailable':
+    'The editor could not confirm the restored files. Check the checkpoint history and reload the editor.',
   'baseChatAst.panel.actionFailedHttp': 'The panel action failed (HTTP {status}).',
   'baseChatAst.panel.actionFailed': 'The panel action failed. Try again.',
+  'baseChatAst.panel.publicationLegacyTarget':
+    'This older deployment has no recorded workspace. Open Manage and create a new publication from the current workspace.',
+  'baseChatAst.panel.publicationRestoreInProgress':
+    'Wait for the checkpoint restoration to finish before publishing this workspace.',
+  'baseChatAst.panel.publicationSaveFailed':
+    'Publication has not started: your current files could not be saved. Check your project and save your edits, then try again.',
   'baseChatAst.panel.shareCreated': 'Share link created.',
   'baseChatAst.panel.action.destructiveSubmitted': 'The action was submitted.',
   'baseChatAst.panel.action.started': 'The action started.',
@@ -807,8 +823,24 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.panel.loadFailedHttp': 'Impossible de charger le panneau de l’IDE (HTTP {status}).',
   'baseChatAst.panel.loadFailed': 'Impossible de charger le panneau de l’IDE. Réessayez.',
   'baseChatAst.panel.submitting': 'Envoi de l’action…',
+  'baseChatAst.panel.snapshotRestoreWaitForEdits':
+    'Enregistrez les modifications en cours et attendez la fin de toute demande de publication avant de restaurer un point de contrôle.',
+  'baseChatAst.panel.snapshotRestoredNewerEdits':
+    'Le point de contrôle a été restauré, mais les modifications plus récentes ont été conservées. Traitez-les avant de recharger l’éditeur.',
+  'baseChatAst.panel.snapshotRestoredRuntimePending':
+    'Le point de contrôle est restauré dans le projet, mais l’espace de travail distant n’a pas été synchronisé. Rouvrez l’espace avant de modifier les fichiers.',
+  'baseChatAst.panel.snapshotRestoredWithoutWorkspace':
+    'Le point de contrôle a été restauré dans le projet. L’espace de travail actif était inconnu, donc l’éditeur n’a pas été actualisé.',
+  'baseChatAst.panel.snapshotRestoreRefreshUnavailable':
+    'L’éditeur n’a pas pu confirmer les fichiers restaurés. Vérifiez l’historique des points de contrôle et rechargez l’éditeur.',
   'baseChatAst.panel.actionFailedHttp': 'Échec de l’action du panneau (HTTP {status}).',
   'baseChatAst.panel.actionFailed': 'Échec de l’action du panneau. Réessayez.',
+  'baseChatAst.panel.publicationLegacyTarget':
+    'Cet ancien déploiement n’a pas d’espace de travail enregistré. Ouvrez Gérer et créez une nouvelle publication depuis l’espace actuel.',
+  'baseChatAst.panel.publicationRestoreInProgress':
+    'Attendez la fin de la restauration du point de contrôle avant de publier cet espace de travail.',
+  'baseChatAst.panel.publicationSaveFailed':
+    'La publication n’a pas démarré : vos fichiers actuels n’ont pas pu être enregistrés. Vérifiez le projet et enregistrez vos modifications, puis réessayez.',
   'baseChatAst.panel.shareCreated': 'Lien de partage créé.',
   'baseChatAst.panel.action.destructiveSubmitted': 'Action envoyée.',
   'baseChatAst.panel.action.started': 'Action démarrée.',

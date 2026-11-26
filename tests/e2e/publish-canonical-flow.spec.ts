@@ -52,6 +52,26 @@ async function openManage(page: Page, projectId: string, workspaceId?: string) {
   return host;
 }
 
+test('desktop Publish receives a center click after the agent separator mounts', async ({ page, request }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  const { projectId } = await fixture(page, request);
+  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-agent-resize-handle')).toBeVisible({ timeout: 60_000 });
+
+  const publish = page.locator('.bolt-project-publish-button');
+  await expect
+    .poll(() =>
+      publish.evaluate((link) => {
+        const box = link.getBoundingClientRect();
+        return link.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+      }),
+    )
+    .toBe(true);
+  await publish.click();
+  await expect(page).toHaveURL(/panel=deployments/);
+});
+
 test('top Publish, dashboard navigation and legacy bookmark open the same publish host', async ({
   page,
   request,

@@ -1,6 +1,7 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import JSZip from 'jszip';
 import { hashPassword } from '@vibecore/auth';
 import type { WorkspaceK8sClient } from '@vibecore/k8s-client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,11 +34,13 @@ describe('project snapshot restore preserves encoding through API to agent', () 
   let storageRoot: string;
   let agentRoot: string;
   let projectId: string;
+  let workspaceId: string;
   let baseUrl: string;
   let app: Awaited<ReturnType<typeof buildApiApp>>;
   let agent: ReturnType<typeof buildWorkspaceAgentApp>;
   let managerApp: ReturnType<typeof buildWorkspaceManagerApp>;
   let forbiddenCalls = 0;
+  let rejectAgentWrite = false;
 
   const forbidInfrastructureCall = (): never => {
     forbiddenCalls += 1;
@@ -66,6 +69,7 @@ describe('project snapshot restore preserves encoding through API to agent', () 
   beforeEach(async () => {
     store = new TestApiStore();
     forbiddenCalls = 0;
+    rejectAgentWrite = false;
     receivedWrites.length = 0;
     root = await mkdtemp(join(tmpdir(), 'vibecore-snapshot-agent-encoding-'));
     storageRoot = join(root, 'api-storage');
@@ -96,9 +100,7 @@ describe('project snapshot restore preserves encoding through API to agent', () 
     await store.upsertSubscription({ organizationId: organization.id, planKey: 'team', status: 'ACTIVE' });
     projectId = (await store.createProject({ organizationId: organization.id, name: 'Project', slug: 'project' })).id;
 
-    const workspaceId = (
-      await store.createWorkspace({ projectId, name: 'Workspace', runtimeMode: 'remote-kubernetes' })
-    ).id;
+    workspaceId = (await store.createWorkspace({ projectId, name: 'Workspace', runtimeMode: 'remote-kubernetes' })).id;
 
     const managerStore = new JsonWorkspaceStore(join(root, 'manager', 'workspaces.json'));
     await managerStore.create({
@@ -118,10 +120,14 @@ describe('project snapshot restore preserves encoding through API to agent', () 
     vi.stubEnv('WORKSPACE_MANAGER_URL', await managerApp.listen({ host: '127.0.0.1', port: 0 }));
 
     agent = buildWorkspaceAgentApp({ workspaceId, workspaceRoot: agentRoot, tokenSecret });
-    agent.addHook('preHandler', async (request) => {
+    agent.addHook('preHandler', async (request, reply) => {
       if (request.method === 'POST' && request.url === '/files/write') {
         const body = request.body as { path: string; encoding?: string };
         receivedWrites.push({ path: body.path, encoding: body.encoding });
+
+        if (rejectAgentWrite) {
+          return reply.code(503).send({ code: 'TEST_AGENT_REJECTED' });
+        }
       }
     });
     vi.stubEnv('WORKSPACE_AGENT_URL_TEMPLATE', await agent.listen({ host: '127.0.0.1', port: 0 }));
@@ -144,6 +150,7 @@ describe('project snapshot restore preserves encoding through API to agent', () 
       encoding: 'base64' as const,
     },
     { path: 'README.md', bytes: Buffer.from('Restauration réelle — café 🌍\n', 'utf8'), encoding: 'utf8' as const },
+    { path: 'empty.txt', bytes: Buffer.alloc(0), encoding: 'utf8' as const },
   ])('restores the original $encoding bytes in API storage AND the real agent workspace', async (file) => {
     await projectStorage.writeFiles(projectId, [
       { path: file.path, content: file.bytes.toString(file.encoding), encoding: file.encoding },
@@ -159,9 +166,21 @@ describe('project snapshot restore preserves encoding through API to agent', () 
     await writeFile(join(agentRoot, file.path), 'changed independently in workspace');
     receivedWrites.length = 0;
 
-    const restored = await post(`/projects/${projectId}/snapshots/${snapshot.id}/restore`);
+    const restored = await post(
+      `/projects/${projectId}/snapshots/${snapshot.id}/restore?editorArchive=1&editorWorkspaceId=${encodeURIComponent(workspaceId)}`,
+    );
 
     expect(restored.status).toBe(200);
+    expect(restored.headers.get('cache-control')).toBe('no-store');
+    const { editorArchive, editorWorkspaceId, editorRuntimeSynced } = (await restored.json()) as {
+      editorArchive: string;
+      editorWorkspaceId: string;
+      editorRuntimeSynced: boolean;
+    };
+    expect(editorWorkspaceId).toBe(workspaceId);
+    expect(editorRuntimeSynced).toBe(true);
+    const editorZip = await JSZip.loadAsync(editorArchive, { base64: true });
+    expect(await editorZip.file(file.path)?.async('nodebuffer')).toEqual(file.bytes);
     expect(await readFile(join(storageRoot, projectId, file.path))).toEqual(file.bytes);
     expect(await readFile(join(agentRoot, file.path))).toEqual(file.bytes);
     expect(receivedWrites.filter((write) => write.path === file.path)).toHaveLength(1);
@@ -171,5 +190,54 @@ describe('project snapshot restore preserves encoding through API to agent', () 
     }
 
     expect(forbiddenCalls).toBe(0);
+  });
+  it.each(['', '&editorWorkspaceId=another-workspace'])(
+    'rejects a missing or mismatching opt-in workspace %s before any mutation',
+    async (workspaceQuery) => {
+      await projectStorage.writeFiles(projectId, [{ path: 'audit.txt', content: 'saved checkpoint' }]);
+      const started = await post(`/projects/${projectId}/snapshots`, { label: 'Fixture checkpoint' });
+      expect(started.status).toBe(201);
+      const { snapshot } = (await started.json()) as { snapshot: { id: string } };
+      const preRestoreSnapshots = await store.listSnapshots(projectId);
+      await projectStorage.writeFiles(projectId, [{ path: 'audit.txt', content: 'new durable file' }]);
+      const result = await post(
+        `/projects/${projectId}/snapshots/${snapshot.id}/restore?editorArchive=1${workspaceQuery}`,
+      );
+      expect(result.status).toBe(409);
+      expect(await store.listSnapshots(projectId)).toEqual(preRestoreSnapshots);
+      expect(await readFile(join(storageRoot, projectId, 'audit.txt'), 'utf8')).toBe('new durable file');
+      expect(receivedWrites).toHaveLength(0);
+    },
+  );
+
+  it('keeps the legacy project restore working without an editor workspace or archive', async () => {
+    await projectStorage.writeFiles(projectId, [{ path: 'audit.txt', content: 'legacy checkpoint' }]);
+    const created = await post(`/projects/${projectId}/snapshots`, { label: 'Legacy checkpoint' });
+    const { snapshot } = (await created.json()) as { snapshot: { id: string } };
+    await projectStorage.writeFiles(projectId, [{ path: 'audit.txt', content: 'changed after checkpoint' }]);
+    const restored = await post(`/projects/${projectId}/snapshots/${snapshot.id}/restore`);
+    expect(restored.status).toBe(200);
+    expect(await restored.json()).not.toHaveProperty('editorArchive');
+    expect(await readFile(join(storageRoot, projectId, 'audit.txt'), 'utf8')).toBe('legacy checkpoint');
+  });
+
+  it('keeps the durable restore and does not certify remotely coherent bytes if the agent rejects a write', async () => {
+    await projectStorage.writeFiles(projectId, [{ path: 'audit.txt', content: 'saved checkpoint' }]);
+    const started = await post(`/projects/${projectId}/snapshots`, { label: 'Fixture checkpoint' });
+    expect(started.status).toBe(201);
+    const { snapshot } = (await started.json()) as { snapshot: { id: string } };
+    await projectStorage.writeFiles(projectId, [{ path: 'audit.txt', content: 'new durable file' }]);
+    await writeFile(join(agentRoot, 'audit.txt'), 'old live bytes');
+    rejectAgentWrite = true;
+    const result = await post(
+      `/projects/${projectId}/snapshots/${snapshot.id}/restore?editorArchive=1&editorWorkspaceId=${encodeURIComponent(workspaceId)}`,
+    );
+    expect(result.status).toBe(200);
+    const body = await result.json();
+    expect(body).toMatchObject({ editorWorkspaceId: workspaceId, editorRuntimeSynced: false });
+    expect(body).not.toHaveProperty('editorArchive');
+    expect(receivedWrites).toContainEqual({ path: 'audit.txt', encoding: 'utf8' });
+    expect(await readFile(join(storageRoot, projectId, 'audit.txt'), 'utf8')).toBe('saved checkpoint');
+    expect(await readFile(join(agentRoot, 'audit.txt'), 'utf8')).toBe('old live bytes');
   });
 });

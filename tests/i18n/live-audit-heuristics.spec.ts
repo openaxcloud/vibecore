@@ -178,9 +178,17 @@ describe('French live-audit heuristics', () => {
     'Améliorer project/README.md à partir du fichier ouvert.',
     'Les métriques Cloud Monitoring restent disponibles.',
     'Utilisez la file d’attente habituelle pour contacter le support.',
+    'Utiliser des files d’attente pour les traitements longs',
+    "Deux files d'attente sont disponibles.",
     'Tarifs E-Code : Starter avec des crédits quotidiens, Core à 25 € et Enterprise sur devis.',
   ])('accepts the non-translatable technical or commercial context in %j', (text) => {
     expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+  });
+
+  it('still flags English file labels alongside the French queue expression', () => {
+    expect(findFrenchAuditResidue([], [entry('Consultez les files dans les files d’attente.')])).toEqual([
+      expect.objectContaining({ reason: 'forbidden-term' }),
+    ]);
   });
 
   it('does not confuse common French homographs with English product terms', () => {
