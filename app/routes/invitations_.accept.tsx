@@ -85,7 +85,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 
   try {
-    const result = await apiRequest<{ organizationId: string; roleKey: string }>(request, '/invitations/accept', {
+    const result = await apiRequest<{ roleKey?: string }>(request, '/invitations/accept', {
       method: 'POST',
       body: JSON.stringify({ token: body.token }),
     });

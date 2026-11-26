@@ -4918,11 +4918,11 @@ export class PrismaApiStore implements ApiStore {
      */
     const existingMembership = await this.getMembership(userId, invite.organizationId);
 
-    if (!existingMembership) {
-      await this.addMember({ organizationId: invite.organizationId, userId, roleKey: invite.role.key });
-    }
+    const membership =
+      existingMembership ??
+      (await this.addMember({ organizationId: invite.organizationId, userId, roleKey: invite.role.key }));
 
-    return mapOrganizationInvite({ ...invite, acceptedAt: consumedAt });
+    return { invitation: mapOrganizationInvite({ ...invite, acceptedAt: consumedAt }), roleKey: membership.roleKey };
   }
 
   async listOrganizationInvites(organizationId: string) {
