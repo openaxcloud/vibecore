@@ -256,6 +256,36 @@ for (const scenario of [
       const tab = host.locator('.bolt-project-tool-tabs').getByRole('button', { name: view, exact: true });
       await tab.click();
 
+      if (view === 'Overview' && scenario.history) {
+        const link = host.getByRole('link', { name: deployment.url, exact: true });
+        await expect(link).toHaveAttribute('href', deployment.url);
+
+        const availableWidth = await host.evaluate((element) => element.clientWidth);
+        expect((await link.boundingBox())!.width).toBeLessThanOrEqual(availableWidth);
+
+        const target = new URL(deployment.url).href;
+        await page
+          .context()
+          .route(target, (route) => route.fulfill({ contentType: 'text/html', body: '<h1>Published fixture</h1>' }));
+
+        const [published] = await Promise.all([page.waitForEvent('popup'), link.click()]);
+        await expect(published).toHaveURL(target);
+        await expect(published.getByRole('heading', { name: 'Published fixture' })).toBeVisible();
+        await published.close();
+
+        await page.evaluate(() => {
+          Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText: async (value: string) => (document.documentElement.dataset.copiedUrl = value) },
+          });
+        });
+        await host.getByRole('button', { name: 'Copy URL', exact: true }).click();
+        await expect(page.locator('html')).toHaveAttribute('data-copied-url', deployment.url);
+        await host.getByRole('button', { name: 'Show QR code', exact: true }).click();
+        await expect(host.locator('canvas')).toBeVisible();
+        await host.getByRole('button', { name: 'Hide QR code', exact: true }).click();
+      }
+
       if (view === 'Domains') {
         await expect(host.locator('.bolt-project-dns-record')).toHaveCount(4);
 
@@ -339,7 +369,11 @@ for (const scenario of [
       expect(keyboard.connected).toBe(true);
       await page.screenshot({ path: info.outputPath(`${view}-${scenario.width}.png`) });
     }
-    expect(blockedMutations.filter((value) => !value.endsWith('/ide-state'))).toEqual([]);
+
+    // Both IDE startup requests were intercepted locally, alongside any unexpected mutation.
+    expect(
+      blockedMutations.filter((value) => value !== 'POST /api/runtime/runtime/boot' && !value.endsWith('/ide-state')),
+    ).toEqual([]);
     await info.attach('layout-matrix.json', {
       body: JSON.stringify({ scenario, measurements, blockedMutations }, null, 2),
       contentType: 'application/json',
