@@ -75,6 +75,30 @@ describe('TerminalSessionManager (fallback shell)', () => {
     expect(output).toContain('[persisted-value]');
   });
 
+  it('preserves a partially typed command across a terminal resize', async () => {
+    const manager = await newManager();
+    const session = await manager.getOrCreate('resize-input');
+
+    session.write('greeting=hel');
+    session.resize(100, 40);
+    session.write('lo\n');
+    session.write('printf "<%s>\\n" "$greeting"\n');
+    session.write('printf "%s-done\\n" resize\n');
+
+    const output = await collectUntil(session, (buffer) => buffer.includes('resize-done'));
+    expect(output).toContain('<hello>');
+  });
+
+  it('submits a typed command on the Enter key from xterm', async () => {
+    const manager = await newManager();
+    const session = await manager.getOrCreate('enter-key');
+
+    session.write('printf "[%s]" hello');
+    session.write('\r');
+
+    expect(await collectUntil(session, (buffer) => buffer.includes('[hello]'))).toContain('[hello]');
+  });
+
   it('keeps sessions independent', async () => {
     const manager = await newManager();
     const a = await manager.getOrCreate('a');

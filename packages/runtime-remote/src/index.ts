@@ -159,7 +159,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   #fetch: typeof fetch;
   #WebSocket?: WebSocketConstructor;
   #session?: WorkspaceSession;
-  #terminals = new Map<string, WebSocketLike>();
+  #terminals = new Map<string, { socket: WebSocketLike; cols: number; rows: number }>();
   #terminalStops = new Map<string, () => void>();
   #eventStreams = new Map<string, AsyncQueue<CommandEvent>>();
   #socketConnectTimeoutMs = 30_000;
@@ -787,13 +787,20 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * on reattach, so reusing the same id across reconnects keeps a single shell alive
      * instead of spawning a fresh one (and losing the running command) each time.
      */
-    const terminalPath = buildTerminalPath(
-      this.#requireWorkspaceId(),
-      terminalId,
-      cols,
-      rows,
-      Boolean(request.managed),
-    );
+    const openTerminalSocket = (cols: number, rows: number) => {
+      const terminalPath = buildTerminalPath(
+        this.#requireWorkspaceId(),
+        terminalId,
+        cols,
+        rows,
+        Boolean(request.managed),
+      );
+      return this.#openSocket(terminalPath, {
+        ...request,
+        terminalId,
+        terminal: { ...request.terminal, cols, rows },
+      });
+    };
 
     let stopped = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
@@ -821,10 +828,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     // Bound the reconnect so a workspace that stays unreachable can't flap forever.
     const MAX_RECONNECT_ATTEMPTS = 8;
 
-    let socket = await this.#openSocket(terminalPath, {
-      terminalId,
-      ...request,
-    });
+    let socket = await openTerminalSocket(cols, rows);
 
     const queue = new AsyncQueue<CommandEvent>();
 
@@ -990,10 +994,13 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       try {
         unbindSocket(socket);
 
-        const opened = await this.#openSocket(terminalPath, {
-          terminalId,
-          ...request,
-        });
+        const geometry = this.#terminals.get(terminalId);
+        if (!geometry) {
+          return;
+        }
+
+        const { cols, rows } = geometry;
+        const opened = await openTerminalSocket(cols, rows);
 
         /*
          * The terminal may have been stopped/halted while #openSocket was in flight.
@@ -1006,7 +1013,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         }
 
         socket = opened;
-        this.#terminals.set(terminalId, socket);
+        geometry.socket = socket;
+        if (geometry.cols !== cols || geometry.rows !== rows) {
+          socket.send(JSON.stringify({ type: 'resize', cols: geometry.cols, rows: geometry.rows }));
+        }
         bindSocket(socket);
         startHeartbeat();
 
@@ -1029,7 +1039,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     };
     bindSocket(socket);
     startHeartbeat();
-    this.#terminals.set(terminalId, socket);
+    this.#terminals.set(terminalId, { socket, cols, rows });
     this.#terminalStops.set(terminalId, () => {
       stopped = true;
 
@@ -1085,11 +1095,18 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async resizeTerminal(terminalId: string, cols: number, rows: number): Promise<void> {
-    this.#terminals.get(terminalId)?.send(JSON.stringify({ type: 'resize', cols, rows }));
+    const terminal = this.#terminals.get(terminalId);
+    if (terminal) {
+      terminal.cols = cols;
+      terminal.rows = rows;
+      if (terminal.socket.readyState === 1) {
+        terminal.socket.send(JSON.stringify({ type: 'resize', cols, rows }));
+      }
+    }
   }
 
   async killProcess(processId: string): Promise<void> {
-    const terminal = this.#terminals.get(processId);
+    const terminal = this.#terminals.get(processId)?.socket;
 
     if (terminal) {
       /*
