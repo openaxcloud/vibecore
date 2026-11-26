@@ -1,11 +1,16 @@
 /** @vitest-environment jsdom */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { FileChange, RuntimeAdapter } from '@vibecore/runtime-contract';
 import JSZip from 'jszip';
+import ts from 'typescript';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FilesStore } from './files';
 import { WorkbenchStore } from './workbench';
+import { publicationSaveTarget } from '~/components/deploy/publication-save-target';
 import { prefetchInitialProjectArchive } from '~/lib/ide/initial-project-archive';
+import { PublicationSaveError } from '~/lib/publication-save-error';
 
 const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
   const runtimeFiles = new Map<string, string>();
@@ -104,11 +109,31 @@ let projectSequence = 0;
 
 const path = '/home/project/audit.txt';
 
-async function archive(content = 'saved document') {
+async function archiveBytes(content = 'saved document') {
   const zip = new JSZip();
   zip.file('audit.txt', content);
 
-  return new Response(JSON.stringify({ archive: { base64: await zip.generateAsync({ type: 'base64' }) } }));
+  return zip.generateAsync({ type: 'base64' });
+}
+
+async function archive(content = 'saved document') {
+  return new Response(JSON.stringify({ archive: { base64: await archiveBytes(content) } }));
+}
+
+function delayNextArchiveDecode() {
+  const decode = JSZip.loadAsync.bind(JSZip);
+
+  let release!: () => void;
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  vi.spyOn(JSZip, 'loadAsync').mockImplementationOnce(async (...args) => {
+    await gate;
+    return decode(...args);
+  });
+
+  return release;
 }
 
 function setup() {
@@ -131,6 +156,258 @@ function stubArchive(load: () => Promise<Response>) {
   return downloads;
 }
 
+/*
+ * Execute the real merged submission function, bound to the real shared
+ * Workbench. Its BFF and workspace file transport are test boundaries; never
+ * treat a fake BFF response as a build, publication, or anonymous URL proof.
+ */
+function bindCombinedSubmit(
+  store: WorkbenchStore,
+  projectId: string,
+  panel: 'snapshots' | 'deployments',
+  fetchPanel: (path: string, init: { body: FormData }) => Promise<Response>,
+) {
+  const source = readFileSync(resolve('app/components/chat/BaseChat.tsx'), 'utf8');
+  const tree = ts.createSourceFile('BaseChat.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+
+  const container = tree.statements.find(
+    (node): node is ts.FunctionDeclaration =>
+      ts.isFunctionDeclaration(node) && node.name?.text === 'ProjectIdeApiServicePanel',
+  );
+  const submit = container?.body?.statements.find(
+    (node): node is ts.FunctionDeclaration => ts.isFunctionDeclaration(node) && node.name?.text === 'submit',
+  );
+
+  if (!submit) {
+    throw new Error('Missing actual merged submit function');
+  }
+
+  const compiled = ts.transpileModule(`return (${submit.getText(tree)});`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const bindings = {
+    projectId,
+    panel,
+    requestedWorkspaceId: 'selected-workspace',
+    FormData,
+    fetchPanel,
+    payload: undefined,
+    setBusy: vi.fn(),
+    setActionNotice: vi.fn(),
+    setError: vi.fn(),
+    loadPanel: vi.fn(),
+    t: (key: string) => key,
+    workbenchStore: store,
+    publicationSaveTarget,
+    PublicationSaveError,
+    formatProjectPanelActionNotice: () => 'action-finished',
+    panelActionFailureMessage: (result: { error: string }) => ({ message: result.error }),
+    window: { dispatchEvent: vi.fn() },
+    CustomEvent,
+    console: { warn: vi.fn(), error: vi.fn() },
+  };
+
+  return new Function(...Object.keys(bindings), compiled)(...Object.values(bindings)) as (
+    form: FormData,
+  ) => Promise<boolean>;
+}
+
+async function combinedDraft() {
+  const { store, projectId } = setup();
+  store.configureRuntime(
+    {
+      ...runtimeAdapterMock,
+      mode: 'remote-kubernetes',
+      getWorkspaceStatus: vi.fn(async () => ({ id: 'selected-workspace', status: 'running' })),
+    } as unknown as RuntimeAdapter,
+    projectId,
+  );
+  runtimeFiles.set('audit.txt', 'BEFORE');
+  stubArchive(() => archive('BEFORE'));
+  await store.loadProjectStorageFiles();
+  store.setSelectedFile(path);
+
+  const restore = new FormData();
+  restore.set('intent', 'restore');
+  restore.set('snapshotId', 'fixture-checkpoint');
+
+  const publish = new FormData();
+  publish.set('provider', 'static');
+  publish.set('workspaceId', 'selected-workspace');
+
+  const acknowledgedRestore = async () => {
+    runtimeFiles.set('audit.txt', 'RESTORED_A');
+    return Response.json({
+      ok: true,
+      filesRestore: 'restored',
+      editorArchive: await archiveBytes('RESTORED_A'),
+      editorWorkspaceId: 'selected-workspace',
+      editorRuntimeSynced: true,
+    });
+  };
+
+  return { store, projectId, restore, publish, acknowledgedRestore };
+}
+
+describe('combined exact restore and publishing submit paths', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    runtimeFiles.clear();
+    vi.clearAllMocks();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('applies archive A to the actual editor store, then flushes edit B before the actual publish submit calls its BFF', async () => {
+    const f = await combinedDraft();
+    const restorePost = vi.fn(async (_url: string, _init: { body: FormData }) => f.acknowledgedRestore());
+
+    const publishPost = vi.fn(async (_url: string, _init: { body: FormData }) => {
+      expect(runtimeFiles.get('audit.txt')).toBe('EDITED_B');
+      return Response.json({ ok: true }, { status: 202 });
+    });
+
+    const runRestore = bindCombinedSubmit(f.store, f.projectId, 'snapshots', restorePost);
+    const runPublish = bindCombinedSubmit(f.store, f.projectId, 'deployments', publishPost);
+    await expect(runRestore(f.restore)).resolves.toBe(true);
+    expect(restorePost.mock.calls[0][0]).toBe(`/api/projects/${f.projectId}/ide-panel/snapshots`);
+    expect(restorePost.mock.calls[0][1].body.get('editorWorkspaceId')).toBe('selected-workspace');
+    expect(f.store.currentDocument.get()?.value).toBe('RESTORED_A');
+
+    f.store.setCurrentDocumentContent('EDITED_B');
+    expect(f.store.unsavedFiles.get()).toContain(path);
+
+    let finish!: () => void;
+    runtimeAdapterMock.writeFile.mockImplementationOnce(async (relativePath, content) => {
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      runtimeFiles.set(relativePath, content);
+    });
+
+    const posting = runPublish(f.publish);
+
+    try {
+      await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+      expect(publishPost).not.toHaveBeenCalled();
+      expect(runtimeFiles.get('audit.txt')).toBe('RESTORED_A');
+    } finally {
+      finish?.();
+    }
+    await expect(posting).resolves.toBe(true);
+    expect(publishPost).toHaveBeenCalledExactlyOnceWith(`/api/projects/${f.projectId}/ide-panel/deployments`, {
+      method: 'POST',
+      body: f.publish,
+    });
+    expect(f.store.unsavedFiles.get().size).toBe(0);
+  });
+
+  it('refuses a clean publish while restore is pending, then publishes the restored bytes on retry', async () => {
+    const f = await combinedDraft();
+
+    let finish!: () => void;
+
+    const restorePost = vi.fn(async () => {
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      return f.acknowledgedRestore();
+    });
+
+    const versionsAtPublicationPost: Array<string | undefined> = [];
+
+    const publishPost = vi.fn(async () => {
+      versionsAtPublicationPost.push(runtimeFiles.get('audit.txt'));
+      return Response.json({ ok: true }, { status: 202 });
+    });
+
+    const runRestore = bindCombinedSubmit(f.store, f.projectId, 'snapshots', restorePost);
+    const runPublish = bindCombinedSubmit(f.store, f.projectId, 'deployments', publishPost);
+    const restoring = runRestore(f.restore);
+
+    try {
+      await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+      expect(f.store.currentDocument.get()?.value).toBe('BEFORE');
+      expect(f.store.prepareSnapshotFileRefresh(f.projectId, 'selected-workspace')).toBeUndefined();
+      await expect(runPublish(f.publish)).resolves.toBe(false);
+      expect(publishPost).not.toHaveBeenCalled();
+    } finally {
+      finish?.();
+    }
+    await expect(restoring).resolves.toBe(true);
+    expect(f.store.currentDocument.get()?.value).toBe('RESTORED_A');
+    await expect(runPublish(f.publish)).resolves.toBe(true);
+    expect(versionsAtPublicationPost).toEqual(['RESTORED_A']);
+  });
+
+  it('refuses restore while a clean publish request is pending and releases the fence after a rejected POST', async () => {
+    const f = await combinedDraft();
+
+    let reject!: (error: Error) => void;
+
+    const publishPost = vi.fn(
+      async () =>
+        new Promise<Response>((_resolve, fail) => {
+          reject = fail;
+        }),
+    );
+
+    const restorePost = vi.fn(f.acknowledgedRestore);
+    const runRestore = bindCombinedSubmit(f.store, f.projectId, 'snapshots', restorePost);
+    const runPublish = bindCombinedSubmit(f.store, f.projectId, 'deployments', publishPost);
+    const publishing = runPublish(f.publish);
+
+    try {
+      await vi.waitFor(() => expect(reject).toBeTypeOf('function'));
+      await expect(runRestore(f.restore)).resolves.toBe(false);
+      expect(restorePost).not.toHaveBeenCalled();
+    } finally {
+      reject?.(new Error('Fixture POST failed'));
+    }
+
+    await expect(publishing).resolves.toBe(false);
+    await expect(runRestore(f.restore)).resolves.toBe(true);
+    expect(f.store.currentDocument.get()?.value).toBe('RESTORED_A');
+  });
+
+  it('keeps a pending restore scoped to its target through remount but does not block another explicit workspace', async () => {
+    const f = await combinedDraft();
+    const restore = f.store.prepareSnapshotFileRefresh(f.projectId, 'selected-workspace')!;
+
+    const changeRuntime = (id: string) =>
+      f.store.configureRuntime(
+        {
+          ...runtimeAdapterMock,
+          mode: 'remote-kubernetes',
+          getWorkspaceStatus: vi.fn(async () => ({ id, status: 'running' })),
+        } as unknown as RuntimeAdapter,
+        f.projectId,
+      );
+
+    const publish = vi.fn(async () => 'POST_START');
+
+    try {
+      changeRuntime('other-workspace');
+      await expect(f.store.withSavedFilesForPublication(f.projectId, publish, 'other-workspace')).resolves.toBe(
+        'POST_START',
+      );
+      changeRuntime('selected-workspace');
+      await expect(
+        f.store.withSavedFilesForPublication(f.projectId, publish, 'selected-workspace'),
+      ).rejects.toMatchObject({ code: 'PUBLICATION_SAVE_RESTORE_IN_PROGRESS' });
+      expect(publish).toHaveBeenCalledOnce();
+    } finally {
+      restore.release();
+    }
+
+    await expect(f.store.withSavedFilesForPublication(f.projectId, publish, 'selected-workspace')).resolves.toBe(
+      'POST_START',
+    );
+  });
+});
+
 describe('project storage hydration after returning to the IDE', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -144,6 +421,231 @@ describe('project storage hydration after returning to the IDE', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  describe('after a verified project checkpoint restore', () => {
+    it('replaces stale bytes with an empty file while it stays selected, without an editor write', async () => {
+      const { store, projectId } = setup();
+      const downloads = stubArchive(() => archive('post-checkpoint marker'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+
+      const restoration = store.prepareSnapshotFileRefresh(projectId)!;
+      await expect(restoration.refresh(await archiveBytes(''))).resolves.toBe('refreshed');
+      restoration.release();
+      expect(downloads).toHaveBeenCalledTimes(1);
+      expect(store.selectedFile.get()).toBe(path);
+      expect(store.currentDocument.get()?.value).toBe('');
+      expect(store.files.get()[path]).toMatchObject({ type: 'file', content: '' });
+      expect(store.unsavedFiles.get().size).toBe(0);
+      expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('rejects already-dirty restores and preserves a newly entered draft even if its path is absent from the archive', async () => {
+      const { store, projectId } = setup();
+      stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+      store.setCurrentDocumentContent('existing draft');
+      expect(store.prepareSnapshotFileRefresh(projectId)).toBeUndefined();
+      store.setCurrentDocumentContent('saved document');
+
+      const restoration = store.prepareSnapshotFileRefresh(projectId)!;
+      expect(store.prepareSnapshotFileRefresh(projectId)).toBeUndefined();
+
+      const base64 = await new JSZip().generateAsync({ type: 'base64' });
+      const releaseDecode = delayNextArchiveDecode();
+      const refreshing = restoration.refresh(base64);
+      store.setCurrentDocumentContent('newer draft');
+      releaseDecode();
+
+      await expect(refreshing).resolves.toBe('newer-edits');
+      restoration.release();
+      expect(store.currentDocument.get()?.value).toBe('newer draft');
+      expect(store.unsavedFiles.get()).toContain(path);
+      expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('blocks snapshot restore during a direct FilesStore save even without an editor draft', async () => {
+      const { store, projectId } = setup();
+      stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+      runtimeFiles.set('audit.txt', 'saved document');
+
+      let started!: () => void;
+      let release!: () => void;
+
+      const writeStarted = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      runtimeAdapterMock.writeFile.mockImplementationOnce(async (path, content) => {
+        started();
+        await gate;
+        runtimeFiles.set(path, content);
+      });
+
+      const saving = store.writeFileContent(path, 'new programmatic save');
+      await writeStarted;
+
+      try {
+        expect(store.unsavedFiles.get().size).toBe(0);
+        expect(store.prepareSnapshotFileRefresh(projectId)).toBeUndefined();
+      } finally {
+        release();
+        await saving;
+      }
+
+      const restoration = store.prepareSnapshotFileRefresh(projectId);
+      expect(restoration).toBeDefined();
+      restoration?.release();
+    });
+
+    it('uses the acknowledged archive and ignores an older archive or runtime tree response', async () => {
+      const { store, projectId } = setup();
+      const downloads = stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+
+      let oldArchive!: (response: Response) => void;
+      downloads.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            oldArchive = resolve;
+          }),
+      );
+
+      const hydration = store.loadProjectStorageFiles();
+
+      let oldListing!: (nodes: Awaited<ReturnType<RuntimeAdapter['listFiles']>>) => void;
+      runtimeAdapterMock.listFiles.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            oldListing = resolve;
+          }),
+      );
+
+      const listing = store.loadRuntimeFiles();
+      const restoration = store.prepareSnapshotFileRefresh(projectId)!;
+      await expect(restoration.refresh(await archiveBytes('restored archive'))).resolves.toBe('refreshed');
+      restoration.release();
+      oldArchive(await archive('old archive'));
+      oldListing([{ name: 'audit.txt', path: 'audit.txt', type: 'file', content: 'old tree', encoding: 'utf8' }]);
+      await expect(hydration).resolves.toBe(false);
+      await listing;
+
+      expect(store.currentDocument.get()?.value).toBe('restored archive');
+      expect(store.files.get()[path]).toMatchObject({ content: 'restored archive' });
+    });
+
+    it('does not replace a completed newer save or a newly bound project', async () => {
+      const { store, projectId } = setup();
+      stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+      runtimeFiles.set('audit.txt', 'saved document');
+
+      const restoration = store.prepareSnapshotFileRefresh(projectId)!;
+      store.setCurrentDocumentContent('saved after restore started');
+      await store.saveCurrentDocument();
+      await expect(restoration.refresh(await archiveBytes('old snapshot'))).resolves.toBe('newer-edits');
+      restoration.release();
+      expect(store.currentDocument.get()?.value).toBe('saved after restore started');
+
+      const next = store.prepareSnapshotFileRefresh(projectId)!;
+      const base64 = await archiveBytes('must not reappear');
+      const releaseDecode = delayNextArchiveDecode();
+      const refreshing = next.refresh(base64);
+      store.configureProject(`${projectId}-different`);
+      await store.loadProjectStorageFiles();
+      releaseDecode();
+      await expect(refreshing).resolves.toBe('superseded');
+      next.release();
+      expect(store.files.get()[path]).toMatchObject({ content: 'saved document' });
+    });
+
+    it('accepts an empty archive and restores paths deleted before the checkpoint was applied', async () => {
+      const { store, projectId } = setup();
+      stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+      runtimeFiles.set('audit.txt', 'saved document');
+      await store.deleteFile(path);
+
+      const first = store.prepareSnapshotFileRefresh(projectId)!;
+      await expect(first.refresh(await archiveBytes())).resolves.toBe('refreshed');
+      first.release();
+      expect(store.files.get()[path]).toMatchObject({ content: 'saved document' });
+
+      const second = store.prepareSnapshotFileRefresh(projectId)!;
+      const base64 = await new JSZip().generateAsync({ type: 'base64' });
+      await expect(second.refresh(base64)).resolves.toBe('refreshed');
+      second.release();
+      expect(store.files.get()).toEqual({});
+      expect(store.currentDocument.get()).toBeUndefined();
+    });
+
+    it('does not install an archive whose returned workspace differs from the known active workspace', async () => {
+      const { store, projectId } = setup();
+      stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+
+      const restoration = store.prepareSnapshotFileRefresh(projectId, 'current-runtime')!;
+      const base64 = await archiveBytes('wrong runtime snapshot');
+      await expect(restoration.refresh(base64, 'other-runtime')).resolves.toBe('unavailable');
+      restoration.release();
+      expect(store.files.get()[path]).toMatchObject({ content: 'saved document' });
+    });
+
+    it('does not replace the editor until the matching remote workspace acknowledges synchronization', async () => {
+      const { store, projectId } = setup();
+      store.configureRuntime(
+        { ...runtimeAdapterMock, mode: 'remote-kubernetes' } as unknown as RuntimeAdapter,
+        projectId,
+      );
+      runtimeFiles.set('audit.txt', 'saved document');
+      stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+
+      const restoration = store.prepareSnapshotFileRefresh(projectId, 'current-runtime')!;
+      const base64 = await archiveBytes('restored content');
+      await expect(restoration.refresh(base64, 'current-runtime', false)).resolves.toBe('runtime-pending');
+      expect(store.files.get()[path]).toMatchObject({ content: 'saved document' });
+      await expect(restoration.refresh(base64, 'current-runtime', true)).resolves.toBe('refreshed');
+      expect(store.files.get()[path]).toMatchObject({ content: 'restored content' });
+      restoration.release();
+    });
+
+    it('never applies remote editor bytes without a known active workspace', async () => {
+      const { store, projectId } = setup();
+      store.configureRuntime(
+        { ...runtimeAdapterMock, mode: 'remote-kubernetes' } as unknown as RuntimeAdapter,
+        projectId,
+      );
+      runtimeFiles.set('audit.txt', 'saved document');
+      stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+
+      const restoration = store.prepareSnapshotFileRefresh(projectId)!;
+      await expect(restoration.refresh()).resolves.toBe('unavailable');
+      await expect(restoration.refresh(await archiveBytes('untrusted scope'), 'foreign-runtime', true)).resolves.toBe(
+        'unavailable',
+      );
+      expect(store.files.get()[path]).toMatchObject({ content: 'saved document' });
+      restoration.release();
+    });
+
+    it('reports a failed archive without clearing the current view', async () => {
+      const { store, projectId } = setup();
+      stubArchive(() => archive());
+      await store.loadProjectStorageFiles();
+
+      const restoration = store.prepareSnapshotFileRefresh(projectId)!;
+      await expect(restoration.refresh('not-a-valid-archive')).resolves.toBe('unavailable');
+      restoration.release();
+      expect(store.files.get()[path]).toMatchObject({ content: 'saved document' });
+    });
   });
 
   it('reads independent entries concurrently with a bounded working set and preserves archive order', async () => {

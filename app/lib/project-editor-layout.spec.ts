@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { IDE_WORKSPACE_PANELS } from './ide/panel-registry';
 import {
   assertProjectEditorLayoutInvariants,
   bringFloatingPaneToFront,
@@ -34,6 +35,17 @@ import {
   type ProjectEditorPaneSplit,
   type ProjectEditorWindowState,
 } from './project-editor-layout';
+
+it('preserves every addressable workspace panel through the pane model', () => {
+  expect([...PROJECT_EDITOR_TOOLS].sort()).toEqual([...IDE_WORKSPACE_PANELS].sort());
+
+  for (const panel of IDE_WORKSPACE_PANELS) {
+    const tab = createProjectEditorTab(panel, `tab-${panel}`);
+    const pane = createProjectEditorPane('panel-audit', [tab], tab.id);
+    const window = normalizeProjectEditorWindow(createProjectEditorWindow('window-audit', pane));
+    expect(asLeaf(window).tabs[0].panel).toBe(panel);
+  }
+});
 
 function asSplit(windowState: ProjectEditorWindowState): ProjectEditorPaneSplit {
   expect(windowState.root?.type).toBe('split');

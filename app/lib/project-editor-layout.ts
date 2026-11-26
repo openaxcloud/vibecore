@@ -22,6 +22,7 @@ export const PROJECT_EDITOR_TOOLS = [
   'locks',
   'overview',
   'studio',
+  'problems',
   'database',
   'object-storage',
   'packages',

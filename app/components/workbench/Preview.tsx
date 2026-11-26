@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
+import styles from './Preview.module.scss';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { decisionDeRepointage } from './cadre-apercu-repointage';
 import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
@@ -741,6 +742,9 @@ export const Preview = memo(
     const previewBootSteps = useMemo(() => getPreviewBootSteps(t), [t]);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const logsButtonRef = useRef<HTMLButtonElement>(null);
+    const windowMenuRef = useRef<HTMLDivElement>(null);
+    const windowMenuTriggerRef = useRef<HTMLButtonElement>(null);
 
     // One-shot guard: auto-reload a blank (served-but-never-mounted) preview at most once.
     const blankRecoveredRef = useRef(false);
@@ -809,6 +813,54 @@ export const Preview = memo(
     const SCALING_FACTOR = 1;
 
     const [isWindowSizeDropdownOpen, setIsWindowSizeDropdownOpen] = useState(false);
+
+    useEffect(() => {
+      if (!isWindowSizeDropdownOpen) {
+        return undefined;
+      }
+
+      const dismissOutside = (event: PointerEvent | FocusEvent) => {
+        if (event.target instanceof Node && !windowMenuRef.current?.contains(event.target)) {
+          setIsWindowSizeDropdownOpen(false);
+        }
+      };
+      const handleWindowMenuKey = (event: KeyboardEvent) => {
+        if (!(event.target instanceof Node) || !windowMenuRef.current?.contains(event.target)) {
+          return;
+        }
+
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setIsWindowSizeDropdownOpen(false);
+          windowMenuTriggerRef.current?.focus();
+        } else if (event.key === 'Tab' && event.shiftKey && event.target === windowMenuTriggerRef.current) {
+          // WebKit can retain focus on the opener when tabbing backwards across the popover.
+          event.preventDefault();
+          setIsWindowSizeDropdownOpen(false);
+          logsButtonRef.current?.focus();
+        }
+      };
+
+      /*
+       * A pane can clip the fixed backdrop. Observe the document as well so
+       * clicks or keyboard focus in another dock still dismiss this popover.
+       */
+      document.addEventListener('pointerdown', dismissOutside, true);
+      document.addEventListener('focusin', dismissOutside);
+
+      /*
+       * The IDE keybinding listener consumes Escape during window capture.
+       * Listen on the same target so it cannot strand this focused popover.
+       */
+      window.addEventListener('keydown', handleWindowMenuKey, true);
+
+      return () => {
+        document.removeEventListener('pointerdown', dismissOutside, true);
+        document.removeEventListener('focusin', dismissOutside);
+        window.removeEventListener('keydown', handleWindowMenuKey, true);
+      };
+    }, [isWindowSizeDropdownOpen]);
+
     const [selectedWindowSize, setSelectedWindowSize] = useState<WindowSize>(windowSizes[0]);
     const [isLandscape, setIsLandscape] = useState(false);
     const [showDeviceFrame, setShowDeviceFrame] = useState(true);
@@ -2719,7 +2771,7 @@ export const Preview = memo(
             onClick={() => setIsPortDropdownOpen(false)}
           />
         )}
-        <div className="bolt-project-webview-toolbar">
+        <div className={`bolt-project-webview-toolbar ${styles.toolbar}`}>
           <div className="bolt-preview-toolbar-tools flex items-center gap-1">
             <IconButton
               icon="i-ph:arrow-left"
@@ -2908,6 +2960,7 @@ export const Preview = memo(
               <span>{t('idePanels.preview.open')}</span>
             </button>
             <IconButton
+              ref={logsButtonRef}
               icon="i-ph:terminal-window"
               onClick={() => {
                 setActiveLogTab('webview');
@@ -2916,10 +2969,18 @@ export const Preview = memo(
               title={t('idePanels.preview.webviewLogs')}
             />
 
-            <div className="flex items-center relative">
+            <div ref={windowMenuRef} className="flex items-center relative">
               <IconButton
+                ref={windowMenuTriggerRef}
                 icon="i-ph:browser"
-                onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
+                ariaExpanded={isWindowSizeDropdownOpen}
+                onClick={(event) => {
+                  if (!isWindowSizeDropdownOpen) {
+                    event.currentTarget.focus();
+                  }
+
+                  setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen);
+                }}
                 title={t('idePanels.preview.windowOptions')}
               />
 
