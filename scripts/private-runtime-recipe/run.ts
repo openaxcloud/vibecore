@@ -362,10 +362,12 @@ async function main() {
       ...(Array.from({ length: 4 }, () => randomBytes(32).toString('hex')) as [string, string, string, string]),
       browser,
       browser ? randomBytes(32).toString('hex') : undefined,
+      browser && process.env.GITHUB_EVENT_NAME === 'schedule',
     );
     const late = resources.filter(
       (resource) =>
-        ['api', 'manager', 'migrate'].includes(resource.metadata.name) && ['Deployment', 'Job'].includes(resource.kind),
+        ['api', 'manager', 'migrate', 'worker'].includes(resource.metadata.name) &&
+        ['Deployment', 'Job'].includes(resource.kind),
     );
 
     const early = resources.filter((resource) => !late.includes(resource));

@@ -230,3 +230,33 @@ test('nightly manager keeps sandbox scheduling enabled', () => {
   assert.ok(manager);
   assert.doesNotMatch(JSON.stringify(manager), /WORKSPACE_DISABLE_SANDBOX_SCHEDULING/);
 });
+
+test('only the scheduled publication bench wires the worker and namespaced server route', () => {
+  for (const enabled of [false, true]) {
+    const manifests = recipeManifests(
+      name,
+      'local-password',
+      'local-agent',
+      'local-manager',
+      'local-jwt',
+      true,
+      'local-preview',
+      enabled,
+    );
+    const worker = manifests.find((resource) => resource.kind === 'Deployment' && resource.metadata.name === 'worker');
+    assert.equal(Boolean(worker), enabled);
+    const serialized = JSON.stringify(manifests);
+    assert.equal(serialized.includes('http://app-{deploymentId}.' + name + '.svc.cluster.local'), enabled);
+    assert.equal(serialized.includes('"SERVER_DEPLOY_DOMAIN"'), enabled);
+    assert.equal(serialized.includes('"apiGroups":["apps"],"resources":["deployments"]'), enabled);
+    if (worker) {
+      const spec = JSON.stringify(worker);
+      assert.ok(
+        spec.includes('redis://redis:6379') &&
+          spec.includes('http://api:3001') &&
+          spec.includes('WORKSPACE_MANAGER_SHARED_SECRET'),
+      );
+      assert.ok(!spec.includes('envFrom') && !spec.includes('WORKSPACE_AGENT_TOKEN_SECRET'));
+    }
+  }
+});
