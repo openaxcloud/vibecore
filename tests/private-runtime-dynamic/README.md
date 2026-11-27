@@ -2,6 +2,8 @@
 
 Le créneau planifié conserve Orbit et README en premier, puis exécute la publication avant la suite Chromium restante et l’audit. Les trois scénarios tournent successivement pour éviter la concurrence sur le nœud kind. Après les préconditions communes, un échec d’Orbit ou de README laisse la publication produire son propre verdict, puis le wrapper échoue. Les plafonds de processus sont 390, 270 et 330 secondes respectivement (puis au plus 5 secondes avant SIGKILL pour chacun). Ils englobent les limites Playwright existantes de 360, 240 et 300 secondes. Le budget global de la phase navigateur reste de 40 minutes.
 
+Si Orbit et README passent, la suite Chromium et les audits suivent même quand la publication échoue. Leur premier échec conserve son code de sortie et arrête les contrôles suivants. Si ces contrôles passent, le wrapper renvoie le code de publication. Le test de cette règle se lance avec `bash tests/private-runtime-dynamic/wrapper-check.sh`.
+
 Le fichier `dynamic-publication-status.json` distingue un passage non démarré, en cours, échoué, expiré/tué, sans preuve valide ou réussi. Le succès exige une sortie zéro et un reçu neuf pour le SHA du run. Si la phase navigateur n’est jamais atteinte, aucun résultat de publication n’est attendu.
 
 Dans le namespace jetable, le worker de la même image plateforme consomme la file Redis et appelle l’API interne. Le gestionnaire peut appliquer le Deployment et le Service du serveur. L’API émet un domaine localhost et le proxy interroge l’état auprès de cette API, puis adresse le Service du namespace de la recette.

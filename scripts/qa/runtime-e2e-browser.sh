@@ -28,11 +28,11 @@ if "$scheduled_publication"; then
 fi
 # Each short proof gets its own result before the longer independent suite starts.
 if (( orbit_status || readme_status )); then exit 1; fi
-if (( publication_status )); then exit "$publication_status"; fi
 echo 'Starting remaining Chromium @runtime tests'
 pnpm exec playwright test tests/e2e --project=chromium --grep @runtime --grep-invert "$spec" > /tmp/vibecore-browser-suite.log 2>&1
 echo 'Starting IDE panel audit'
 pnpm run ide:panel-audit > /tmp/vibecore-panel.log 2>&1
 echo 'Starting IDE panel audit validation'
 pnpm run ide:panel-audit:validate >> /tmp/vibecore-panel.log 2>&1
+if (( publication_status )); then exit "$publication_status"; fi
 echo 'Browser checks passed; stopping local web and admin servers'
