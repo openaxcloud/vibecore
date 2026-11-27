@@ -15,6 +15,7 @@ export function recipeManifests(
   jwtSecret: string,
   sandboxScheduling = false,
   previewSecret?: string,
+  dynamicPublication = false,
 ) {
   assertRecipeClusterName(name);
 
@@ -44,7 +45,7 @@ export function recipeManifests(
   const deployment = (
     resource: string,
     image: string,
-    port: number,
+    port: number | null,
     options: {
       command?: string[];
       environment?: Record<string, string>;
@@ -79,6 +80,12 @@ export function recipeManifests(
               ...(options.command ? { command: options.command } : {}),
               env: [
                 ...env(options.environment ?? {}),
+                ...(resource === 'worker'
+                  ? ['DATABASE_URL', 'WORKSPACE_MANAGER_SHARED_SECRET'].map((key) => ({
+                      name: key,
+                      valueFrom: { secretKeyRef: { name: 'local-credentials', key } },
+                    }))
+                  : []),
                 ...(options.previewCredentials
                   ? [
                       {
@@ -89,10 +96,13 @@ export function recipeManifests(
                   : []),
               ],
               ...(options.secret ? { envFrom: [{ secretRef: { name: 'local-credentials' } }] } : {}),
-              ports: [{ containerPort: port }],
-              readinessProbe: options.probePath
-                ? { httpGet: { path: options.probePath, port }, periodSeconds: 3, timeoutSeconds: 5 }
-                : { tcpSocket: { port }, periodSeconds: 3 },
+              ...(port === null ? {} : { ports: [{ containerPort: port }] }),
+              readinessProbe:
+                port === null
+                  ? { exec: { command: ['test', '-s', '/tmp/worker-heartbeat'] } }
+                  : options.probePath
+                    ? { httpGet: { path: options.probePath, port }, periodSeconds: 3, timeoutSeconds: 5 }
+                    : { tcpSocket: { port }, periodSeconds: 3 },
               resources: {
                 requests: { cpu: '100m', memory: '128Mi' },
                 limits: { memory: resource === 'api' ? '2Gi' : '1Gi' },
@@ -152,6 +162,9 @@ export function recipeManifests(
           verbs: ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete'],
         },
         { apiGroups: [''], resources: ['secrets'], verbs: ['get', 'create', 'update', 'patch', 'delete'] },
+        ...(dynamicPublication
+          ? [{ apiGroups: ['apps'], resources: ['deployments'], verbs: ['get', 'create', 'update', 'patch', 'delete'] }]
+          : []),
         { apiGroups: [''], resources: ['pods/log'], verbs: ['get'] },
       ],
     },
@@ -217,6 +230,18 @@ export function recipeManifests(
     }),
     ...(previewSecret
       ? [
+          ...(dynamicPublication
+            ? [
+                deployment('worker', platform, null, {
+                  command: ['pnpm', '--filter', '@vibecore/worker', 'exec', 'tsx', 'src/index.ts'],
+                  environment: {
+                    REDIS_URL: common.REDIS_URL,
+                    API_BASE_URL: common.API_BASE_URL,
+                    DEPLOY_WORKER_CONCURRENCY: '1',
+                  },
+                }),
+              ]
+            : []),
           service('preview-proxy', 3020),
           deployment('preview-proxy', platform, 3020, {
             command: ['pnpm', '--filter', '@vibecore/preview-proxy', 'exec', 'tsx', 'src/server.ts'],
@@ -225,6 +250,12 @@ export function recipeManifests(
               WORKSPACE_MANAGER_URL: common.WORKSPACE_MANAGER_URL,
               PREVIEW_PROXY_PORT: '3020',
               PREVIEW_DOMAIN: 'localhost',
+              ...(dynamicPublication
+                ? {
+                    API_BASE_URL: common.API_BASE_URL,
+                    SERVER_DEPLOY_UPSTREAM_TEMPLATE: `http://app-{deploymentId}.${name}.svc.cluster.local`,
+                  }
+                : {}),
             },
             previewCredentials: true,
           }),
@@ -244,6 +275,7 @@ export function recipeManifests(
         RATE_LIMIT_FORCE_SHARED: '1',
         ...(previewSecret
           ? {
+              ...(dynamicPublication ? { SERVER_DEPLOY_DOMAIN: 'localhost' } : {}),
               API_CORS_ORIGINS: 'http://127.0.0.1:5173',
               PREVIEW_URL_TEMPLATE: 'http://{workspaceId}-{port}.localhost:3020/',
               AUTH_REGISTER_RATE_LIMIT_MAX: '2000',
