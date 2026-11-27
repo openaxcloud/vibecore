@@ -33921,6 +33921,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log.warn({ stripeError: redactSecretString(result.error ?? '') }, 'Stripe health check failed');
     }
 
+    if (result.ok && typeof result.livemode !== 'boolean') {
+      return {
+        configured: true,
+        ok: false,
+        livemode: null,
+        detailCode: 'STRIPE_MODE_UNKNOWN',
+        detail: appPublicCopy('STRIPE_HEALTH_MODE_UNKNOWN', locale),
+      };
+    }
+
     return {
       configured: true,
       ok: result.ok,
