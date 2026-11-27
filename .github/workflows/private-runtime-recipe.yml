@@ -15,6 +15,13 @@ jobs:
     env:
       HUSKY: '0'
       CI: 'true'
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      RUNTIME_MODE: remote-kubernetes
+      VITE_RUNTIME_MODE: remote-kubernetes
+      RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
+      VITE_RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
+      API_BASE_URL: http://127.0.0.1:3001
+      SAAS_API_URL: http://127.0.0.1:3001
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -46,13 +53,39 @@ jobs:
         run: |
           pnpm exec vitest run scripts/private-runtime-recipe/checks.test.ts
           pnpm exec tsc -p scripts/private-runtime-recipe/tsconfig.json
+      - name: Install Playwright browsers
+        run: |
+          # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
+          # miroir amont réécrit son index PENDANT le run, apt rend « Hash Sum
+          # mismatch » et la porte E2E meurt AVANT le moindre test. Mesuré le
+          # 2026-09-09 (run E2E 1828, sha dcfb310f, 49 s) : `Err:10
+          # https://dl.google.com/linux/chrome-stable/deb` — index publié à
+          # 09:41, run à 17:16. Rien ne le retentait.
+          #
+          # Les deux moitiés sont séparées pour ne retenter QUE celle qui dépend
+          # d'un miroir extérieur. Purger /var/lib/apt/lists est ce qui répare
+          # un Hash Sum mismatch : relancer sans purger réutilise l'index périmé.
+          # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
+          # dont on lit le résultat.
+          for attempt in 1 2 3; do
+            if pnpm exec playwright install-deps chromium; then break; fi
+            echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            sudo rm -rf /var/lib/apt/lists/*
+            sudo apt-get update || true
+            sleep 10
+          done
+          pnpm exec playwright install chromium
+
+      - name: Build web for the disposable workspace
+        run: pnpm run build
       - name: Real API to manager to pod recipe
-        run: pnpm exec tsx scripts/private-runtime-recipe/run.ts
+        run: pnpm exec tsx scripts/private-runtime-recipe/run.ts --reseed
       - name: Remove only the generated local cluster (also on cancellation)
         if: always()
         run: |
           if test -f "$RUNNER_TEMP/vibecore-private-runtime-state.json"; then
-            node_modules/.bin/tsx scripts/private-runtime-recipe/run.ts --cleanup
+            node_modules/.bin/tsx scripts/private-runtime-recipe/run.ts --reseed --cleanup
           fi
       - name: Upload sanitized evidence
         if: always()

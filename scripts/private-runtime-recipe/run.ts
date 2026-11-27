@@ -10,7 +10,9 @@ import { dependencyImages, recipeManifests } from './manifests.js';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
-const browser = process.argv.includes('--browser');
+const reseed = process.argv.includes('--reseed');
+const browser = process.argv.includes('--browser') || reseed;
+if (reseed) assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
 if (browser && process.env.GITHUB_EVENT_NAME === 'schedule') {
   assert.equal(
     process.env.GITHUB_WORKFLOW_REF,
@@ -416,7 +418,14 @@ async function main() {
       timeout: 900_000,
       progressFile: join(evidence, 'validation-progress.txt'),
     });
-    if (browser) {
+    if (reseed) {
+      stage = 'chromium-project-reimport';
+      await run(
+        'node_modules/.bin/playwright',
+        ['test', '--config=tests/private-runtime-reseed/playwright.config.ts', '--project=chromium'],
+        { timeout: 480_000 },
+      );
+    } else if (browser) {
       stage = 'chromium-project-creation-and-execution';
       await run('bash', ['scripts/qa/runtime-e2e-browser.sh'], { timeout: 2_400_000, stream: true });
     }

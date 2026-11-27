@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { expect, test, type Page } from '@playwright/test';
 import JSZip from 'jszip';
@@ -15,7 +16,10 @@ async function openReadme(page: Page, projectId: string) {
     has: page.locator('.bolt-file-tree-name').filter({ hasText: /^README\.md$/ }),
   });
   await file.click({ timeout: 60_000 });
-  const editor = page.locator('.cm-content:visible[contenteditable=true]');
+  const pane = page.getByTestId('responsive-code-editor').filter({
+    has: page.locator('.bolt-project-editor-toolbar-file').filter({ hasText: /^\/?README\.md$/ }),
+  });
+  const editor = pane.locator('[data-editor-kind="monaco"] .view-lines:visible');
   await expect(editor).toBeVisible();
   return editor;
 }
@@ -37,7 +41,7 @@ test(
     assertRecipeKubeconfig(JSON.parse(config.stdout), namespace);
 
     const nonce = randomUUID();
-    const initial = '# Initial README';
+    const initial = 'Initial-README';
     const marker = `# README\nPersistance vérifiée — ${nonce}\n東京`;
 
     const registration = await page.request.post(`${api}/auth/register`, {
@@ -87,6 +91,19 @@ test(
 
     const editor = await openReadme(page, id);
     await expect(editor).toHaveText(initial, { timeout: 60_000 });
+    await expect
+      .poll(
+        async () => {
+          const file = await page.request.get(`${api}/api/runtime/workspaces/${workspace}/files/read?path=README.md`, {
+            headers,
+          });
+          if (!file.ok()) return false;
+          const body = await file.json();
+          return Buffer.from(body.content, body.encoding ?? 'utf8').equals(Buffer.from(initial));
+        },
+        { timeout: 60_000 },
+      )
+      .toBe(true);
     const before = await identity();
     const old = `obsolete-${nonce}`;
     const protectedPaths = ['package-lock.json', 'deep/yarn.lock', 'node_modules/sentinel', '.git/sentinel'];
@@ -165,17 +182,18 @@ test(
     const exported = await page.request.get(`${api}/projects/${id}/export/zip`, { headers });
     expect(exported.status()).toBe(200);
     expect(await archiveFiles(Buffer.from((await exported.json()).archive.base64, 'base64'))).toEqual(archived);
-    await test
-      .info()
-      .attach('reimport-evidence', {
-        contentType: 'application/json',
-        body: JSON.stringify({
-          before,
-          after: await identity(),
-          removed: stale,
-          protected: protectedPaths,
-          archived: Object.keys(archived),
-        }),
-      });
+    await writeFile(
+      'private-runtime-evidence/reimport.json',
+      JSON.stringify({
+        commit: process.env.GITHUB_SHA,
+        before,
+        after: await identity(),
+        removed: stale,
+        protected: protectedPaths,
+        archived: Object.keys(archived),
+        comparedFiles: Object.keys(expectedTree).length,
+      }),
+      { flag: 'wx' },
+    );
   },
 );
