@@ -68,6 +68,9 @@ jobs:
             sudo apt-get update || true
             sleep 10
           done
+          if [[ "$GITHUB_EVENT_NAME" == schedule ]] && ! command -v certutil >/dev/null; then
+            sudo apt-get install -y --no-install-recommends libnss3-tools
+          fi
           pnpm exec playwright install chromium
 
       - name: Install pinned kind and kubectl clients
@@ -114,6 +117,8 @@ jobs:
             private-runtime-evidence/cluster-services.json
             private-runtime-evidence/browser.json
             private-runtime-evidence/readme.json
+            private-runtime-evidence/dynamic-publication.json
+            private-runtime-evidence/dynamic-publication-status.json
             private-runtime-evidence/result.json
             private-runtime-evidence/pod-status.json
           retention-days: 7
