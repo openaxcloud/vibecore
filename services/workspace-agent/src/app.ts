@@ -2371,13 +2371,7 @@ async function listTree(
      * Skip heavy/derived dirs (node_modules, .git, dist, …) — they balloon the
      * tree and are never useful in the file explorer.
      */
-    // The deployment builder consumes the subtree explicitly. Root inventories
-    // used by editor reseeds/restores must not reconcile its transient copy.
-    const activeBuild =
-      current === root &&
-      entry.name.startsWith('.vibecore-deploy-') &&
-      existsSync(join('/tmp', `vibecore-active-${entry.name}`));
-    if (entry.isDirectory() && (SNAPSHOT_IGNORED_DIRS.has(entry.name) || activeBuild)) {
+    if (entry.isDirectory() && SNAPSHOT_IGNORED_DIRS.has(entry.name)) {
       continue;
     }
 

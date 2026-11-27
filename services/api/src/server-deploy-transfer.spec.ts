@@ -41,6 +41,7 @@ describe('snapshotWorkspaceAppSource', () => {
     expect(calls[0].command).toBe('sh');
     expect(calls[0].cwd).toBe('.');
     expect(calls[0].args[1]).toContain('--exclude=./node_modules');
+    expect(calls[0].args[1]).toContain('--exclude=./.cache/.vibecore-builds');
     expect(calls[0].args[1]).toContain('--exclude=./.git');
     expect(calls[0].args[1]).toContain(serverDeploySourceTarPath('dep1'));
 
@@ -266,6 +267,7 @@ describe('snapshotWorkspaceImageContext', () => {
     // The tar must NOT exclude node_modules (deps ride in the image) — only VCS/internal paths.
     const tarScript = scripts[0];
     expect(tarScript).not.toContain('node_modules');
+    expect(tarScript).toContain('--exclude=./.cache/.vibecore-builds');
     expect(tarScript).toContain('--exclude=./.git');
     // Exactly the signed headers, once (a duplicated content-type breaks the V4 signature).
     expect(tarScript).toContain("curl -fsS -X PUT -H 'Content-Type: application/gzip'");

@@ -24,7 +24,8 @@ async function main() {
       if (request.method() !== 'DELETE') return;
       const target = new URL(request.url());
       const file = target.searchParams.get('path') ?? '';
-      if (target.origin === api && /^\.vibecore-deploy-[^/]+\//.test(file)) deletedBuildInputs.add(file);
+      if (target.origin === api && /^(?:\.cache\/\.vibecore-builds\/)?\.vibecore-deploy-[^/]+\//.test(file))
+        deletedBuildInputs.add(file);
     });
     const id = randomUUID();
     const A = 'snapshot-' + id,
@@ -58,7 +59,27 @@ async function main() {
         scripts: { build: 'mkdir -p dist && cp index.html dist/index.html' },
       }),
     );
+    const userFile = '.vibecore-deploy-user/bytes.bin';
+    const binary = Buffer.from([0, 13, 10, 128, 255]);
+
+    async function verifyExport(value: string) {
+      const response = await context.request.get(api + path + '/export/zip', { headers });
+      expect(response.ok()).toBe(true);
+      const archive = await JSZip.loadAsync((await response.json()).archive.base64, { base64: true });
+      expect(
+        Object.values(archive.files)
+          .filter((f) => !f.dir)
+          .map((f) => f.name)
+          .sort(),
+      ).toEqual([userFile, 'index.html', 'package.json'].sort());
+      expect(await archive.file(userFile)!.async('nodebuffer')).toEqual(binary);
+      expect(await archive.file('index.html')!.async('nodebuffer')).toEqual(Buffer.from(html(value)));
+      expect(await archive.file('package.json')!.async('nodebuffer')).toEqual(
+        await zip.file('package.json')!.async('nodebuffer'),
+      );
+    }
     async function seed(value: string) {
+      zip.file(userFile, value === A ? binary : Buffer.from([67]));
       zip.file('index.html', html(value));
       await post(path + '/files/import/zip', {
         replaceExisting: true,
@@ -107,6 +128,7 @@ async function main() {
         .filter({ hasText: /^index\.html$/ })
         .click();
       await expect(editor).toContainText(A, { timeout: 60000 });
+      await verifyExport(A);
     }
     await restore();
     await editor.click();
@@ -183,6 +205,7 @@ async function main() {
     }
     console.log('Version B acknowledged in manifest');
     await publish(B);
+    await verifyExport(B);
     console.log('Anonymous browser rendered exact B');
     await second.goto(ide + 'files');
     await second

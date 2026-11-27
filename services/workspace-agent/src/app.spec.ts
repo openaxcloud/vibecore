@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -498,31 +498,29 @@ describe('workspace-agent', () => {
     expect(response.statusCode).toBe(401);
   });
 
-  it('preserves an active deployment copy during root inventories while serving its explicit artifact path', async () => {
-    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+  it('keeps an interrupted build out of project inventories while serving the project and explicit artifact', async () => {
+    const agent = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const headers = { authorization: `Bearer ${token}` };
-    const sandbox = `.vibecore-deploy-${root.split('/').pop()}`;
-    const marker = join('/tmp', `vibecore-active-${sandbox}`);
-    const list = async (path: string) => {
-      const response = await app.inject({ method: 'GET', url: '/files/tree', query: { path }, headers });
-      expect(response.statusCode).toBe(200);
-      return response.json().map((node: { path: string }) => node.path);
-    };
+    const cache = '.cache/.vibecore-builds/.vibecore-deploy-one';
+    const user = '.vibecore-deploy-one';
+    const bytes = Buffer.from([0, 13, 10, 128, 255]);
     try {
-      await mkdir(join(root, sandbox, 'dist'), { recursive: true });
-      await writeFile(join(root, sandbox, 'dist', 'index.html'), 'artifact');
-      await mkdir(join(root, 'src', sandbox), { recursive: true });
-      await mkdir(join(root, '.vibecore-deploy-user-config'));
-      await mkdir(marker);
-      expect(await list('.')).not.toContain(sandbox);
-      expect(await list('.')).toContain('.vibecore-deploy-user-config');
-      expect(await list('src')).toContain(`src/${sandbox}`);
-      expect(await list(`${sandbox}/dist`)).toEqual([`${sandbox}/dist/index.html`]);
-      await rm(marker, { recursive: true });
-      expect(await list('.')).toContain(sandbox);
+      await mkdir(join(root, user));
+      await writeFile(join(root, user, 'fixture.bin'), bytes);
+      await mkdir(join(root, cache, 'dist'), { recursive: true });
+      await writeFile(join(root, cache, 'dist/index.html'), 'built');
+      const list = async (path: string) => {
+        const response = await agent.inject({ method: 'GET', url: '/files/tree', query: { path }, headers });
+        expect(response.statusCode).toBe(200);
+        return response.json().map((entry: { path: string }) => entry.path);
+      };
+      expect(await list('.')).toContain(user);
+      expect(await list('.')).not.toContain('.cache');
+      expect(await list(user)).toEqual([`${user}/fixture.bin`]);
+      expect(await readFile(join(root, user, 'fixture.bin'))).toEqual(bytes);
+      expect(await list(`${cache}/dist`)).toEqual([`${cache}/dist/index.html`]);
     } finally {
-      await rm(marker, { recursive: true, force: true });
-      await app.close();
+      await agent.close();
     }
   });
 

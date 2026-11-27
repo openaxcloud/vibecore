@@ -29,7 +29,9 @@ export WORKSPACE_MANAGER_URL=http://127.0.0.1:4938 WORKSPACE_AGENT_URL_TEMPLATE=
 export RUNTIME_MODE=remote-kubernetes VITE_RUNTIME_MODE=remote-kubernetes WORKSPACE_LOCAL_RUNTIME_FALLBACK=1 RUNTIME_API_BASE_URL=http://127.0.0.1:4937/api/runtime VITE_RUNTIME_API_BASE_URL=http://127.0.0.1:4937/api/runtime
 export PREVIEW_DOMAIN=localhost:4020 PLAYWRIGHT_BASE_URL=http://127.0.0.1:6937 KUBECTL_BIN="$PWD/tests/local-restore-publication/kubectl-fixture.sh"
 export WORKSPACE_ROOT="$bench/work" NPM_CONFIG_CACHE="$bench/npm" NPM_CONFIG_OFFLINE=true
-mkdir "$WORKSPACE_ROOT"
+# Model a previous process interrupted after creating its private build copy.
+mkdir -p "$WORKSPACE_ROOT/.cache/.vibecore-builds/interrupted/dist"
+printf 'discarded build output' >"$WORKSPACE_ROOT/.cache/.vibecore-builds/interrupted/dist/index.html"
 for port in 4937 4938 4939 6937 58437 58379 4020; do
   if (echo >/dev/tcp/127.0.0.1/"$port") 2>/dev/null; then echo "Loopback port occupied: $port" >&2; exit 1; fi
 done
