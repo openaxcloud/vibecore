@@ -79,12 +79,18 @@ jobs:
         run: pnpm audit --audit-level moderate
         continue-on-error: true
 
+      - name: Prepare verified Syft
+        id: verified_syft
+        run: bash .github/scripts/prepare-syft.sh
+
       - name: Generate SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
+          syft-version: ${{ steps.verified_syft.outputs.version }}
           path: ./
           format: spdx-json
           artifact-name: sbom.spdx.json
+          output-file: sbom.spdx.json
 
       - name: Upload SBOM as artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
