@@ -6,7 +6,7 @@ import { parse } from 'yaml';
 import { afterEach, expect, it } from 'vitest';
 
 const steps = parse(readFileSync('.github/workflows/ar-protect-images.yml', 'utf8')).jobs.protect.steps;
-const repo = 'example.invalid/fixture/platform';
+const repo = 'europe-west9-docker.pkg.dev/fixture/platform';
 const apps = 'example.invalid/fixture/apps';
 const image = (letter) => repo + '/worker@sha256:' + letter.repeat(64);
 const app = apps + '/p-one@sha256:' + 'e'.repeat(64);
@@ -28,8 +28,16 @@ function fixture() {
       *" get deploy "*) if [ -f "$FX/appsSeen" ] && [ -f "$FX/appsFresh" ]; then cat "$FX/appsFresh"; else cat "$FX/apps"; fi; touch "$FX/appsSeen";;
       *) exit 80;; esac`,
     helm: 'exit 82',
-    gcloud: `case "$1 $2 $3 $4" in
-      "artifacts docker images describe") cat "$FX/resolved";;
+    curl: `[ "$1 $2 $3 $4" = "-qfsS --header @- --url" ]
+      read -r header
+      [ "$header" = "Authorization: Bearer fixture-only" ]
+      echo "$5" >>"$FX/urls"
+      if [ -f "$FX/http-error" ]; then echo "curl: (22) HTTP $(cat "$FX/http-error")" >&2; exit 22; fi
+      if [ -f "$FX/raw" ]; then cat "$FX/raw"; exit; fi
+      name=\${5#https://artifactregistry.googleapis.com/v1/}
+      jq -nc --arg name "$name" --arg version "\${name%/tags/*}/versions/$(cat "$FX/resolved")" '{name:$name,version:$version}'`,
+    gcloud: `if [ "$*" = 'auth print-access-token' ]; then echo fixture-only; exit; fi
+      case "$1 $2 $3 $4" in
       "artifacts docker tags add")
         echo "$5 $6" >>"$FX/writes"
         if [ -f "$FX/during" ]; then mv "$FX/during" "$FX/pods"; fi
@@ -183,4 +191,31 @@ it('keeps the original application tag names for both reference forms', () => {
       expect.objectContaining({ action: { type: 'Delete' }, condition: { olderThan: age } }),
     ]));
   }
+});
+
+it('requests the exact Tag resource for a nested Docker package before adding an immutable pin', () => {
+  const f = fixture();
+  f.put('agent', JSON.stringify({ data: { WORKSPACE_AGENT_IMAGE: repo + '/tools/agent:v1.2' } }));
+  expect(f.run('helm_active', { MISSING: '' }).status).toBe(0);
+  const url = 'https://artifactregistry.googleapis.com/v1/projects/fixture/locations/europe-west9/repositories/platform/packages/tools%2Fagent/tags/v1.2';
+  expect(readFileSync(join(dir, 'urls'), 'utf8').trim()).toBe(url);
+  expect(f.writes()).toContain(repo + '/tools/agent@sha256:' + 'f'.repeat(64) + ' ' + repo + '/tools/agent:helm-active-sha256-' + 'f'.repeat(64));
+});
+
+it.each(['404', '403', 'wrong tag', 'wrong package', 'wrong version'])('fails closed on tag lookup: %s', (scenario) => {
+  const f = fixture();
+  const parent = 'projects/fixture/locations/europe-west9/repositories/platform/packages/workspace-agent';
+  if (['404', '403'].includes(scenario)) {
+    f.put('http-error', scenario);
+  } else {
+    f.put('raw', JSON.stringify({
+      name: parent + '/tags/' + (scenario === 'wrong tag' ? 'other' : 'v1'),
+      version: (scenario === 'wrong package' ? parent + '-other' : parent) + '/versions/' +
+        (scenario === 'wrong version' ? 'latest' : 'sha256:' + 'f'.repeat(64)),
+    }));
+  }
+  const result = f.run('helm_active', { MISSING: '' });
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).not.toContain('fixture-only');
+  expect(f.writes()).not.toContain('/workspace-agent@');
 });

@@ -39,7 +39,10 @@ function lancer(images, { echouePour = [] } = {}) {
   chmodSync(faux, 0o755);
   writeFileSync(journal, '');
 
-  writeFileSync(join(dir, 'gcloud'), '#!/bin/sh\n[ "$1 $2 $3 $4" = "artifacts docker images describe" ] || exit 1; printf "%s\\n" sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\n', { mode: 0o755 });
+  writeFileSync(join(dir, 'gcloud'), '#!/bin/sh\n[ "$*" = "auth print-access-token" ] && echo fixture-only\n', { mode: 0o755 });
+  const parent = 'projects/vibecore-495216/locations/europe-west9/repositories/vibecore-prod-containers/packages/api';
+  const resource = {name: parent + '/tags/17fe73df55', version: parent + '/versions/sha256:' + 'f'.repeat(64)};
+  writeFileSync(join(dir, 'curl'), `#!/bin/sh\ncat >/dev/null\necho '${JSON.stringify(resource)}'\n`, { mode: 0o755 });
 
   let code = 0;
   let sortie = '';
