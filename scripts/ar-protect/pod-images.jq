@@ -1,6 +1,7 @@
 # A Job can still be running, and a ReplicaSet can leave terminal pods behind.
 # Keep nonterminal pods, including terminating pods until they actually exit.
-.items[] | select(.status.phase != "Succeeded" and .status.phase != "Failed")
+if (.items | type) != "array" or (.metadata.continue // "") != "" then error("incomplete pod inventory") else . end
+| .items[] | select(.status.phase != "Succeeded" and .status.phase != "Failed")
 | . as $pod
 | (.spec.containers[], .spec.initContainers[]?, .spec.ephemeralContainers[]?) as $container
 | $container.image,
