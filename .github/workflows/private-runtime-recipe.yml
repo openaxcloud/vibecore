@@ -80,6 +80,7 @@ jobs:
       - name: Build web for the disposable workspace
         run: pnpm run build
       - name: Real API to manager to pod recipe
+        id: recipe
         run: pnpm exec tsx scripts/private-runtime-recipe/run.ts --reseed
       - name: Remove only the generated local cluster (also on cancellation)
         if: always()
@@ -87,11 +88,8 @@ jobs:
           if test -f "$RUNNER_TEMP/vibecore-private-runtime-state.json"; then
             node_modules/.bin/tsx scripts/private-runtime-recipe/run.ts --reseed --cleanup
           fi
-      - name: Upload sanitized evidence
+      - name: Summarize ZIP reimport
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: private-runtime-functional-${{ github.run_id }}-${{ github.run_attempt }}
-          path: private-runtime-evidence/
-          if-no-files-found: ignore
-          retention-days: 7
+        env:
+          RECIPE_OUTCOME: ${{ steps.recipe.outcome }}
+        run: node scripts/private-runtime-recipe/reimport-summary.mjs
