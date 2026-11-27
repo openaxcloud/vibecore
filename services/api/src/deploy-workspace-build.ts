@@ -344,7 +344,7 @@ export async function runWorkspaceStaticBuild(
   const buildCache = '.cache/.vibecore-builds';
   const name = options.sandboxDir;
   if (name && (!/^[a-zA-Z0-9._-]+$/.test(name) || name === '.' || name === '..')) {
-    throw new Error('Invalid build directory name');
+    throw new Error(appPublicEnglish('WORKSPACE_BUILD_DIRECTORY_NAME_INVALID'));
   }
   const sandbox = name && posix.join(buildCache, name);
   const cwd = sandbox ?? sourceCwd;

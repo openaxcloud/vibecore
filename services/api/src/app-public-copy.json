@@ -2391,6 +2391,10 @@
     "en": "Workspace deploy: failed to prepare the isolated build sandbox (exit {exitCode}).",
     "fr": "Déploiement depuis l’espace de travail : échec de la préparation du bac à sable de compilation isolé (sortie {exitCode})."
   },
+  "WORKSPACE_BUILD_DIRECTORY_NAME_INVALID": {
+    "en": "Invalid build directory name",
+    "fr": "Nom de répertoire de compilation invalide"
+  },
   "WORKSPACE_BUILD_DIRECTORY": {
     "en": "Deploying from the workspace: building in the project’s workspace ({path})",
     "fr": "Déploiement depuis l’espace de travail : compilation dans l’espace de travail du projet ({path})"
