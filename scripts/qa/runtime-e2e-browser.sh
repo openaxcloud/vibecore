@@ -17,6 +17,10 @@ readme_status=0
 pnpm exec playwright test --config=tests/private-runtime-readme/playwright.config.ts --project=chromium --reporter=./tests/private-runtime-readme/proof-reporter.ts > /tmp/vibecore-readme-proof.log 2>&1 || readme_status=$?
 echo "Chromium proof exit codes: Orbit=$orbit_status README=$readme_status"
 if (( orbit_status || readme_status )); then exit 1; fi
+echo 'Starting remaining Chromium @runtime tests'
 pnpm exec playwright test tests/e2e --project=chromium --grep @runtime --grep-invert "$spec" > /tmp/vibecore-browser-suite.log 2>&1
+echo 'Starting IDE panel audit'
 pnpm run ide:panel-audit > /tmp/vibecore-panel.log 2>&1
+echo 'Starting IDE panel audit validation'
 pnpm run ide:panel-audit:validate >> /tmp/vibecore-panel.log 2>&1
+echo 'Browser checks passed; stopping local web and admin servers'
