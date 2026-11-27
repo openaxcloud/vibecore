@@ -81,17 +81,19 @@ export default function Languages() {
                       <h3 className="min-w-0 break-words font-semibold mkt-h3">{programmingLanguage.name}</h3>
                     </div>
                     <p className="mb-4 break-words text-muted-foreground mkt-body">{programmingLanguage.note}</p>
-                    <a
-                      href="/"
-                      aria-label={interpolateMarketingExactAccountLanguagesCopy(copy.languages.actionAria, {
-                        language: programmingLanguage.name,
-                      })}
-                      className="mt-auto inline-flex min-h-11 max-w-full self-start items-center gap-1 rounded-sm text-[13px] font-medium text-primary whitespace-normal hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
-                      data-testid={`link-start-${programmingLanguage.name.toLowerCase()}`}
-                    >
-                      <span className="break-words">{copy.languages.action}</span>
-                      <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-                    </a>
+                    {programmingLanguage.id !== 'rust' && (
+                      <a
+                        href="/"
+                        aria-label={interpolateMarketingExactAccountLanguagesCopy(copy.languages.actionAria, {
+                          language: programmingLanguage.name,
+                        })}
+                        className="mt-auto inline-flex min-h-11 max-w-full self-start items-center gap-1 rounded-sm text-[13px] font-medium text-primary whitespace-normal hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+                        data-testid={`link-start-${programmingLanguage.name.toLowerCase()}`}
+                      >
+                        <span className="break-words">{copy.languages.action}</span>
+                        <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+                      </a>
+                    )}
                   </CardContent>
                 </Card>
               ))}

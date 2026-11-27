@@ -138,26 +138,24 @@ export const marketingExactAccountLanguagesEn = {
   exactLanguages: {
     seo: {
       title: 'Languages — E-Code',
-      description:
-        'Build with Python, JavaScript, TypeScript, Go, Rust and other major programming languages on E-Code.',
+      description: 'Explore programming languages and runtime availability on E-Code.',
       imageAlt: 'Programming languages, frameworks and runtimes supported by E-Code',
     },
     hero: {
-      title: 'Build in any language',
-      description:
-        'E-Code supports every major programming language with instant environments, package managers and live previews — no local setup required.',
-      badge: '{count}+ languages, zero config',
+      title: 'Programming languages on E-Code',
+      description: 'Explore the language catalog and see which runtimes are available.',
+      badge: '{count} languages listed',
     },
     languages: {
-      title: 'Supported languages',
+      title: 'Language catalog',
       action: 'Start building',
       actionAria: 'Start building with {language}',
       items: [
-        { id: 'python', name: 'Python', note: 'Data, AI and backends with instant package installs.' },
-        { id: 'javascript', name: 'JavaScript', note: 'Run Node and browser code with zero setup.' },
+        { id: 'python', name: 'Python', note: 'Python 3.12 is included in the managed runtime catalog.' },
+        { id: 'javascript', name: 'JavaScript', note: 'Node.js 22 is included in the managed runtime catalog.' },
         { id: 'typescript', name: 'TypeScript', note: 'Type-safe apps with first-class tooling built in.' },
-        { id: 'go', name: 'Go', note: 'Fast, compiled services that ship in seconds.' },
-        { id: 'rust', name: 'Rust', note: 'Memory-safe systems code with Cargo ready to go.' },
+        { id: 'go', name: 'Go', note: 'Go is included in the managed runtime catalog.' },
+        { id: 'rust', name: 'Rust', note: 'The managed Rust runtime is unavailable.' },
         { id: 'java', name: 'Java', note: 'Enterprise apps and APIs on a managed JVM.' },
         { id: 'csharp', name: 'C#', note: 'Build .NET services and tools in the cloud.' },
         { id: 'ruby', name: 'Ruby', note: 'Rails and scripts with gems pre-wired.' },
@@ -291,38 +289,36 @@ export const marketingExactAccountLanguagesFr = {
   exactLanguages: {
     seo: {
       title: 'Langages — E-Code',
-      description:
-        'Créez avec Python, JavaScript, TypeScript, Go, Rust et les principaux langages de programmation sur E-Code.',
+      description: 'Découvrez les principaux langages de programmation et les environnements disponibles sur E-Code.',
       imageAlt: 'Langages de programmation, frameworks et environnements d’exécution pris en charge par E-Code',
     },
     hero: {
-      title: 'Créez dans le langage de votre choix',
-      description:
-        'E-Code prend en charge tous les principaux langages de programmation avec des environnements instantanés, des gestionnaires de paquets et des aperçus en direct, sans configuration locale.',
-      badge: 'Plus de {count} langages, zéro configuration',
+      title: 'Les langages de programmation sur E-Code',
+      description: 'Parcourez le catalogue des langages et consultez la disponibilité des environnements d’exécution.',
+      badge: '{count} langages répertoriés',
     },
     languages: {
-      title: 'Langages pris en charge',
+      title: 'Catalogue des langages',
       action: 'Commencer à créer',
       actionAria: 'Commencer à créer avec {language}',
       items: [
         {
           id: 'python',
           name: 'Python',
-          note: 'Données, IA et services applicatifs avec installation instantanée des paquets.',
+          note: 'Python 3.12 figure au catalogue des environnements gérés.',
         },
         {
           id: 'javascript',
           name: 'JavaScript',
-          note: 'Exécutez du code Node.js et navigateur sans aucune configuration.',
+          note: 'Node.js 22 figure au catalogue des environnements gérés.',
         },
         {
           id: 'typescript',
           name: 'TypeScript',
           note: 'Applications typées avec des outils de premier ordre déjà intégrés.',
         },
-        { id: 'go', name: 'Go', note: 'Services compilés et rapides, prêts à être livrés en quelques secondes.' },
-        { id: 'rust', name: 'Rust', note: 'Code système sûr en mémoire, avec Cargo prêt à l’emploi.' },
+        { id: 'go', name: 'Go', note: 'Go figure au catalogue des environnements gérés.' },
+        { id: 'rust', name: 'Rust', note: 'L’environnement d’exécution Rust géré est indisponible.' },
         { id: 'java', name: 'Java', note: 'Applications d’entreprise et API sur une JVM administrée.' },
         { id: 'csharp', name: 'C#', note: 'Créez des services et des outils .NET dans le cloud.' },
         { id: 'ruby', name: 'Ruby', note: 'Rails et scripts, avec les gems déjà configurées.' },
