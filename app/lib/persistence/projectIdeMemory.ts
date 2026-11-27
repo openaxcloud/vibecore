@@ -1284,11 +1284,17 @@ async function persistWithRetry(scope: string): Promise<void> {
            * conflicting session added (so a second tab's terminal-open
            * toggle isn't lost when we save a panel resize, for example).
            */
-          const merged = mergeProjectIdeMemory(serverMemory, dirty);
+          // A newer save for this project may have arrived while this PUT was in flight.
+          const current = pendingDirty.get(scope);
+
+          if (!current) {
+            return;
+          }
+
+          const merged = mergeProjectIdeMemory(serverMemory, current);
           entreesFaisantAutorite.add(scope);
           memoryCache.set(scope, merged);
           writeLocalProjectIdeMemory(scope, merged);
-          notifyCrossTabListeners(scope, merged);
 
           /*
            * `mergeProjectIdeMemory` strips `chat.clearMessages` (the server only
@@ -1299,7 +1305,8 @@ async function persistWithRetry(scope: string): Promise<void> {
            * version race to another tab resurrects the removed messages. The cache
            * keeps the flag-free `merged` so local reads aren't polluted.
            */
-          pendingDirty.set(scope, memoryForServerSave(merged, dirty));
+          pendingDirty.set(scope, memoryForServerSave(merged, current));
+          notifyCrossTabListeners(scope, merged);
         }
 
         const conflictError = new Error(getPersistenceRuntimeCopy()['persistence.ide.concurrentChange']);
