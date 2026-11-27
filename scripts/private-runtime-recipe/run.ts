@@ -96,7 +96,7 @@ async function run(
       clearTimeout(killTimer);
       reject(error);
     });
-    child.on('close', (code) => {
+    child.on('close', (code, signal) => {
       clearTimeout(timer);
       clearTimeout(killTimer);
 
@@ -104,7 +104,9 @@ async function run(
         resolvePromise(stdout);
       } else {
         reject(
-          new Error(`${command} ${args.slice(0, 3).join(' ')} failed (exit ${code}); see recipe stage/status evidence`),
+          new Error(
+            `${command} ${args.slice(0, 3).join(' ')} failed (${timedOut ? `timeout after ${options.timeout ?? 120_000} ms, ` : ''}${signal ? `signal ${signal}` : `exit ${code}`}); see recipe stage/status evidence`,
+          ),
         );
       }
     });
