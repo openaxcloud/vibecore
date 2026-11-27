@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -104,10 +104,96 @@ describe('canonical Ubuntu mirror scoped to WebKit preparation', () => {
     expect(steps[index].if).toBe(
       "runner.arch == 'X64' && (inputs.navigateurs == 'chromium' || inputs.navigateurs == 'chromium,webkit')",
     );
-    expect(steps[index].run).toBe('sudo python3 .github/scripts/preparer-miroir-ubuntu.py');
+    expect(steps[index].run).toContain('sudo python3 .github/scripts/preparer-miroir-ubuntu.py');
     expect(steps.findIndex((step: { name?: string }) => step.name === 'Install Playwright browsers')).toBeGreaterThan(
       index,
     );
     expect(action.inputs.navigateurs.default).toBe('chromium');
   });
+});
+
+it('isolates the Noble apt update from a third-party 403 and restores source discovery afterwards', () => {
+  const steps = parse(readFileSync(join(root, '.github/actions/preparer-pile-e2e/action.yml'), 'utf8')).runs.steps;
+  const prepare = steps.findIndex((step: { id?: string }) => step.id === 'browser_apt');
+  expect(steps[prepare + 1].name).toBe('Install Playwright browsers');
+
+  const cleanup = steps[prepare + 2];
+  expect(cleanup.if).toBe("always() && steps.browser_apt.outputs.config != ''");
+
+  const directory = mkdtempSync(join(tmpdir(), 'browser-apt-'));
+  const apt = join(directory, 'etc/apt');
+  const out = join(directory, 'outputs');
+
+  try {
+    for (const path of ['apt.conf.d', 'sources.list.d']) {
+      mkdirSync(join(apt, path), { recursive: true });
+    }
+    writeFileSync(join(directory, 'os-release'), 'ID=ubuntu\nVERSION_CODENAME=noble\n');
+    writeFileSync(join(directory, 'keyring'), 'fixture');
+    writeFileSync(
+      join(apt, 'sources.list.d/vendor.list'),
+      'deb https://packages.microsoft.com/ubuntu/24.04/prod noble main\n',
+    );
+
+    const config = join(directory, 'apt.conf');
+    writeFileSync(config, `Dir::Etc "${apt}";\nDir::State::lists "${directory}/lists";\n`);
+    mkdirSync(join(directory, 'lists/partial'), { recursive: true });
+
+    const shell = (script: string, env: Record<string, string> = {}) =>
+      execFileSync('bash', ['-e', '-o', 'pipefail', '-c', 'sudo() { "$@"; }\n' + script], {
+        cwd: root,
+        env: { ...process.env, GITHUB_OUTPUT: out, ...env },
+      });
+    const update = () => {
+      /*
+       * APT selects the real index URIs without downloading them. The fixture
+       * transport fails only when the Microsoft index would actually be requested.
+       */
+      const result = spawnSync('apt-get', ['--print-uris', 'update'], {
+        encoding: 'utf8',
+        env: { ...process.env, APT_CONFIG: config },
+      });
+      expect(result.status, result.stderr).toBe(0);
+
+      return { status: result.stdout.includes('packages.microsoft.com') ? 403 : 200, uris: result.stdout };
+    };
+    expect(update().status).toBe(403);
+    shell(
+      steps[prepare].run
+        .replaceAll('/etc/os-release', join(directory, 'os-release'))
+        .replaceAll('/etc/apt/', apt + '/')
+        .replaceAll('/usr/share/keyrings/ubuntu-archive-keyring.gpg', join(directory, 'keyring')),
+    );
+
+    const paths = Object.fromEntries(
+      readFileSync(out, 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => line.split('=')),
+    );
+
+    const during = update();
+    expect(during.status).toBe(200);
+    expect([...new Set([...during.uris.matchAll(/'https:\/\/([^/]+)/g)].map((m) => m[1]))].sort()).toEqual([
+      'archive.ubuntu.com',
+      'security.ubuntu.com',
+    ]);
+
+    for (const suite of ['noble', 'noble-updates', 'noble-security']) {
+      expect(during.uris).toContain('/dists/' + suite + '/InRelease');
+    }
+
+    const sources = readFileSync(paths.sources, 'utf8').trim().split('\n');
+    expect(sources).toHaveLength(3);
+
+    for (const line of sources) {
+      expect(line).toMatch(
+        /^deb \[arch=amd64 signed-by=\/usr\/share\/keyrings\/ubuntu-archive-keyring\.gpg\] https:\/\/[^ ]+ noble(?:-updates|-security)? main universe$/,
+      );
+    }
+    shell(cleanup.run, { BROWSER_APT_CONFIG: paths.config, BROWSER_APT_SOURCES: paths.sources });
+    expect(update().status).toBe(403);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
