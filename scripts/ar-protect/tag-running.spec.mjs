@@ -39,13 +39,18 @@ function lancer(images, { echouePour = [] } = {}) {
   chmodSync(faux, 0o755);
   writeFileSync(journal, '');
 
+  writeFileSync(join(dir, 'gcloud'), '#!/bin/sh\n[ "$*" = "auth print-access-token" ] && echo fixture-only\n', { mode: 0o755 });
+  const parent = 'projects/vibecore-495216/locations/europe-west9/repositories/vibecore-prod-containers/packages/api';
+  const resource = {name: parent + '/tags/17fe73df55', version: parent + '/versions/sha256:' + 'f'.repeat(64)};
+  writeFileSync(join(dir, 'curl'), `#!/bin/sh\ncat >/dev/null\necho '${JSON.stringify(resource)}'\n`, { mode: 0o755 });
+
   let code = 0;
   let sortie = '';
 
   try {
     sortie = execFileSync('bash', [SCRIPT], {
       input: images.join('\n') + '\n',
-      env: { ...process.env, REPO_CONTAINERS: REPO, AR_TAGGER: faux },
+      env: { ...process.env, PATH: dir + ':' + process.env.PATH, REPO_CONTAINERS: REPO, AR_TAGGER: faux },
       encoding: 'utf8',
     });
   } catch (e) {
@@ -60,7 +65,7 @@ function lancer(images, { echouePour = [] } = {}) {
 
 describe('tag-running.sh — protection des images en service', () => {
   it('1. dérive le paquet d’une référence par DIGEST (le défaut du 29/08)', () => {
-    const { code, appels } = lancer([`${REPO}/admin@sha256:475a1df04f698994fbc9184fcd35802480bbd1850df6208`]);
+    const { code, appels } = lancer([`${REPO}/admin@sha256:475a1df04f698994fbc9184fcd35802480bbd1850df620800000000000000000`]);
 
     expect(code).toBe(0);
     expect(appels).toHaveLength(1);
@@ -69,7 +74,7 @@ describe('tag-running.sh — protection des images en service', () => {
      * Avant : le paquet devenait `admin@sha256`, et gcloud refusait avec
      * « Image …/admin does not match image …/admin@sha256 ».
      */
-    expect(appels[0]).toContain(`${REPO}/admin:running-admin`);
+    expect(appels[0]).toContain(`${REPO}/admin:running-sha256-`);
     expect(appels[0]).not.toContain('sha256:running');
     expect(appels[0]).not.toContain('running-admin@sha256');
   });
@@ -78,15 +83,15 @@ describe('tag-running.sh — protection des images en service', () => {
     const { code, appels } = lancer([`${REPO}/api:17fe73df55`]);
 
     expect(code).toBe(0);
-    expect(appels[0]).toContain(`${REPO}/api:running-api`);
+    expect(appels[0]).toContain(`${REPO}/api:running-sha256-`);
   });
 
   it('2. une image en échec n’empêche PAS les suivantes d’être taguées', () => {
     const images = [
-      `${REPO}/admin@sha256:aaaa`, // premier dans l'ordre alphabétique, celui qui échouait
-      `${REPO}/ai-gateway@sha256:bbbb`,
-      `${REPO}/api@sha256:cccc`,
-      `${REPO}/web@sha256:dddd`,
+      `${REPO}/admin@sha256:aaaa000000000000000000000000000000000000000000000000000000000000`, // premier dans l'ordre alphabétique, celui qui échouait
+      `${REPO}/ai-gateway@sha256:bbbb000000000000000000000000000000000000000000000000000000000000`,
+      `${REPO}/api@sha256:cccc000000000000000000000000000000000000000000000000000000000000`,
+      `${REPO}/web@sha256:dddd000000000000000000000000000000000000000000000000000000000000`,
     ];
 
     const { code, appels } = lancer(images, { echouePour: ['/admin@'] });
@@ -100,9 +105,9 @@ describe('tag-running.sh — protection des images en service', () => {
 
     // Les trois suivantes DOIVENT avoir été tentées malgré l'échec du premier.
     expect(appels).toHaveLength(4);
-    expect(appels.join('\n')).toContain('running-ai-gateway');
-    expect(appels.join('\n')).toContain('running-api');
-    expect(appels.join('\n')).toContain('running-web');
+    expect(appels.join('\n')).toContain('/ai-gateway:running-sha256-');
+    expect(appels.join('\n')).toContain('/api:running-sha256-');
+    expect(appels.join('\n')).toContain('/web:running-sha256-');
 
     // …et la panne reste visible : le script sort en échec.
     expect(code).not.toBe(0);
