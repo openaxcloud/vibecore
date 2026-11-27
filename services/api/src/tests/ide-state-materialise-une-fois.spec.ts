@@ -53,7 +53,9 @@ afterEach(() => {
 });
 
 async function banc() {
-  const app = await buildApiApp({ store: new TestApiStore(), projectStorage: new LocalProjectStorage() });
+  const store = new TestApiStore();
+  const projectStorage = new LocalProjectStorage();
+  const app = await buildApiApp({ store, projectStorage });
 
   const inscription = await app.inject({
     method: 'POST',
@@ -115,28 +117,92 @@ async function banc() {
 
     const archive = await JSZip.loadAsync(Buffer.from(reponse.json().archive.base64, 'base64'));
 
-    return (await archive.file(CHEMIN)?.async('string'))?.trim();
+    return archive.file(CHEMIN)?.async('string');
   };
 
-  return { app, poserEtat, enregistrerCommeLUtilisateur, copieServeur };
+  return { app, store, projectStorage, headers, projectId, poserEtat, enregistrerCommeLUtilisateur, copieServeur };
 }
+
+describe('écriture conditionnelle sur un manifeste existant', () => {
+  it('accepte une première écriture dans un manifeste vide explicite', async () => {
+    const { app, store, headers, projectId, copieServeur } = await banc();
+    try {
+      const before = await store.upsertProjectIdeState({ projectId, state: { files: { entries: [] } } });
+      const zip = new JSZip().file(CHEMIN, 'Confirmé\n');
+      const write = await app.inject({
+        method: 'POST',
+        url: '/projects/' + projectId + '/files/import/zip',
+        headers,
+        payload: {
+          sourceVersion: before.version,
+          previousContents: { [CHEMIN]: null },
+          zipBase64: await zip.generateAsync({ type: 'base64' }),
+        },
+      });
+      expect(write.statusCode).toBe(200);
+      expect(await copieServeur()).toBe('Confirmé\n');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it.each([
+    ['absent', {}],
+    ['entries non tabulaire', { files: { entries: {} } }],
+    ['entrée invalide', { files: { entries: [{ path: CHEMIN, content: 17 }] } }],
+  ])('préserve la base et le disque avec un manifeste %s', async (cas, state) => {
+    const { app, store, projectStorage, headers, projectId, enregistrerCommeLUtilisateur } = await banc();
+    try {
+      await enregistrerCommeLUtilisateur('Sentinelle\n');
+      const before = await store.upsertProjectIdeState({ projectId, state });
+      const disk = await projectStorage.listFiles(projectId);
+      const edit = await app.inject({
+        method: 'PUT',
+        url: '/api/runtime/workspaces/' + projectId + '/files/write',
+        headers,
+        payload: { path: 'nouveau.txt', content: 'Agent\n' },
+      });
+      expect(edit.statusCode).toBe(409);
+      expect(edit.json().persistence).toEqual({ runtime: 'not_applied', manifest: 'unconfirmed' });
+      const zip = new JSZip().file('nouveau.txt', 'Agent\n');
+      const base = '/projects/' + projectId;
+      const write = await app.inject({
+        method: 'POST',
+        url: base + '/files/import/zip',
+        headers,
+        payload: {
+          sourceVersion: before.version,
+          previousContents: { 'nouveau.txt': null },
+          zipBase64: await zip.generateAsync({ type: 'base64' }),
+        },
+      });
+      expect(write.statusCode).toBe(500);
+      const read = await app.inject({ method: 'GET', url: base + '/export/zip', headers });
+      expect(read.statusCode).toBe(cas === 'absent' ? 200 : 500);
+      expect(await store.getProjectIdeState(projectId)).toEqual(before);
+      expect(await projectStorage.listFiles(projectId)).toEqual(disk);
+    } finally {
+      await app.close();
+    }
+  });
+});
 
 describe('ide-state — un message de l’agent n’est matérialisé qu’une fois', () => {
   it('l’agent écrit, l’utilisateur enregistre par-dessus, puis un PUT qui ne porte que l’interface : la version de l’utilisateur reste', async () => {
     const { app, poserEtat, enregistrerCommeLUtilisateur, copieServeur } = await banc();
 
     await poserEtat({ chat: { messages: [messageAgent('a1', '// VERSION-AGENT')] } });
-    expect(await copieServeur(), 'témoin : le tour de l’agent est bien matérialisé').toBe('// VERSION-AGENT');
+    expect(await copieServeur(), 'témoin : le tour de l’agent est bien matérialisé').toBe('// VERSION-AGENT\n');
 
     await enregistrerCommeLUtilisateur('// VERSION-UTILISATEUR\n');
     expect(await copieServeur(), 'témoin : l’enregistrement de l’utilisateur est sur le serveur').toBe(
-      '// VERSION-UTILISATEUR',
+      '// VERSION-UTILISATEUR\n',
     );
 
     await poserEtat({ ui: { ongletOuvert: CHEMIN } });
 
     // Mesuré AVANT correctif : « // VERSION-AGENT ».
-    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR');
+    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR\n');
 
     await app.close();
   });
@@ -150,7 +216,7 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
 
     await poserEtat({ chat: { messages: fil } });
 
-    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR');
+    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR\n');
 
     await app.close();
   });
@@ -177,7 +243,7 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
     /* La fermeture de l'artefact du tour a2 importe l'arbre du pod (`#persistRuntimeFilesToProjectStorage`). */
     await enregistrerCommeLUtilisateur('// VERSION-AGENT-NOUVELLE\n');
 
-    expect(await copieServeur()).toBe('// VERSION-AGENT-NOUVELLE');
+    expect(await copieServeur()).toBe('// VERSION-AGENT-NOUVELLE\n');
 
     await app.close();
   });
@@ -191,7 +257,7 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
 
     await poserEtat({ chat: { messages: [premier, messageAgent('a2', '// VERSION-AGENT-NOUVELLE')] } });
 
-    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR');
+    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR\n');
 
     await app.close();
   });
@@ -202,7 +268,7 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
     await poserEtat({ chat: { messages: [{ id: 'a1', role: 'assistant', content: 'Je commence…' }] } });
     await poserEtat({ chat: { messages: [messageAgent('a1', '// VERSION-AGENT-FIN-DE-FLUX')] } });
 
-    expect(await copieServeur()).toBe('// VERSION-AGENT-FIN-DE-FLUX');
+    expect(await copieServeur()).toBe('// VERSION-AGENT-FIN-DE-FLUX\n');
 
     await app.close();
   });

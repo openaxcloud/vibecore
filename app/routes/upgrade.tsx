@@ -420,6 +420,7 @@ export default function UpgradePage() {
                   ) : (
                     planHighlights(plan.limits, copy, language).map((highlight) => <li key={highlight}>{highlight}</li>)
                   )}
+                  {plan.key === 'free' ? <li>{copy['upgrade.starter.publicationLimit']}</li> : null}
                 </ul>
                 {isCurrent ? (
                   <button type="button" disabled className={OUTLINE_CTA_CLASS}>

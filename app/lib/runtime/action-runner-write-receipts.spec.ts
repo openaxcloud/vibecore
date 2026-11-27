@@ -70,6 +70,21 @@ describe('direct payload receipts on an isolated real filesystem', () => {
     expect(runtime.writeFile).toHaveBeenCalledTimes(1);
   });
 
+  it('delivers verified bytes only to the caller of the completed write', async () => {
+    const observed = vi.fn();
+    const action = data();
+    runner.addAction(action);
+    await runner.runAction(action, true, observed);
+    expect(observed).not.toHaveBeenCalled();
+    await runner.runAction(action, false, observed);
+    expect(observed.mock.calls).toEqual([['observed payload\n']]);
+
+    const interrupted = { ...data('partial'), fermetureDeSecours: true };
+    runner.addAction(interrupted);
+    await runner.runAction(interrupted, false, observed);
+    expect(observed).toHaveBeenCalledTimes(1);
+  });
+
   it.each(['old bytes', 'concurrent edit'])('does not confirm a readback of %s or retry the write', async (content) => {
     vi.mocked(runtime.readFile).mockImplementation(async () => ({ content }) as any);
     await execute();

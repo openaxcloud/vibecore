@@ -1,0 +1,39 @@
+[data-ecode-startup-recovery][hidden] {
+  display: none;
+}
+[data-ecode-startup-recovery]:not([hidden]) {
+  position: fixed;
+  inset: 0;
+  /* The boot splash uses 2147483646; recovery must receive pointer input above it. */
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #f8fafc;
+  background: #111827;
+  font-family: system-ui, sans-serif;
+}
+[data-ecode-startup-recovery] > div {
+  max-width: 32rem;
+}
+[data-ecode-startup-recovery] h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+[data-ecode-startup-recovery] p {
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+[data-ecode-startup-recovery] button {
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: #111827;
+  background: #f8fafc;
+  font-weight: 600;
+  cursor: pointer;
+}
+[data-ecode-startup-recovery] button:focus-visible {
+  outline: 3px solid #fb923c;
+  outline-offset: 4px;
+}

@@ -962,6 +962,8 @@ export const ChatImpl = memo(
         return window.fetch(input, init);
       }) as typeof fetch,
       onError: (e) => {
+        const pending = pendingGenerationRef.current;
+
         if (!terminalRecovery.fail()) {
           return;
         }
@@ -987,7 +989,18 @@ export const ChatImpl = memo(
          * spin forever. Abort them like a manual stop does.
          */
         workbenchStore.abortAllActions();
-        handleError(e, 'chat');
+
+        const errorType = handleError(e, 'chat');
+
+        /*
+         * Reopening the IDE cannot repair rejected credentials. Keep the prompt
+         * available for an explicit retry after the user changes their settings.
+         */
+        if (projectId && pending && errorType === 'authentication') {
+          void saveProjectIdeMemory(projectId, { chat: { manualRetryPromptId: pending.promptId } }).catch((error) => {
+            logger.warn('failed to persist manual retry for queued prompt', { projectId, error });
+          });
+        }
 
         /*
          * A failed generation must not consume the project's queued prompt — drop
@@ -1408,6 +1421,7 @@ export const ChatImpl = memo(
     };
 
     const abort = () => {
+      const pending = pendingGenerationRef.current;
       annulerRattrapage();
       terminalRecovery.cancel();
       stop();
@@ -1415,6 +1429,12 @@ export const ChatImpl = memo(
       /* Un arrêt volontaire n'est pas une coupure : ce que l'utilisateur a arrêté reste arrêté. */
       if (projectId) {
         effacerLeTourEnCours(projectId);
+
+        if (pending) {
+          void saveProjectIdeMemory(projectId, {
+            chat: { pendingPrompt: null, consumedPrompt: consommerPrompt(pending.pendingPrompt, 'cancelled') },
+          }).catch((error) => logger.warn('failed to persist queued prompt cancellation', { projectId, error }));
+        }
       }
 
       /*
@@ -1552,7 +1572,7 @@ export const ChatImpl = memo(
           setData([]);
           void reload();
 
-          return;
+          return errorType;
         }
 
         // Create API error alert
@@ -1564,6 +1584,8 @@ export const ChatImpl = memo(
           errorType,
         });
         setData([]);
+
+        return errorType;
       },
       [copy, provider.name, stop, reload],
     );
@@ -1805,6 +1827,24 @@ export const ChatImpl = memo(
             }).catch((error) => {
               logger.warn('failed to clear stale pending prompt', { projectId, error });
             });
+
+            return;
+          }
+
+          if (memory.chat?.manualRetryPromptId === pendingPrompt.id) {
+            submittedProjectPromptRef.current = promptKey;
+
+            const lastUserMessage = memory.chat.messages?.findLast((message) => message.role === 'user');
+
+            if (lastUserMessage?.content === prompt) {
+              setLlmErrorAlert({
+                type: 'error',
+                title: copy['chatClient.error.title.authentication'],
+                description: '',
+                provider: pendingPrompt.provider ?? provider.name,
+                errorType: 'authentication',
+              });
+            }
 
             return;
           }

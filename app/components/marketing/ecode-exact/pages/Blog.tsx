@@ -176,7 +176,7 @@ export default function Blog() {
                       </span>
                     </div>
                     <Link
-                      href="/blog"
+                      href="/blog/introducing-e-code"
                       className="inline-flex min-h-[44px] w-full items-center justify-center gap-1 whitespace-normal rounded-md text-center text-[14px] font-medium leading-snug text-ecode-accent hover:text-ecode-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent sm:w-auto"
                       data-testid="link-featured-read-more"
                     >
@@ -221,14 +221,6 @@ export default function Blog() {
                             <time dateTime={post.date}>{formatExactBlogDate(post.date, language)}</time>
                           </span>
                         </div>
-                        <Link
-                          href="/blog"
-                          className="inline-flex min-h-[44px] w-full items-center justify-center gap-1 whitespace-normal rounded-md text-center text-[14px] font-medium leading-snug text-ecode-accent hover:text-ecode-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent sm:w-auto"
-                          data-testid="link-read-more"
-                        >
-                          <span className="min-w-0 break-words">{copy.articles.readMore}</span>
-                          <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        </Link>
                       </div>
                     </CardContent>
                   </Card>

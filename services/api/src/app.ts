@@ -1,3 +1,4 @@
+import { requireDeploymentWorkspaceId } from './deployment-workspace.js';
 import { publishMigrationOwner } from './database-migration-work-link.js';
 import { admitDatabaseWrite, type DatabaseWriteAdmission } from './database-write-admission.js';
 import { isIdeMetadataEnvKey } from './workspace-env-metadata.js';
@@ -622,7 +623,13 @@ export type WorkspacePodBuildRefusal =
 export type WorkspacePodStaticBuild = (
   request: any,
   project: { id: string; organizationId: string },
-  body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
+  body: {
+    buildCommand: string;
+    outputDirectory: string;
+    timeoutSeconds: number;
+    artifactSizeLimitMb?: number;
+    workspaceId?: string;
+  },
   deploymentId: string,
   progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
 ) => Promise<
@@ -1291,6 +1298,7 @@ function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
   return {
     ...existing,
     ...incoming,
+    fileWriteClock: existing.fileWriteClock,
     chat: mergedChat,
     ui: { ...ideStateRecord(existing.ui), ...ideStateRecord(incoming.ui) },
     collaboration: mergedCollaboration,
@@ -4399,6 +4407,7 @@ function serverRuntimeDetectionMessage(
  * ne doit pas rendre la borne inopérante — c'est le cas que la garde couvre.
  */
 const SNAPSHOT_LIST_MAX_PAGE = 200;
+const SNAPSHOT_INLINE_EDITOR_MAX_BYTES = 16 * 1024 * 1024;
 
 function localizeSnapshotRecord<T extends Pick<SnapshotRecord, 'kind' | 'label'>>(
   snapshot: T,
@@ -5050,62 +5059,8 @@ function projectFileManifestFromPersistedIdeState(state?: PersistedIdeStateLike)
   exists: boolean;
   files: Array<{ path: string; content: string; ecrit?: true }>;
 } {
-  const root = ideStateObject(state);
-  return projectFileManifestFromPersistedInput(root.files);
-}
-
-function projectFileManifestFromPersistedInput(input: unknown): {
-  exists: boolean;
-  files: Array<{ path: string; content: string; ecrit?: true }>;
-} {
-  const manifest =
-    input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
-
-  const exists = Array.isArray(manifest.entries);
-
-  return {
-    exists,
-    files: exists ? projectFilesFromPersistedFileManifest(input) : [],
-  };
-}
-
-function projectFilesFromPersistedFileManifest(
-  input: unknown,
-): Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }> {
-  const manifest =
-    input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
-
-  const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
-  const files: Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }> = [];
-
-  for (const entry of entries) {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-      continue;
-    }
-
-    const record = entry as Record<string, unknown>;
-
-    if (typeof record.path !== 'string' || typeof record.content !== 'string') {
-      continue;
-    }
-
-    const normalizedPath = normalizeProjectPath(record.path);
-
-    if (!normalizedPath) {
-      continue;
-    }
-
-    // Preserve binary encoding if the manifest recorded it (absent = utf8 text).
-    const encoding = record.encoding === 'base64' ? 'base64' : undefined;
-    files.push({
-      path: normalizedPath,
-      content: record.content,
-      ...(encoding ? { encoding } : {}),
-      ...(record.ecrit === true ? { ecrit: true as const } : {}),
-    });
-  }
-
-  return files;
+  const entries = entreesDuManifeste(ideStateObject(state));
+  return { exists: entries !== undefined, files: entries ?? [] };
 }
 
 function projectFileManifestState(
@@ -5160,12 +5115,30 @@ async function syncProjectStorageWithFileManifest(
   });
 }
 
+// File mutations share the IDE row with chat/UI. Only an explicit file write
+// advances a path's clock. A whole-tree replacement also covers absent paths.
+function fileWriteClock(existing?: ProjectIdeStateRecord) {
+  const clock = ideStateRecord(ideStateRecord(existing?.state).fileWriteClock);
+  return { replaced: Number(clock.replaced) || 0, paths: ideStateRecord(clock.paths) };
+}
+
+function advanceFileWriteClock(existing: ProjectIdeStateRecord | undefined, paths?: Iterable<string>) {
+  const next = (existing?.version ?? 0) + 1;
+  if (!paths) return { replaced: next, paths: {} };
+
+  const clock = fileWriteClock(existing);
+  return {
+    replaced: clock.replaced,
+    paths: { ...clock.paths, ...Object.fromEntries(Array.from(paths, (path) => [path, next])) },
+  };
+}
+
 async function persistProjectFileManifest(
   store: ApiStore,
   projectId: string,
   files: Array<{ path: string; content: string }>,
   updatedByUserId?: string,
-  options: { clearRecoveredChatFiles?: boolean; ecrit?: boolean } = {},
+  options: { clearRecoveredChatFiles?: boolean; ecrit?: boolean; writtenPaths?: string[] } = {},
 ) {
   /*
    * Route through the version-guarded mutate loop instead of a bare read +
@@ -5176,12 +5149,13 @@ async function persistProjectFileManifest(
    * (authz-affecting) that committed inside the read/write window. mutate
    * re-reads + re-merges under the optimistic-concurrency version check.
    */
-  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) =>
-    mergeProjectIdeState(existing?.state, {
+  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) => ({
+    ...mergeProjectIdeState(existing?.state, {
       files: projectFileManifestState(files, { ecrit: options.ecrit }),
       ...(options.clearRecoveredChatFiles ? { chat: { clearMessages: true, messages: [] } } : {}),
     }),
-  );
+    fileWriteClock: advanceFileWriteClock(existing, options.writtenPaths),
+  }));
 }
 
 /**
@@ -5230,14 +5204,41 @@ type EntreeDeManifeste = { path: string; content: string; encoding?: 'base64'; e
  * produirait la tempête de contention que `estEcritureDeFlux` évite déjà.
  */
 function entreesDuManifeste(etat: unknown): EntreeDeManifeste[] | undefined {
-  const racine = (etat ?? {}) as { files?: { entries?: EntreeDeManifeste[] } };
+  const racine = ideStateRecord(etat);
+  const entries: unknown[] | undefined = Array.isArray(racine.files?.entries) ? racine.files.entries : undefined;
 
-  return Array.isArray(racine.files?.entries) ? racine.files!.entries! : undefined;
+  if (racine.files?.entries === undefined) {
+    return undefined;
+  }
+
+  // A partial manifest would make restoreSnapshot delete every omitted file.
+  const invalid = () => new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
+  if (!entries) {
+    throw invalid();
+  }
+
+  const paths = new Set<string>();
+  return entries.map((entry) => {
+    const file = ideStateRecord(entry);
+    const path = typeof file.path === 'string' ? normalizeProjectPath(file.path) : undefined;
+
+    if (
+      !path ||
+      paths.has(path) ||
+      typeof file.content !== 'string' ||
+      (file.encoding !== undefined && file.encoding !== 'utf8' && file.encoding !== 'base64')
+    ) {
+      throw invalid();
+    }
+    paths.add(path);
+    return { ...file, path, content: file.content, encoding: file.encoding === 'base64' ? 'base64' : undefined };
+  });
 }
 
 /** Vrai si le transformateur a réellement changé quelque chose. */
-function manifesteChange(avant: EntreeDeManifeste[], apres: EntreeDeManifeste[]) {
-  if (avant.length !== apres.length) {
+function manifesteChange(avant: EntreeDeManifeste[], apres: EntreeDeManifeste[], explicitPath?: string) {
+  // Saving identical bytes still advances this path's write revision.
+  if (explicitPath !== undefined || avant.length !== apres.length) {
     return true;
   }
 
@@ -5254,8 +5255,9 @@ async function mutateProjectFileManifestEntries(
   store: ApiStore,
   projectId: string,
   updatedByUserId: string | undefined,
-  transformer: (entrees: EntreeDeManifeste[]) => EntreeDeManifeste[],
+  transformer: (entrees: EntreeDeManifeste[], existing?: ProjectIdeStateRecord) => EntreeDeManifeste[],
   requireManifest = false,
+  explicitPath?: string,
 ) {
   /*
    * DEUX raisons de renoncer AVANT d'entrer dans `mutateProjectIdeState`, et
@@ -5277,13 +5279,15 @@ async function mutateProjectFileManifestEntries(
    * dans la boucle à version optimiste ne coûte rien et garde la relecture
    * sous contrôle de version.
    */
-  const entreesActuelles = entreesDuManifeste((await store.getProjectIdeState(projectId))?.state);
+  const current = await store.getProjectIdeState(projectId);
+  const entreesActuelles = entreesDuManifeste(current?.state);
 
   if (requireManifest && !entreesActuelles) {
     throw new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
   }
 
-  if (!entreesActuelles || !manifesteChange(entreesActuelles, transformer([...entreesActuelles]))) {
+  const apres = entreesActuelles ? transformer([...entreesActuelles], current) : [];
+  if (!entreesActuelles || !manifesteChange(entreesActuelles, apres, explicitPath)) {
     return;
   }
 
@@ -5299,9 +5303,19 @@ async function mutateProjectFileManifestEntries(
       return mergeProjectIdeState(existing?.state, {});
     }
 
-    return mergeProjectIdeState(existing?.state, {
-      files: { entries: transformer([...entrees]), updatedAt: new Date().toISOString() },
-    });
+    const after = transformer([...entrees], existing);
+    const unchanged = new Set(after);
+    const touched = new Set(entrees.filter((entry) => !unchanged.has(entry)).map((entry) => entry.path));
+    const original = new Set(entrees);
+    for (const entry of after) {
+      if (!original.has(entry)) touched.add(entry.path);
+    }
+    if (explicitPath) touched.add(explicitPath);
+
+    return {
+      ...mergeProjectIdeState(existing?.state, { files: { entries: after, updatedAt: new Date().toISOString() } }),
+      fileWriteClock: advanceFileWriteClock(existing, touched),
+    };
   });
 }
 
@@ -5364,6 +5378,7 @@ async function persistProjectFileEntry(
       return entrees;
     },
     true,
+    chemin,
   );
 
   /*
@@ -7656,7 +7671,7 @@ async function archiveProjectFiles(projectId: string, files: ProjectFile[]) {
   const zip = new JSZip();
 
   for (const file of files) {
-    zip.file(file.path, file.content);
+    zip.file(file.path, decodeFileContent(file.content, file.encoding));
   }
 
   const content = await zip.generateAsync({ type: 'nodebuffer' });
@@ -16311,7 +16326,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { handled: false, refusal: 'NO_WEBSOCKET_RUNTIME' };
     }
 
-    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
+    const workspaceId = body.workspaceId
+      ? await requireDeploymentWorkspaceId(store, project.id, body.workspaceId)
+      : await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     /*
@@ -16673,9 +16690,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const syncRestoredFilesToWorkspace = async (
     workspaceId: string,
     restoredFiles: ReadonlyArray<Pick<ProjectFile, 'path' | 'content' | 'encoding'>>,
-  ): Promise<void> => {
+  ): Promise<boolean> => {
     try {
       let livePaths: string[] = [];
+      let synced = true;
 
       try {
         const tree = await agentRequest<AgentNode[]>(workspaceId, '/files/tree');
@@ -16687,6 +16705,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * state and the pod converge on content; stale extra files are tolerable.
          */
         livePaths = [];
+        synced = false;
       }
 
       const plan = computeWorkspaceRestorePlan(restoredFiles, livePaths);
@@ -16695,17 +16714,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await agentRequest(workspaceId, '/files/write', {
           method: 'POST',
           body: JSON.stringify({ path: file.path, content: file.content, encoding: file.encoding }),
-        }).catch(() => undefined);
+        }).catch(() => {
+          synced = false;
+        });
       }
 
       for (const path of plan.deletes) {
         await agentRequest(workspaceId, '/files/delete', {
           method: 'POST',
           body: JSON.stringify({ path }),
-        }).catch(() => undefined);
+        }).catch(() => {
+          synced = false;
+        });
       }
+      return synced;
     } catch {
       // Never let a live-sync failure surface as a restore failure.
+      return false;
     }
   };
 
@@ -20499,22 +20524,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   app.get('/api/runtime/workspaces/:workspaceId/commands/stream', { websocket: true }, async (socket, request) => {
-    const { workspaceId } = parse(workspaceParams, request.params);
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    // The IDE sends its command in the first frame on open. Apply transport
+    // backpressure until the permission checks finish and the relay is listening.
+    socket.pause();
+    try {
+      const { workspaceId } = parse(workspaceParams, request.params);
+      const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
-    // Same shell-exec capability as /terminal — enforce the terminal revocation here too.
-    if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
-      return;
+      // Same shell-exec capability as /terminal — enforce the terminal revocation here too.
+      if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
+        return;
+      }
+
+      await proxyRuntimeSocket(
+        socket,
+        authorized.workspaceId,
+        '/commands/stream',
+        false,
+        transactionalLocaleForRequest(request),
+        request.query,
+      );
+    } finally {
+      socket.resume();
     }
-
-    await proxyRuntimeSocket(
-      socket,
-      authorized.workspaceId,
-      '/commands/stream',
-      false,
-      transactionalLocaleForRequest(request),
-      request.query,
-    );
   });
 
   app.get('/api/runtime/workspaces/:workspaceId/terminal', { websocket: true }, async (socket, request) => {
@@ -22300,18 +22332,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * so concurrent accepts for the same org can't both pass ensureQuota via TOCTOU
      * and over-seat the org past team.members.
      */
-    const invitation = existingMembership
+    const accepted = existingMembership
       ? await store.consumeOrganizationInvite(body.token, request.currentUser!.id)
       : await store.withSerializedMutation(`org-members:${pendingInvitation.organizationId}`, async () => {
           await ensureQuota(request, pendingInvitation.organizationId, 'team.members');
           return store.consumeOrganizationInvite(body.token, request.currentUser!.id);
         });
 
-    if (!invitation) {
+    if (!accepted) {
       return reply
         .code(400)
         .send({ error: appPublicEnglish('INVITATION_TOKEN_INVALID'), code: 'INVITE_INVALID_TOKEN' });
     }
+
+    const { invitation, roleKey } = accepted;
 
     if (adresseAVerifier) {
       await store.updateUser({ userId: request.currentUser!.id, emailVerifiedAt: new Date().toISOString() });
@@ -22335,7 +22369,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: invitation.id,
     });
 
-    return { invitation: { ...invitation, tokenHash: undefined } };
+    return { invitation: { ...invitation, tokenHash: undefined }, roleKey };
   });
 
   app.get('/orgs/:orgId/enterprise-settings', async (request) => {
@@ -25318,33 +25352,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const { slug: requestedSlug, ...metadata } = parse(projectSettingsSchema, request.body);
-
-    let updated = await store.updateProject({ projectId: project.id, ...metadata });
+    const normalizedSlug = requestedSlug === undefined ? undefined : slugifyRouteSegment(requestedSlug);
 
     /*
-     * F13 slug rename. Normalize to the same canonical form the URL router uses
-     * (slugifyRouteSegment), reject a value that collapses to empty, and let the
-     * store mint a 30-day redirect from the old slug + surface a 409 on a clash.
+     * Validate the entire request before persisting any of its metadata.
+     * Otherwise a rejected slug still changes the project's name/description.
      */
-    if (requestedSlug !== undefined) {
-      const normalizedSlug = slugifyRouteSegment(requestedSlug);
+    if (normalizedSlug === '') {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_INVALID')), {
+        statusCode: 400,
+        code: 'PROJECT_SLUG_INVALID',
+      });
+    }
 
-      if (!normalizedSlug) {
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_INVALID')), {
-          statusCode: 400,
-          code: 'PROJECT_SLUG_INVALID',
-        });
-      }
+    const updated = await store.updateProjectSettings({
+      projectId: project.id,
+      organizationId: project.organizationId,
+      slug: normalizedSlug,
+      ...metadata,
+    });
 
-      if (normalizedSlug !== project.slug) {
-        updated = await store.renameProjectSlug({ projectId: project.id, newSlug: normalizedSlug });
-        await store.recordProjectActivity({
-          projectId: project.id,
-          actorUserId: request.currentUser!.id,
-          action: 'project.slug.rename',
-          metadata: { from: project.slug, to: normalizedSlug },
-        });
-      }
+    if (normalizedSlug !== undefined && normalizedSlug !== project.slug) {
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser!.id,
+        action: 'project.slug.rename',
+        metadata: { from: project.slug, to: normalizedSlug },
+      });
     }
 
     await store.recordProjectActivity({
@@ -25409,15 +25443,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply;
     }
 
-    const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
+    const body = parse(
+      zipImportSchema.pick({ zipBase64: true, replaceExisting: true }).extend({
+        sourceVersion: z.number().int().nonnegative().optional(),
+        previousContents: z.record(z.string(), z.string().nullable()).optional(),
+      }),
+      request.body,
+    );
 
-    const files = await projectStorage.importZip(project.id, body.zipBase64, {
-      replaceExisting: body.replaceExisting === true,
-    });
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id, {
-      clearRecoveredChatFiles: body.replaceExisting === true,
-      ecrit: true,
-    });
+    let files: ProjectFile[] = [];
+    let skipped: string[] = [];
+
+    if (body.previousContents) {
+      if (body.sourceVersion === undefined) return reply.code(400).send({ code: 'FILE_SOURCE_VERSION_REQUIRED' });
+      const sourceVersion = body.sourceVersion;
+      const changes = await filesFromZipBase64(body.zipBase64);
+      const previous = body.previousContents;
+
+      // Compare each confirmed write against the authoritative manifest inside the
+      // version-checked mutation. Retrying a conflict must repeat the comparison.
+      await mutateProjectFileManifestEntries(
+        store,
+        project.id,
+        request.currentUser!.id,
+        (entries, existing) => {
+          const clock = fileWriteClock(existing);
+          const byPath = new Map(entries.map((entry) => [entry.path, entry]));
+          files = [];
+          skipped = [];
+
+          for (const change of changes) {
+            const path = normalizeProjectPath(change.path);
+            if (!path || !Object.hasOwn(previous, path) || change.encoding !== 'utf8') {
+              skipped.push(change.path);
+              continue;
+            }
+
+            const current = byPath.get(path);
+            if (current?.ecrit && !current.encoding && current.content === change.content) {
+              files.push({ ...change, updatedAt: existing!.updatedAt });
+              continue;
+            }
+
+            if (
+              Math.max(clock.replaced, Number(clock.paths[path]) || 0) > sourceVersion ||
+              current?.encoding ||
+              ((current?.content ?? null) !== previous[path] && current?.content !== change.content)
+            ) {
+              skipped.push(path);
+              continue;
+            }
+
+            files.push({ ...change, updatedAt: new Date().toISOString() });
+            byPath.set(path, { path, content: change.content, ecrit: true });
+          }
+          return [...byPath.values()];
+        },
+        true,
+      );
+    } else {
+      // Track only the paths supplied by a merge import, including same-byte writes.
+      // Parse their names before mutating the storage tree.
+      const writtenPaths = body.replaceExisting
+        ? undefined
+        : Object.values((await JSZip.loadAsync(body.zipBase64, { base64: true })).files)
+            .filter((entry) => !entry.dir)
+            .map((entry) => normalizeProjectPath(entry.name))
+            .filter((path): path is string => Boolean(path));
+      files = await projectStorage.importZip(project.id, body.zipBase64, {
+        replaceExisting: body.replaceExisting === true,
+      });
+      await persistProjectFileManifest(store, project.id, files, request.currentUser!.id, {
+        clearRecoveredChatFiles: body.replaceExisting === true,
+        ecrit: true,
+        writtenPaths,
+      });
+    }
 
     await store.recordProjectActivity({
       projectId: project.id,
@@ -25432,6 +25533,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: project.id,
       metadata: { files: files.length, replaceExisting: body.replaceExisting === true },
     });
+
+    if (skipped.length) {
+      return reply.code(409).send({ files: publicFiles(files), skipped });
+    }
 
     return { files: publicFiles(files) };
   });
@@ -29293,7 +29398,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     };
   });
-  app.post('/projects/:projectId/snapshots/:snapshotId/restore', async (request) => {
+  app.post('/projects/:projectId/snapshots/:snapshotId/restore', async (request, reply) => {
     const project = await requireProject(
       request,
       store,
@@ -29309,6 +29414,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         statusCode: 404,
         code: 'SNAPSHOT_NOT_FOUND',
       });
+    }
+
+    const query = request.query as { editorArchive?: string; editorWorkspaceId?: string } | undefined;
+    const includeEditorArchive = query?.editorArchive === '1';
+    let editorRestoreWorkspaceId: string | undefined;
+
+    if (includeEditorArchive) {
+      // The optional inline archive also grants access to file contents, so
+      // use the same project read permission required by the existing export.
+      await requireProject(request, store, project.id, 'projects:read');
+      reply.header('cache-control', 'no-store');
+      editorRestoreWorkspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id);
+
+      if (query.editorWorkspaceId !== editorRestoreWorkspaceId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 409,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
     }
 
     const snapshotFiles = await getSnapshotFiles(snapshot);
@@ -29352,10 +29476,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * terminal and preview actually rewind too — not just project storage / the
      * editor. Best-effort: a stopped/GC'd pod must not fail the restore.
      */
-    await syncRestoredFilesToWorkspace(
-      await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id),
-      restored,
-    );
+    const restoredWorkspaceId =
+      editorRestoreWorkspaceId ?? (await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id));
+    const editorRuntimeSynced = await syncRestoredFilesToWorkspace(restoredWorkspaceId, restored);
 
     await store.recordProjectActivity({
       projectId: project.id,
@@ -29370,10 +29493,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: snapshotId,
     });
 
+    let editorArchive: string | undefined;
+
+    if (
+      includeEditorArchive &&
+      editorRuntimeSynced &&
+      restored.length <= 8192 &&
+      restored.reduce((total, file) => total + Buffer.byteLength(file.path) + Buffer.byteLength(file.content), 0) <=
+        SNAPSHOT_INLINE_EDITOR_MAX_BYTES
+    ) {
+      // Prepare an inline copy of the committed files only on request. Unlike
+      // export it creates no extra object or new export activity.
+      try {
+        const zip = new JSZip();
+
+        for (const file of restored) {
+          zip.file(file.path, decodeFileContent(file.content, file.encoding));
+        }
+
+        const encoded = await zip.generateAsync({ type: 'base64' });
+
+        if (encoded.length <= SNAPSHOT_INLINE_EDITOR_MAX_BYTES) {
+          editorArchive = encoded;
+        }
+      } catch {
+        // The restore succeeded. Missing inline bytes must not turn it into a
+        // failure or encourage the caller to replay a destructive action.
+        request.log.warn({ event: 'snapshot.editor_archive_unavailable' });
+      }
+    }
+
     return {
       snapshot,
       safetySnapshot: { id: safetySnapshot.id, label: safetySnapshot.label, createdAt: safetySnapshot.createdAt },
       files: publicFiles(restored),
+      ...(includeEditorArchive ? { editorWorkspaceId: restoredWorkspaceId, editorRuntimeSynced } : {}),
+      ...(editorArchive !== undefined ? { editorArchive } : {}),
     };
   });
   app.get('/snapshots/:projectId', async (request) => {
@@ -31594,12 +31749,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const priceId =
           object.items?.data?.[0]?.price?.id ?? object.lines?.data?.[0]?.price?.id ?? object.metadata?.priceId;
 
-        let plan = (await store.listBillingPlans()).find(
-          (candidate) =>
-            candidate.stripePriceId === priceId ||
-            candidate.stripePriceMonthlyId === priceId ||
-            candidate.stripePriceAnnualId === priceId,
-        );
+        let plan = priceId
+          ? (await store.listBillingPlans()).find(
+              (candidate) =>
+                candidate.stripePriceId === priceId ||
+                candidate.stripePriceMonthlyId === priceId ||
+                candidate.stripePriceAnnualId === priceId,
+            )
+          : undefined;
 
         if (!plan) {
           const metaPlanKey = object.metadata?.planKey as PlanKey | undefined;
@@ -37555,7 +37712,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } else if (!userId || !WebSocketCtor) {
         serverError = 'Open the project workspace before deploying a server.';
       } else {
-        const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
+        const workspaceId = body.workspaceId
+          ? await requireDeploymentWorkspaceId(store, project.id, body.workspaceId)
+          : await resolveProjectWorkspaceId(store, project.id, userId);
         const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
         try {
@@ -40114,6 +40273,64 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const sourceArtifactSizeLimitMb =
       typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : 250;
 
+    /*
+     * Server republishes use the same real build/runtime lifecycle as a fresh publish.
+     * A cloned READY row without a built artifact or running service is not a deployment.
+     */
+    if (source.provider === 'server') {
+      const body = parse(createDeploymentSchema, {
+        provider: 'server',
+        workspaceId: source.workspaceId ?? undefined,
+        environment: source.environment,
+        buildCommand: source.buildCommand ?? 'npm run build',
+        outputDirectory: source.outputDirectory ?? 'dist',
+        timeoutSeconds: sourceTimeoutSeconds,
+        artifactSizeLimitMb: sourceArtifactSizeLimitMb,
+        envVars: sourceEnvVars,
+        machineSize: source.machineSize ?? undefined,
+      }) as CreateDeploymentRequest;
+
+      if (useWorkspacePodBuild) {
+        try {
+          await enqueueDeployJob({
+            projectId: project.id,
+            deploymentId: redeploy.id,
+            userId: request.currentUser?.id,
+            buildInput: { ...body, secondaryWorkspaceId },
+          });
+        } catch (error) {
+          request.log?.error?.({ err: error, deploymentId: redeploy.id }, 'deployment build enqueue failed');
+
+          const failed = await store.updateDeployment(project.id, redeploy.id, {
+            status: 'FAILED',
+            finishedAt: new Date().toISOString(),
+            logs: [
+              ...redeploy.logs,
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error' as const,
+                message: appPublicEnglish('DEPLOYMENT_QUEUE_FAILED'),
+              },
+            ],
+          });
+
+          return reply
+            .code(202)
+            .send({ deployment: localizeDeploymentRecord(failed, transactionalLocaleForRequest(request)) });
+        }
+
+        return reply
+          .code(202)
+          .send({ deployment: localizeDeploymentRecord(redeploy, transactionalLocaleForRequest(request)) });
+      }
+
+      const ready = await runDeploymentBuildFlow({ request, project, queued: redeploy, body, secondaryWorkspaceId });
+
+      return reply
+        .code(201)
+        .send({ deployment: localizeDeploymentRecord(ready, transactionalLocaleForRequest(request)) });
+    }
+
     const hookResult = await triggerProviderDeployHook(sourceProvider);
 
     let staticBuildFailed = false;
@@ -40123,10 +40340,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (source.provider === 'static') {
       /*
-       * P1: build in the workspace pod (see create handler); fall back to the
-       * in-process API-pod build only when the pod is unreachable.
+       * Match create: production redeploy never falls back to an API-pod build.
+       * The local runner is reserved for explicitly injected test configuration.
        */
       const redeployBody = {
+        workspaceId: source.workspaceId ?? undefined,
         buildCommand: source.buildCommand ?? 'npm run build',
         outputDirectory: source.outputDirectory ?? 'dist',
         timeoutSeconds: sourceTimeoutSeconds,
@@ -40138,17 +40356,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : { handled: false as const };
       workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
 
+      const refusal = workspaceAttempt.handled ? undefined : workspaceAttempt.refusal;
+
+      const refusalMessage =
+        refusal === 'WORKSPACE_QUOTA_BUSY'
+          ? appPublicEnglish('DEPLOY_WORKSPACE_QUOTA_BUSY', {
+              project: !workspaceAttempt.handled ? (workspaceAttempt.detail ?? '') : '',
+            })
+          : appPublicEnglish(refusal === 'WORKSPACE_QUOTA' ? 'DEPLOY_WORKSPACE_QUOTA' : 'DEPLOY_WORKSPACE_UNREACHABLE');
+
       const staticBuild = workspaceAttempt.handled
         ? workspaceAttempt.result
-        : await staticBuildRunner({
-            projectId: project.id,
-            workspaceId: secondaryWorkspaceId,
-            buildCommand: redeployBody.buildCommand,
-            outputDirectory: redeployBody.outputDirectory,
-            envVars: sourceEnvVars,
-            timeoutSeconds: sourceTimeoutSeconds,
-            artifactSizeLimitMb: sourceArtifactSizeLimitMb,
-          });
+        : useWorkspacePodBuild
+          ? {
+              ok: false as const,
+              error: refusalMessage,
+              logs: [{ timestamp: new Date().toISOString(), level: 'error' as const, message: refusalMessage }],
+            }
+          : await staticBuildRunner({
+              projectId: project.id,
+              workspaceId: secondaryWorkspaceId,
+              buildCommand: redeployBody.buildCommand,
+              outputDirectory: redeployBody.outputDirectory,
+              envVars: sourceEnvVars,
+              timeoutSeconds: sourceTimeoutSeconds,
+              artifactSizeLimitMb: sourceArtifactSizeLimitMb,
+            });
 
       rebuildLogs.push(...staticBuild.logs);
 

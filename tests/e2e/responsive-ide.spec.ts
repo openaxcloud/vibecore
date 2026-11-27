@@ -1730,6 +1730,34 @@ createServer((request, response) => {
     }
   });
 
+  test('Tab skips the parked editor after switching to Preview', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    const projectId = await createTestProject(page, 'Parked editor focus', { 'README.md': '# Keyboard test' });
+    await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
+
+    const nav = mobileBottomNavigation(page);
+    await nav.getByTestId('button-add-tab').click();
+    await page.getByTestId('tool-item-editor').click();
+
+    const editor = page.getByTestId('responsive-code-editor').first();
+    const document = editor.locator('.cm-content').first();
+    await document.click();
+    await expect(document).toBeFocused();
+    await nav.getByTestId('tab-preview').click();
+    await expect(nav.getByTestId('tab-preview')).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => editor.evaluate((node) => Boolean(node.closest('[inert]')))).toBe(true);
+
+    for (let index = 0; index < 65; index++) {
+      await page.keyboard.press('Tab');
+      expect(await editor.evaluate((node) => node.contains(node.ownerDocument.activeElement))).toBe(false);
+    }
+    await nav.getByTestId('button-add-tab').click();
+    await page.getByTestId('tool-item-editor').click();
+    await document.click();
+    await expect(document).toBeFocused();
+  });
+
   test('Search preserves focus through a delayed mobile shell handoff and Back', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'single isolated 390px regression');
     test.setTimeout(120_000);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildApiApp } from '../app.js';
 import { TestApiStore } from './test-api-store.js';
@@ -60,7 +60,16 @@ async function banc() {
 
   const verifie = async (userId: string) => Boolean((await store.findUserById(userId))?.emailVerifiedAt);
 
-  return { app, store, inscrire, inviter, accepter, verifie, organisation: proprio.organization.id };
+  return {
+    app,
+    store,
+    inscrire,
+    inviter,
+    accepter,
+    verifie,
+    organisation: proprio.organization.id,
+    ownerToken: proprio.token,
+  };
 }
 
 describe('accepter une invitation vaut vérification de l’adresse — à trois conditions', () => {
@@ -76,11 +85,62 @@ describe('accepter une invitation vaut vérification de l’adresse — à trois
 
     // Mesuré AVANT correctif : 403 EMAIL_NOT_VERIFIED.
     expect(reponse.statusCode, reponse.body).toBe(200);
+    expect(reponse.json().roleKey).toBe('member');
     expect(await store.getMembership(collegue.user.id, organisation)).toBeTruthy();
     expect(await verifie(collegue.user.id)).toBe(true);
 
     await app.close();
   });
+
+  it('confirme le rôle effectif si le collègue est déjà membre', async () => {
+    const { app, store, inscrire, inviter, accepter, organisation } = await banc();
+    const email = 'existing-member@local.test';
+    const invite = await inviter(email);
+    const collegue = await inscrire(email, 'Perso');
+    await store.addMember({ organizationId: organisation, userId: collegue.user.id, roleKey: 'viewer' });
+
+    const reponse = await accepter(collegue.token, invite.token);
+    expect(reponse.statusCode).toBe(200);
+    expect(reponse.json()).toMatchObject({ roleKey: 'viewer', invitation: { roleKey: 'member' } });
+    expect((await store.getMembership(collegue.user.id, organisation))?.roleKey).toBe('viewer');
+
+    await app.close();
+  });
+
+  it.each(['member', 'viewer'] as const)(
+    'confirme le rôle %s malgré une panne de relecture après acceptation',
+    async (role) => {
+      const { app, store, inscrire, inviter, accepter, organisation } = await banc();
+      const email = 'accepted-invitation@local.test';
+      const invite = await inviter(email);
+      const collegue = await inscrire(email, 'Perso');
+
+      if (role === 'viewer') {
+        await store.addMember({ organizationId: organisation, userId: collegue.user.id, roleKey: role });
+      }
+
+      const consume = store.consumeOrganizationInvite.bind(store);
+
+      vi.spyOn(store, 'consumeOrganizationInvite').mockImplementationOnce(async (token, userId) => {
+        const result = await consume(token, userId);
+        vi.spyOn(store, 'getMembership').mockRejectedValue(new Error('Membership read unavailable'));
+
+        return result;
+      });
+
+      try {
+        const reponse = await accepter(collegue.token, invite.token);
+        expect(reponse.statusCode).toBe(200);
+        expect(reponse.json().roleKey).toBe(role);
+
+        vi.mocked(store.getMembership).mockRestore();
+        expect((await store.getMembership(collegue.user.id, organisation))?.roleKey).toBe(role);
+        expect((await accepter(collegue.token, invite.token)).statusCode).toBe(400);
+      } finally {
+        await app.close();
+      }
+    },
+  );
 
   it('condition 1 — invitation envoyée à une AUTRE adresse : refus, et l’adresse du compte reste non vérifiée', async () => {
     const { app, inscrire, inviter, accepter, verifie } = await banc();
@@ -131,4 +191,55 @@ describe('accepter une invitation vaut vérification de l’adresse — à trois
 
     await app.close();
   });
+});
+
+it('isolates concurrent project reservations across organizations after an existing viewer accepts an invitation', async () => {
+  const { app, store, inscrire, inviter, accepter, organisation, ownerToken } = await banc();
+  try {
+    const email = 'viewer-with-personal-project@example.test';
+    const invite = await inviter(email);
+    const colleague = await inscrire(email, 'Personal');
+    await store.addMember({ organizationId: organisation, userId: colleague.user.id, roleKey: 'viewer' });
+    await store.upsertSubscription({ organizationId: colleague.organization.id, planKey: 'free', status: 'ACTIVE' });
+    await store.upsertProviderConfig({ provider: 'OpenAI', displayName: 'Synthetic', enabled: true });
+    const makeProject = (organizationId: string) =>
+      store.createProject({ organizationId, name: 'Fixture', slug: 'fixture' });
+    const [personal, team] = await Promise.all([makeProject(colleague.organization.id), makeProject(organisation)]);
+    const reserve = (projectId: string, token: string, runId: string) =>
+      app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/agent/explicit-run`,
+        headers: { authorization: `Bearer ${token}` },
+        payload: { runId, choice: { modele: 'gpt-5.6-luna' }, mode: 'lite', highEffort: false, turbo: false },
+      });
+    expect((await accepter(colleague.token, invite.token)).json()).toMatchObject({ roleKey: 'viewer' });
+    // Different subscriptions make an accidental fallback to the caller's other organization observable.
+    await store.upsertSubscription({ organizationId: organisation, planKey: 'team', status: 'UNPAID' });
+    const [personalFirst, teamUnpaid, viewer] = await Promise.all([
+      reserve(personal.id, colleague.token, 'personal-first'),
+      reserve(team.id, ownerToken, 'team-unpaid'),
+      reserve(team.id, colleague.token, 'viewer-attempt'),
+    ]);
+    expect(personalFirst.statusCode).toBe(200);
+    expect(personalFirst.json()).toMatchObject({ projectId: personal.id, runId: 'personal-first' });
+    expect(teamUnpaid.statusCode).toBe(403);
+    expect(teamUnpaid.json().code).toBe('EXPLICIT_RUN_UNAVAILABLE');
+    expect(viewer.statusCode).toBe(403);
+    await store.upsertSubscription({ organizationId: organisation, planKey: 'team', status: 'ACTIVE' });
+    const [personalFull, teamA, teamB] = await Promise.all([
+      reserve(personal.id, colleague.token, 'personal-next'),
+      reserve(team.id, ownerToken, 'team-a'),
+      reserve(team.id, ownerToken, 'team-b'),
+    ]);
+    expect(personalFull.statusCode).toBe(409);
+    expect(personalFull.json().code).toBe('EXPLICIT_RUN_BUDGET_EXCEEDED');
+    expect([teamA.statusCode, teamB.statusCode].sort()).toEqual([200, 409]);
+    for (const result of [teamA, teamB]) {
+      if (result.statusCode === 200) expect(result.json()).toMatchObject({ projectId: team.id });
+      else expect(result.json().code).toBe('EXPLICIT_RUN_BUDGET_EXCEEDED');
+    }
+    expect((await store.getMembership(colleague.user.id, organisation))?.roleKey).toBe('viewer');
+  } finally {
+    await app.close();
+  }
 });

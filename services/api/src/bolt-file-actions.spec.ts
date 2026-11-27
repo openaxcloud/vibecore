@@ -76,7 +76,7 @@ describe('BUG-AGENT-005 — un redémarrage de génération ne doit rien laisser
     const [fichier] = boltFileActionsFromContent(normal, identite);
 
     expect(fichier.path).toBe('src/app.css');
-    expect(fichier.content).toBe('.a{color:red}');
+    expect(fichier.content).toBe('.a{color:red}\n');
   });
 
   it('retient le chemin du DERNIER ouvrant quand la reprise vise un autre fichier', () => {
@@ -92,6 +92,6 @@ describe('BUG-AGENT-005 — un redémarrage de génération ne doit rien laisser
     const [fichier] = boltFileActionsFromContent(autreCible, identite);
 
     expect(fichier.path).toBe('src/nouveau.css');
-    expect(fichier.content).toBe('.b{color:blue}');
+    expect(fichier.content).toBe('.b{color:blue}\n');
   });
 });

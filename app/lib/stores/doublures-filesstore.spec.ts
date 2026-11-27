@@ -1,10 +1,11 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import ts from 'typescript';
 
 import { describe, expect, it } from 'vitest';
 
 /*
- * Sept specs remplacent `FilesStore` par une classe écrite à la main, et rien
+ * Des specs remplacent `FilesStore` par une classe écrite à la main, et rien
  * ne les relie à la vraie. Une méthode ajoutée à `FilesStore` puis appelée
  * depuis `WorkbenchStore` ne les fait pas rougir : elle fait REJETER une
  * promesse hors de tout test.
@@ -37,6 +38,7 @@ const MEMBRES_CONNUS: readonly string[] = [
   'getFile',
   'getFileModifications',
   'getModifiedFiles',
+  'hasPendingSaves',
   'isFileLocked',
   'isFolderLocked',
   'lockFile',
@@ -53,12 +55,36 @@ const MEMBRES_CONNUS: readonly string[] = [
 
 const STORES = new URL('.', import.meta.url).pathname;
 
-function membresAppeles(): string[] {
-  const source = readFileSync(join(STORES, 'workbench.ts'), 'utf8');
+function membresAppeles(source = readFileSync(join(STORES, 'workbench.ts'), 'utf8')): string[] {
+  const tree = ts.createSourceFile('workbench.ts', source, ts.ScriptTarget.Latest, true);
+  const membres = new Set<string>();
 
-  return [
-    ...new Set([...source.matchAll(/this\.#filesStore\.([A-Za-z_$][\w$]*)/gu)].map((trouve) => trouve[1])),
-  ].sort();
+  function visite(node: ts.Node) {
+    if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
+      const store = node.expression;
+
+      if (
+        ts.isPropertyAccessExpression(store) &&
+        store.expression.kind === ts.SyntaxKind.ThisKeyword &&
+        ts.isPrivateIdentifier(store.name) &&
+        store.name.text === '#filesStore'
+      ) {
+        if (ts.isPropertyAccessExpression(node)) {
+          membres.add(node.name.text);
+        } else if (ts.isStringLiteralLike(node.argumentExpression)) {
+          membres.add(node.argumentExpression.text);
+        } else {
+          throw new Error('Cannot verify which FilesStore member a computed access uses');
+        }
+      }
+    }
+
+    ts.forEachChild(node, visite);
+  }
+
+  visite(tree);
+
+  return [...membres].sort();
 }
 
 function specsAvecDoublure(): string[] {
@@ -71,6 +97,26 @@ describe('les doublures de FilesStore restent au courant', () => {
   it('la mesure a bien mesuré quelque chose', () => {
     expect(membresAppeles().length).toBeGreaterThan(15);
     expect(specsAvecDoublure().length).toBeGreaterThan(3);
+  });
+
+  it('reconnaît les accès coupés par le formatage sans compter les commentaires ou chaînes', () => {
+    expect(
+      membresAppeles(`
+      class Workbench {
+        #filesStore;
+        example() {
+          this.#filesStore
+            /* commentaire entre la cible et la méthode */
+            .adoptRemoteContent('audit.txt');
+          this.#filesStore?.hasPendingSaves();
+          this.#filesStore['saveFile']();
+          // this.#filesStore.fakeMethod();
+          return "this.#filesStore.anotherFake";
+        }
+      }
+    `),
+    ).toEqual(['adoptRemoteContent', 'hasPendingSaves', 'saveFile']);
+    expect(() => membresAppeles('this.#filesStore[unknownMember]()')).toThrow();
   });
 
   it(

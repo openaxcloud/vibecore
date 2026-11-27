@@ -131,9 +131,27 @@ for (const scenario of [
       await page.getByTestId('workflow-run-now-42').click();
       response = await pending;
     } else {
-      response = await page.request.post(`/api/projects/${projectId}/ide-panel/${panel}`, {
-        data: { intent: panel === 'terminal' ? 'run-script' : 'run-workflow', script: 'exit 7', workflowId: '42' },
-      });
+      await page.goto(`/projects/${projectId}/ide?panel=terminal`);
+      const runtimePanels = page.getByRole('button', { name: 'Runtime panels' });
+      await expect(async () => {
+        if ((await runtimePanels.getAttribute('aria-expanded')) !== 'true') {
+          await runtimePanels.click();
+        }
+        await page.getByTestId('tab-scripts').click({ timeout: 2000 });
+        await expect(page.getByTestId('button-create-script')).toBeVisible();
+      }).toPass({ timeout: 30000 });
+      await page.getByTestId('button-create-script').click();
+      await page.getByTestId('input-script-name').fill('Synthetic terminal failure');
+      await page.getByTestId('textarea-script-content').fill('exit 7');
+      const pending = page.waitForResponse(
+        (r) =>
+          new URL(r.url()).pathname === `/api/projects/${projectId}/ide-panel/terminal` &&
+          r.request().method() === 'POST',
+      );
+      await page.getByTestId('button-run-custom-script').click();
+      response = await pending;
+      const failedRun = page.locator('.bolt-terminal-runs details').filter({ hasText: 'Synthetic terminal failure' });
+      await expect(failedRun.locator('[data-status="failed"]')).toBeVisible();
     }
     const body = await response.json();
     const persisted = await page.request.get(`${api}/projects/${projectId}/env-vars`, { headers });

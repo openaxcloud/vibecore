@@ -74,7 +74,9 @@ async function expectPreviewIframe(page: import('@playwright/test').Page, timeou
 }
 
 async function expectWorkspaceRunning(page: import('@playwright/test').Page, timeout = 90_000) {
-  await expect(page.getByRole('button', { name: /Workspace:\s*running/i })).toBeVisible({ timeout });
+  await expect(page.locator('.bolt-project-statusbar-workspace').getByText('Running', { exact: true })).toBeVisible({
+    timeout,
+  });
 }
 
 async function expectProjectCreationForm(page: import('@playwright/test').Page) {
@@ -131,7 +133,7 @@ test('project preview boots a real app and renders inside the webview', { tag: '
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expectWorkspaceRunning(page, 180_000);
-  await page.getByRole('button', { name: 'Webview' }).click();
+  await page.getByRole('button', { name: 'Switch to Webview tab', exact: true }).click();
 
   await expectPreviewIframe(page, 180_000);
   await expect(page.frameLocator('iframe[title="preview"]').locator('#app')).toContainText(
@@ -187,7 +189,7 @@ test(
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     await expectWorkspaceRunning(page, 180_000);
-    await page.getByRole('button', { name: 'Webview' }).click();
+    await page.getByRole('button', { name: 'Switch to Webview tab', exact: true }).click();
 
     await expectPreviewIframe(page, 180_000);
     await expect(
@@ -200,26 +202,111 @@ test(
   'template-created project boots and renders the generated app in preview',
   { tag: '@runtime' },
   async ({ page }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(360_000);
 
-    await authenticate(page);
+    // Observe the IDE's own command and the agent exit on that same socket.
+    // Retain only workspace IDs and status, never credentials, argv or output.
+    let runRequested = false;
+    const installed = new Set<string>();
+    const servedScripts = new Set<string>();
+    page.on('websocket', (socket) => {
+      const target = new URL(socket.url());
+      const match = /^\/api\/runtime\/workspaces\/(ws-[a-z0-9-]+)\/commands\/stream$/.exec(target.pathname);
+      if (target.origin !== 'ws://127.0.0.1:3001' || !match) return;
+      let installing = false;
+      socket.on('framesent', ({ payload }) => {
+        const frame = JSON.parse(payload.toString());
+        if (frame.type === 'hello') {
+          installing = runRequested && frame.payload?.command === 'npm' && frame.payload.args?.[0] === 'install';
+        }
+      });
+      socket.on('framereceived', ({ payload }) => {
+        if (!installing || !runRequested) return;
+        const frame = JSON.parse(payload.toString());
+        if (frame.type === 'exit' && frame.exitCode === 0) installed.add(match[1]);
+      });
+    });
+    page.on('response', (response) => {
+      if (!runRequested || !response.ok() || response.request().resourceType() !== 'script') return;
+      const target = new URL(response.url());
+      if (
+        target.port === '3020' &&
+        /^ws-[a-z0-9-]+-\d+\.localhost$/.test(target.hostname) &&
+        /^\/src\/main\.tsx$/.test(target.pathname) &&
+        /javascript/i.test(response.headers()['content-type'] ?? '')
+      )
+        servedScripts.add(target.origin);
+    });
 
-    await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Use template' }).first().click();
-    await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 120_000 });
-    await expectWorkspaceRunning(page, 180_000);
-
-    await page.getByRole('button', { name: 'Webview' }).click();
-
-    await expectPreviewIframe(page, 120_000);
-    await expect(page.frameLocator('iframe[title="preview"]').getByRole('heading', { name: 'React SaaS' })).toBeVisible(
-      {
-        timeout: 180_000,
-      },
-    );
-    await expect(
-      page.frameLocator('iframe[title="preview"]').getByText('Created from Bolt template react-saas.'),
-    ).toBeVisible();
+    await test.step('Register synthetic user', () => authenticate(page));
+    await test.step('Create project from template', async () => {
+      await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
+      await page
+        .locator('form')
+        .filter({ has: page.locator('input[name="templateName"][value="react-saas"]') })
+        .getByRole('button', { name: 'Use template' })
+        .click();
+      await expect(page).toHaveURL(/\/@[^/]+\/react-saas-[a-z0-9]+(?:\?.*)?$/, { timeout: 120_000 });
+    });
+    await test.step('Wait for running workspace', () => expectWorkspaceRunning(page, 180_000));
+    await test.step('Open Webview', async () => {
+      const target = new URL(page.url());
+      target.searchParams.set('panel', 'preview');
+      await page.goto(target.href, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('button-run-stop')).toBeVisible({ timeout: 30_000 });
+    });
+    await test.step('Run project from IDE', async () => {
+      const control = page.getByTestId('button-run-stop');
+      if ((await control.innerText()).trim() === 'Stop') {
+        await control.click();
+      }
+      await expect(control).toHaveText('Run', { timeout: 30_000 });
+      runRequested = true;
+      await control.click();
+    });
+    await test.step('Observe npm install exit zero', async () => {
+      await expect.poll(() => installed.size, { timeout: 150_000 }).toBeGreaterThan(0);
+    });
+    await test.step('Load workspace preview document', async () => {
+      const frame = page.locator('iframe[title="preview"]:visible');
+      try {
+        await expect(frame).toHaveAttribute('src', /^http:\/\/ws-[a-z0-9-]+-[0-9]+\.localhost:3020\//, {
+          timeout: 120_000,
+        });
+      } finally {
+        const sources = await frame.evaluateAll((elements) =>
+          elements.map((element) => {
+            const src = element.getAttribute('src');
+            if (!src || src === 'about:blank') return 'blank';
+            try {
+              const url = new URL(src);
+              return url.hostname.endsWith('.localhost') ? 'local-preview' : 'other-origin';
+            } catch {
+              return 'relative';
+            }
+          }),
+        );
+        console.log('PREVIEW_FRAMES', JSON.stringify(sources));
+      }
+    });
+    await test.step('Observe project dev server serving its entry module', async () => {
+      const src = await page.locator('iframe[title="preview"]:visible').getAttribute('src');
+      const preview = new URL(src!);
+      expect(installed.has(preview.hostname.replace(/-\d+\.localhost$/, ''))).toBe(true);
+      await expect.poll(() => servedScripts.has(preview.origin), { timeout: 90_000 }).toBe(true);
+    });
+    await test.step('Read generated app in Webview', async () => {
+      const app = page.frameLocator('iframe[title="preview"]:visible').locator('[data-gallery-app-id="react-saas"]');
+      await expect(app.getByRole('heading', { name: 'Active opportunities' })).toBeVisible({ timeout: 180_000 });
+    });
+    await test.step('Add synthetic contact inside Orbit', async () => {
+      const app = page.frameLocator('iframe[title="preview"]:visible').locator('[data-gallery-app-id="react-saas"]');
+      await app.getByRole('button', { name: '+ Add lead' }).click();
+      await app.getByLabel('Contact', { exact: true }).fill('Synthetic Lead');
+      await app.getByLabel('Company', { exact: true }).fill('Runtime E2E');
+      await app.getByRole('button', { name: 'Save lead' }).click();
+      await expect(app.getByRole('row').filter({ hasText: 'Synthetic Lead' })).toContainText('Runtime E2E');
+    });
   },
 );
 
@@ -281,7 +368,7 @@ test(
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     await expectWorkspaceRunning(page, 180_000);
     await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
-    await page.getByRole('button', { name: 'Webview' }).click();
+    await page.getByRole('button', { name: 'Switch to Webview tab', exact: true }).click();
     await expectPreviewIframe(page, 180_000);
 
     const toolbar = page.locator('.bolt-project-webview-toolbar').first();

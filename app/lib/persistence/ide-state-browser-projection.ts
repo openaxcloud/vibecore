@@ -66,7 +66,7 @@
  */
 
 /** Clés retirées de la réponse envoyée au navigateur. */
-export const IDE_STATE_SERVER_ONLY_KEYS = ['files'] as const;
+export const IDE_STATE_SERVER_ONLY_KEYS = ['files', 'fileWriteClock'] as const;
 
 function estObjet(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);

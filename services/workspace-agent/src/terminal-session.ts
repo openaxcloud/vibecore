@@ -284,13 +284,13 @@ function createPipeBackend(options: TerminalSpawnOptions, spec: { shell: string;
   return {
     mode: 'pipe',
     write: (data) => {
-      safeStdinWrite(data);
+      // xterm sends a carriage return for Enter. A pipe lacks the terminal
+      // line discipline that converts this keystroke into a newline.
+      safeStdinWrite(data === '\r' ? '\n' : data);
     },
-    resize: (cols, rows) => {
-      // No pty to resize; keep COLUMNS/LINES roughly informative for new
-      // children by exporting through the shell.
-      safeStdinWrite(`export COLUMNS=${Math.max(1, cols)} LINES=${Math.max(1, rows)}\n`);
-    },
+    // A pipe has no resize operation. Writing shell commands here would submit
+    // any pending input or deliver those bytes to the foreground program.
+    resize: () => {},
     interrupt: () => signalGroup('SIGINT'),
     onData: (listener) => {
       dataListeners.push(listener);

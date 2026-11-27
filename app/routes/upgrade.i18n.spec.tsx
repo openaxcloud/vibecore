@@ -87,6 +87,31 @@ afterEach(() => {
 });
 
 describe('upgrade i18n', () => {
+  it.each([
+    ['fr', '1 000 000 projets', '1 espace de travail actif', 'Un seul projet publié peut être en ligne à la fois'],
+    ['en', '1,000,000 projects', '1 active workspace', 'One published project can be live at a time'],
+  ])(
+    'distinguishes the Starter creation and publication limits in %s',
+    (language, projects, workspaces, publication) => {
+      renderPage({
+        language,
+        interval: 'monthly',
+        currentPlanKey: 'free',
+        plans: [
+          {
+            key: 'free',
+            name: 'Starter',
+            monthlyCents: 0,
+            limits: { 'projects.count': 1_000_000, 'workspaces.active': 1 },
+          },
+        ],
+      });
+      expect(screen.getByText(projects)).toBeTruthy();
+      expect(screen.getByText(workspaces)).toBeTruthy();
+      expect(screen.getByText(publication)).toBeTruthy();
+    },
+  );
+
   it.each([false, true])('blocks an unavailable annual plan with another annual plan present: %s', (otherAnnual) => {
     const { container } = renderPage({
       suggestedPlan: 'pro',

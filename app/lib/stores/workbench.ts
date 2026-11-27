@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import { PublicationSaveError } from '~/lib/publication-save-error';
 import { requireMaterializedPreviewManifest } from './preview-manifest-materialization';
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
 import { createSingleFlight } from '~/lib/ide/single-flight';
@@ -118,6 +119,8 @@ export interface ArtifactState {
   type?: string;
   closed: boolean;
   runner: ActionRunner;
+  sourceVersion?: Promise<number | undefined>;
+  confirmedWrites?: Map<string, { previous: string | null; content: string }>;
 }
 
 export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
@@ -299,6 +302,13 @@ export class WorkbenchStore {
   #runtime: RuntimeAdapter = getRuntimeAdapter();
   #runtimeWriteDestination: string | undefined;
   #projectStorageBinding = 0;
+  #snapshotFileViewEpoch = 0;
+  #snapshotRefreshScope?: () => boolean;
+  #pendingWorkspaceActions = new Set<{
+    projectId: string;
+    workspaceId?: string;
+    kind: 'restore' | 'publish';
+  }>();
   #projectStorageSaveVersions = new Map<string, number>();
   #previewsStore = new PreviewsStore(this.#runtime);
   #filesStore = new FilesStore(this.#runtime);
@@ -323,6 +333,7 @@ export class WorkbenchStore {
 
   /** Voir `reprendreLeTourInterrompu`. */
   #toursInterrompusARevoir = new Set<string>();
+  #proposalHydration?: { controller: AbortController; result: Promise<boolean> };
   #previewStartPromise: Promise<string> | undefined;
 
   /*
@@ -417,7 +428,11 @@ export class WorkbenchStore {
    * même milliseconde doivent rester ordonnés.
    */
   #horloge = 0;
-  #lectureDeLAgent: { fichiers: ReturnType<FilesStore['files']['get']>; instant: number } | null = null;
+  #lectureDeLAgent: {
+    fichiers: ReturnType<FilesStore['files']['get']>;
+    instant: number;
+    sourceVersion?: Promise<number | undefined>;
+  } | null = null;
 
   /** Dernier enregistrement de l'UTILISATEUR, par fichier, sur `#horloge`. */
   #enregistrementsUtilisateur = new Map<string, number>();
@@ -678,6 +693,11 @@ export class WorkbenchStore {
 
   configureProject(projectId?: string) {
     const changed = this.#projectId !== projectId;
+
+    if (changed) {
+      this.#lectureDeLAgent = null;
+    }
+
     const changedFileProject = Boolean(projectId && this.#filesProjectId && projectId !== this.#filesProjectId);
     const preserveEditorState = Boolean(this.#filesProjectId) && !changedFileProject;
     this.#projectId = projectId;
@@ -746,11 +766,20 @@ export class WorkbenchStore {
     /*
      * Hydrate the AgentPatchProposal queue from the server every time the
      * workbench rebinds to a different project. The fetch is best-effort
-     * (logs + empty list on failure), so a slow or unavailable API doesn't
-     * block the IDE booting; the nanostore remains the source of truth.
+     * and runs in the background. Only recovery of an interrupted file waits
+     * for the persisted proposals before deciding whether to write one.
      */
-    if (changed && projectId) {
-      void this.#hydrateAgentPatchProposals(projectId);
+    if (changed) {
+      this.#proposalHydration?.controller.abort();
+      this.#proposalHydration = undefined;
+
+      if (projectId) {
+        const controller = new AbortController();
+        this.#proposalHydration = {
+          controller,
+          result: this.#hydrateAgentPatchProposals(projectId, controller.signal),
+        };
+      }
     }
   }
 
@@ -797,12 +826,11 @@ export class WorkbenchStore {
     this.#pendingWorkspaceLogLines = [];
   }
 
-  async #hydrateAgentPatchProposals(projectId: string) {
-    const proposals = await fetchOpenAgentPatchProposals(projectId);
+  async #hydrateAgentPatchProposals(projectId: string, signal: AbortSignal) {
+    const proposals = await fetchOpenAgentPatchProposals(projectId, signal);
 
-    if (this.#projectId !== projectId) {
-      // The workbench has been re-bound to another project while we waited.
-      return;
+    if (!proposals || signal.aborted || this.#projectId !== projectId) {
+      return false;
     }
 
     for (const proposal of proposals) {
@@ -831,6 +859,16 @@ export class WorkbenchStore {
     }
 
     this.#retryResolvedMissingImportFailures();
+
+    return true;
+  }
+
+  /*
+   * Interrupted-turn recovery belongs to the tab. A terminal proposal has already
+   * been removed from the server queue, even if its file has since changed.
+   */
+  #processedProposalKey(messageId: string, proposalId: string) {
+    return 'vibecore.processed-proposal:' + JSON.stringify([this.#projectId, messageId, proposalId]);
   }
 
   #syncAgentPatchProposalToServer(proposalId: string) {
@@ -848,26 +886,38 @@ export class WorkbenchStore {
     }
 
     if (isTerminalAgentPatchStatus(proposal.status)) {
+      try {
+        sessionStorage.setItem(this.#processedProposalKey(proposal.messageId, proposalId), '1');
+      } catch {
+        // Session storage can be unavailable for this browser.
+      }
       void deleteAgentPatchProposalRemote(projectId, proposalId);
+
       return;
     }
 
-    void putAgentPatchProposal(projectId, proposal);
+    // Stream deltas update the local preview. Only the closed file is ready for review after a reload.
+    if (!proposal.enFlux && !proposal.tronquee) {
+      void putAgentPatchProposal(projectId, proposal);
+    }
   }
 
   async loadRuntimeFiles(rootPath = '.', options: { reparer?: boolean } = {}) {
     const binding = this.#projectStorageBinding;
     const projectId = this.#projectId;
 
+    const viewEpoch = this.#snapshotFileViewEpoch;
+    const viewIsCurrent = () => viewEpoch === this.#snapshotFileViewEpoch;
+
     let runtimeError: unknown;
 
     try {
-      await this.#filesStore.reloadFromRuntime(rootPath, options);
+      await this.#filesStore.reloadFromRuntime(rootPath, options, viewIsCurrent);
     } catch (error) {
       runtimeError = error;
     }
 
-    if (binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
+    if (!viewIsCurrent() || binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
       return;
     }
 
@@ -889,7 +939,7 @@ export class WorkbenchStore {
       }
     }
 
-    if (binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
+    if (!viewIsCurrent() || binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
       return;
     }
 
@@ -919,13 +969,14 @@ export class WorkbenchStore {
     }
 
     const binding = this.#projectStorageBinding;
+    const viewEpoch = this.#snapshotFileViewEpoch;
 
-    return this.#projectStorageFilesInFlight.run(`${projectId}:${binding}`, () =>
-      this.#loadProjectStorageFilesUncoalesced(projectId, binding),
+    return this.#projectStorageFilesInFlight.run(`${projectId}:${binding}:${viewEpoch}`, () =>
+      this.#loadProjectStorageFilesUncoalesced(projectId, binding, viewEpoch),
     );
   }
 
-  async #loadProjectStorageFilesUncoalesced(projectId: string, binding: number) {
+  async #loadProjectStorageFilesUncoalesced(projectId: string, binding: number, viewEpoch: number) {
     const prefetched = takeInitialProjectArchive(projectId);
 
     /*
@@ -936,7 +987,11 @@ export class WorkbenchStore {
     const savesBeforeRequest = new Map(prefetched ? [] : this.#projectStorageSaveVersions);
     const payload = await (prefetched ?? requestProjectArchive(projectId));
 
-    if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
+    if (
+      this.#projectId !== projectId ||
+      this.#projectStorageBinding !== binding ||
+      this.#snapshotFileViewEpoch !== viewEpoch
+    ) {
       return false;
     }
 
@@ -951,7 +1006,11 @@ export class WorkbenchStore {
     const files = await this.#projectStorageFilesFromArchive(archiveBase64);
     (globalThis as any).__vibecoreStartupMark?.('archive-decode-ready');
 
-    if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
+    if (
+      this.#projectId !== projectId ||
+      this.#projectStorageBinding !== binding ||
+      this.#snapshotFileViewEpoch !== viewEpoch
+    ) {
       return false;
     }
 
@@ -976,6 +1035,130 @@ export class WorkbenchStore {
     this.#retryResolvedMissingImportFailures();
 
     return true;
+  }
+
+  /** Keep overlapping same-workspace restore and publication requests out of one another's way. */
+  #acquireWorkspaceAction(kind: 'restore' | 'publish', projectId: string, workspaceId?: string) {
+    if (
+      [...this.#pendingWorkspaceActions].some(
+        (pending) =>
+          pending.projectId === projectId &&
+          (!workspaceId || !pending.workspaceId || pending.workspaceId === workspaceId) &&
+          (kind === 'restore' || pending.kind === 'restore'),
+      )
+    ) {
+      return undefined;
+    }
+
+    /*
+     * Track the request's target, not the current view. A remount must not
+     * forget a restore still writing to the same workspace. A legacy unknown
+     * workspace conflicts only within its project.
+     */
+    const action = { kind, projectId, workspaceId };
+    this.#pendingWorkspaceActions.add(action);
+
+    return () => {
+      this.#pendingWorkspaceActions.delete(action);
+    };
+  }
+
+  prepareSnapshotFileRefresh(projectId: string, expectedWorkspaceId?: string) {
+    const hasEdits = () =>
+      this.unsavedFiles.get().size > 0 || this.#pendingFileSaves.size > 0 || this.#filesStore.hasPendingSaves();
+
+    if (projectId !== this.#projectId || hasEdits() || this.#snapshotRefreshScope?.()) {
+      return undefined;
+    }
+
+    const releaseAction = this.#acquireWorkspaceAction('restore', projectId, expectedWorkspaceId?.trim());
+
+    if (!releaseAction) {
+      return undefined;
+    }
+
+    const inScope = this.captureRuntimeScope();
+    this.#snapshotRefreshScope = inScope;
+
+    const saves = new Map(this.#projectStorageSaveVersions);
+    const deletedPaths = new Set(this.#filesStore.getDeletedPaths());
+    const isCurrent = () => inScope() && this.#snapshotRefreshScope === inScope;
+
+    const hasNewerChanges = () => {
+      const currentDeletedPaths = this.#filesStore.getDeletedPaths();
+
+      return (
+        hasEdits() ||
+        this.#projectStorageSaveVersions.size !== saves.size ||
+        [...this.#projectStorageSaveVersions].some(([path, version]) => saves.get(path) !== version) ||
+        currentDeletedPaths.some((path) => !deletedPaths.has(path))
+      );
+    };
+
+    const refresh = async (archiveBase64?: string, restoredWorkspaceId?: string, runtimeSynced?: boolean) => {
+      if (!isCurrent()) {
+        return 'superseded' as const;
+      }
+
+      if (hasNewerChanges()) {
+        return 'newer-edits' as const;
+      }
+
+      if (runtimeSynced === false && this.#runtime.mode === 'remote-kubernetes') {
+        return 'runtime-pending' as const;
+      }
+
+      if (
+        typeof archiveBase64 !== 'string' ||
+        !archiveBase64 ||
+        (expectedWorkspaceId && expectedWorkspaceId !== restoredWorkspaceId) ||
+        (this.#runtime.mode === 'remote-kubernetes' && (!expectedWorkspaceId || runtimeSynced !== true))
+      ) {
+        return 'unavailable' as const;
+      }
+
+      this.#snapshotFileViewEpoch++;
+
+      try {
+        /*
+         * Apply only the bytes returned by the acknowledged restore. An earlier
+         * archive or a runtime tree listing is not a proof of these bytes.
+         */
+        takeInitialProjectArchive(projectId);
+
+        const files = await this.#projectStorageFilesFromArchive(archiveBase64);
+
+        if (!isCurrent()) {
+          return 'superseded' as const;
+        }
+
+        if (hasNewerChanges()) {
+          return 'newer-edits' as const;
+        }
+
+        // Invalidate ordinary tree/archive reads begun while restore was in flight.
+        this.#filesStore.replaceWithProjectStorageFiles(files, undefined, { restoredSnapshot: true });
+        this.setDocuments(this.files.get());
+        this.#runtimeFilesLoadedProjectId = projectId;
+        this.#markFilesHydrated(projectId);
+        this.#snapshotFileViewEpoch++;
+
+        return 'refreshed' as const;
+      } catch {
+        return isCurrent() ? ('unavailable' as const) : ('superseded' as const);
+      }
+    };
+
+    return {
+      refresh,
+      release: () => {
+        releaseAction();
+
+        if (this.#snapshotRefreshScope === inScope) {
+          this.#snapshotRefreshScope = undefined;
+        }
+      },
+    };
   }
 
   /**
@@ -2592,7 +2775,11 @@ export class WorkbenchStore {
    * Appelé à la préparation de chaque requête de conversation.
    */
   noterLaLectureDeLAgent() {
-    this.#lectureDeLAgent = { fichiers: this.#filesStore.files.get(), instant: ++this.#horloge };
+    this.#lectureDeLAgent = {
+      fichiers: this.#filesStore.files.get(),
+      instant: ++this.#horloge,
+      sourceVersion: this.#projectId ? this.#readFileSourceVersion(this.#projectId) : undefined,
+    };
   }
 
   setShowWorkbench(show: boolean) {
@@ -2709,7 +2896,11 @@ export class WorkbenchStore {
       return;
     }
 
-    const issue = await this.#filesStore.adoptRemoteContent(filePath).catch(() => 'illisible' as const);
+    const viewEpoch = this.#snapshotFileViewEpoch;
+
+    const issue = await this.#filesStore
+      .adoptRemoteContent(filePath, () => viewEpoch === this.#snapshotFileViewEpoch)
+      .catch(() => 'illisible' as const);
 
     if (issue === 'adopte') {
       this.setDocuments(this.#filesStore.files.get());
@@ -2905,6 +3096,75 @@ export class WorkbenchStore {
     }
   }
 
+  /**
+   * Save the current editor draft before starting a publication request.
+   * A save receipt is scoped to its original project/runtime; never continue a
+   * snapshot across navigation or silently publish edits made during the save.
+   */
+  async withSavedFilesForPublication<T>(
+    projectId: string,
+    publish: () => Promise<T>,
+    workspaceId?: string,
+  ): Promise<T> {
+    const isCurrentScope = this.captureRuntimeScope();
+    const binding = this.#projectStorageBinding;
+
+    const assertScope = () => {
+      if (this.#projectId !== projectId || !isCurrentScope()) {
+        throw new PublicationSaveError('PUBLICATION_SAVE_SCOPE_CHANGED');
+      }
+    };
+
+    const assertWorkspace = async () => {
+      if (this.#runtime.mode === 'remote-kubernetes') {
+        /*
+         * Query the bound adapter, not the requested id: querying the latter
+         * would prove only that a different target exists, not what we saved.
+         */
+        const session = await this.#runtime.getWorkspaceStatus();
+        assertScope();
+
+        if (!workspaceId || session.id !== workspaceId) {
+          throw new PublicationSaveError('PUBLICATION_SAVE_WORKSPACE_CHANGED');
+        }
+      }
+    };
+
+    assertScope();
+
+    const releaseAction = this.#acquireWorkspaceAction('publish', projectId, workspaceId?.trim());
+
+    if (!releaseAction) {
+      throw new PublicationSaveError('PUBLICATION_SAVE_RESTORE_IN_PROGRESS');
+    }
+
+    try {
+      await assertWorkspace();
+      assertScope();
+
+      for (const filePath of [...this.unsavedFiles.get()]) {
+        assertScope();
+        await this.saveFile(filePath);
+      }
+
+      assertScope();
+      await assertWorkspace();
+      assertScope();
+
+      if (
+        this.unsavedFiles.get().size > 0 ||
+        [...this.#pendingFileSaves.keys()].some((key) => key.startsWith(`${binding}:`))
+      ) {
+        throw new PublicationSaveError('PUBLICATION_FILES_NOT_SAVED');
+      }
+
+      // Invoke synchronously after the last guard: no extra await before POST.
+      return await publish();
+    } finally {
+      releaseAction();
+    }
+  }
+
   async saveAllFiles() {
     for (const filePath of this.unsavedFiles.get()) {
       await this.saveFile(filePath);
@@ -3096,6 +3356,7 @@ export class WorkbenchStore {
       try {
         let acceptedContent = applyReviewableDiffHunks({
           originalContent: proposal.originalContent,
+          proposedContent: proposal.proposedContent,
           hunks: proposal.hunks,
           acceptedHunkIds: acceptedIds,
         });
@@ -3302,6 +3563,12 @@ export class WorkbenchStore {
           return 'ignored';
         }
 
+        this.#recordConfirmedWrite(
+          proposal.artifactId,
+          proposal.relativePath,
+          freshBeforeWrite ?? null,
+          writtenContent,
+        );
         confirmerEcritureDeMessage(proposal.messageId, proposal.relativePath, proposal.id);
         this.#agentPatchOriginals.delete(proposal.actionId);
         this.resetAllFileModifications();
@@ -3829,6 +4096,31 @@ export class WorkbenchStore {
     this.#reloadedMessages.marquerHydrates(messages);
   }
 
+  async #readFileSourceVersion(projectId: string) {
+    const controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(), 4000);
+
+    try {
+      const response = await fetch('/api/projects/' + encodeURIComponent(projectId) + '/ide-state', {
+        credentials: 'include',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        return undefined;
+      }
+
+      const { ideState } = (await response.json()) as { ideState?: { version?: number } };
+
+      return Number.isSafeInteger(ideState?.version) ? Number(ideState!.version) : undefined;
+    } catch {
+      return undefined;
+    } finally {
+      clearTimeout(deadline);
+    }
+  }
+
   addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
     if (this.agentPatchReviewRequired.get() && !this.#reloadedMessages.contient(messageId)) {
       observerEcrituresDeMessage(messageId);
@@ -3850,6 +4142,11 @@ export class WorkbenchStore {
       title,
       closed: false,
       type,
+      sourceVersion:
+        this.#projectId && !this.#reloadedMessages.contient(messageId)
+          ? (this.#lectureDeLAgent?.sourceVersion ?? this.#readFileSourceVersion(this.#projectId))
+          : undefined,
+      confirmedWrites: new Map(),
       runner: new ActionRunner(
         this.#runtime,
         () => this.boltTerminal,
@@ -3891,7 +4188,16 @@ export class WorkbenchStore {
     });
   }
 
-  updateArtifact({ artifactId, messageId }: ArtifactCallbackData, state: Partial<ArtifactUpdateState>) {
+  #recordConfirmedWrite(artifactId: string, path: string, previous: string | null, content: string) {
+    const writes = this.#getArtifact(artifactId)?.confirmedWrites;
+    const first = writes?.get(path);
+    writes?.set(path, { previous: first ? first.previous : previous, content });
+  }
+
+  updateArtifact(
+    { artifactId, messageId, fermetureDeSecours }: ArtifactCallbackData,
+    state: Partial<ArtifactUpdateState>,
+  ) {
     if (!artifactId) {
       return;
     }
@@ -3915,10 +4221,22 @@ export class WorkbenchStore {
        */
       const enregistrer = !this.#reloadedMessages.contient(messageId) || this.#messagesRattrapes.has(messageId);
 
+      const recovering = this.#toursInterrompusARevoir.has(decoderLane(messageId)?.messageId ?? messageId);
+      const restoration = recovering ? this.#proposalHydration : undefined;
+      const scopeIsCurrent = this.captureRuntimeScope();
+
       this.addToExecutionQueue(async () => {
+        // No recovered files were admitted if their saved review state could not be read.
+        if (restoration && (!(await restoration.result) || !scopeIsCurrent())) {
+          return;
+        }
+
         await artifact.runner.waitForIdle();
         await this.#validatePendingAgentPatchProposalsForArtifact(artifactId);
-        await this.#refreshPreviewAfterArtifactClose(artifactId, { enregistrer });
+        await this.#refreshPreviewAfterArtifactClose(artifactId, {
+          enregistrer,
+          interrupted: fermetureDeSecours || recovering,
+        });
       });
     }
   }
@@ -3977,6 +4295,16 @@ export class WorkbenchStore {
     if (aRevoir && data.action.type !== 'file' && data.action.type !== 'diff') {
       artifact.runner.skipAction(data.actionId);
       return;
+    }
+
+    if (aRevoir && !isStreaming && this.#proposalHydration) {
+      const scopeIsCurrent = this.captureRuntimeScope();
+      const restored = await this.#proposalHydration.result;
+
+      if (!restored || !scopeIsCurrent()) {
+        action.abort();
+        return;
+      }
     }
 
     if (!aRevoir && this.#reloadedMessages.contient(data.messageId)) {
@@ -4197,7 +4525,12 @@ export class WorkbenchStore {
         return;
       }
 
-      await artifact.runner.runAction(data);
+      const previous = this.#filesStore.getFile(fullPath)?.content ?? null;
+
+      let confirmedContent: string | undefined;
+      await artifact.runner.runAction(data, false, (content) => {
+        confirmedContent = content;
+      });
 
       const writeReceipt = artifact.runner.consumeConfirmedFileWrite?.(data.actionId);
 
@@ -4284,6 +4617,10 @@ export class WorkbenchStore {
         completedAction?.status === 'complete' &&
         writeScopeIsCurrent()
       ) {
+        if (confirmedContent !== undefined) {
+          this.#recordConfirmedWrite(data.artifactId, writeReceipt.filePath, previous, confirmedContent);
+        }
+
         confirmerEcritureDeMessage(data.messageId, writeReceipt.filePath, `${data.artifactId}:${data.actionId}`);
       }
 
@@ -4443,9 +4780,24 @@ export class WorkbenchStore {
 
     /* Le tour repris ne propose que sa fermeture, et rien pour un fichier déjà identique. */
     if (aRevoir) {
+      try {
+        if (sessionStorage.getItem(this.#processedProposalKey(data.messageId, data.artifactId + ':' + data.actionId))) {
+          return;
+        }
+      } catch {
+        // The server queue and current file are still checked below.
+      }
+
       const actuel = this.#filesStore.getFile(path.join(this.#runtime.workdir, data.action.filePath));
 
-      if (isStreaming || (actuel?.type === 'file' && actuel.content === data.action.content)) {
+      const restored = this.agentPatchProposals.get()[`${data.artifactId}:${data.actionId}`];
+
+      const alreadySaved =
+        restored?.relueDeLaBase &&
+        restored.relativePath === data.action.filePath &&
+        restored.proposedContent === data.action.content;
+
+      if (isStreaming || alreadySaved || (actuel?.type === 'file' && actuel.content === data.action.content)) {
         return;
       }
     }
@@ -4646,7 +4998,10 @@ export class WorkbenchStore {
     });
   }
 
-  async #refreshPreviewAfterArtifactClose(artifactId: string, { enregistrer }: { enregistrer: boolean }) {
+  async #refreshPreviewAfterArtifactClose(
+    artifactId: string,
+    { enregistrer, interrupted }: { enregistrer: boolean; interrupted?: boolean },
+  ) {
     await this.loadRuntimeFiles('.').catch(() => {
       this.appendWorkspaceLog(workbenchText('workbenchRuntime.validation.previewRefreshSkipped'));
     });
@@ -4673,7 +5028,7 @@ export class WorkbenchStore {
      * whether the files are saved.
      */
     if (enregistrer) {
-      await this.#persistRuntimeFilesToProjectStorage(artifactId);
+      await this.#persistRuntimeFilesToProjectStorage(artifactId, interrupted);
     }
 
     // Persist first, but never restart over unresolved or failed file changes.
@@ -4862,7 +5217,7 @@ export class WorkbenchStore {
     return changed;
   }
 
-  async #persistRuntimeFilesToProjectStorage(artifactId: string) {
+  async #persistRuntimeFilesToProjectStorage(artifactId: string, interrupted = false) {
     /*
      * Capture projectId + runtime as a consistent snapshot up-front. This is a
      * long async flow (collect files, zip) and WorkbenchStore is a singleton
@@ -4879,10 +5234,28 @@ export class WorkbenchStore {
     }
 
     try {
-      const files = await collectRuntimeTextFiles(runtime, '.', {
-        excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
-        excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
-      });
+      const writes = this.#getArtifact(artifactId)?.confirmedWrites;
+
+      if (interrupted && !writes?.size) {
+        return;
+      }
+
+      const sourceVersion = interrupted ? await this.#getArtifact(artifactId)?.sourceVersion : undefined;
+
+      if (interrupted && sourceVersion === undefined) {
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.storage.skipped', { artifact: artifactId }));
+        return;
+      }
+
+      const previousContents = interrupted
+        ? Object.fromEntries(Array.from(writes!, ([path, write]) => [path, write.previous]))
+        : undefined;
+      const files = interrupted
+        ? Object.fromEntries(Array.from(writes!, ([path, write]) => [path, write.content]))
+        : await collectRuntimeTextFiles(runtime, '.', {
+            excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
+            excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
+          });
 
       const zip = new JSZip();
 
@@ -4918,7 +5291,12 @@ export class WorkbenchStore {
           accept: 'application/json',
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ zipBase64: await zip.generateAsync({ type: 'base64' }), replaceExisting: true }),
+        body: JSON.stringify({
+          zipBase64: await zip.generateAsync({ type: 'base64' }),
+          replaceExisting: !interrupted,
+          previousContents,
+          sourceVersion,
+        }),
       });
 
       if (!response.ok) {

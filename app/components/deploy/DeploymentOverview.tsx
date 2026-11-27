@@ -1,7 +1,8 @@
 import { Check, Copy, Globe, QrCode } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import qrcode from 'qrcode-generator';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { QRCode } from 'react-qrcode-logo';
+import styles from './DeploymentOverview.module.scss';
 import { getDeploymentType } from './deployment-types';
 import { classNames } from '~/utils/classNames';
 
@@ -219,15 +220,25 @@ export function DomainValue({ url }: { url: string }) {
     }
   };
 
+  const qrImage = useMemo(() => {
+    if (!showQr) {
+      return undefined;
+    }
+
+    const code = qrcode(0, 'M');
+
+    // The encoder's byte mode accepts a binary string. Preserve non-ASCII URLs as UTF-8.
+    code.addData(Array.from(new TextEncoder().encode(url), (byte) => String.fromCharCode(byte)).join(''));
+    code.make();
+
+    // Integer-sized modules and the encoder's four-module quiet zone survive resizing.
+    return code.createDataURL(4);
+  }, [showQr, url]);
+
   return (
     <div className="flex flex-col gap-1">
-      <span className="flex min-w-0 items-center gap-2">
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="truncate text-[var(--vc-ide-accent-action)] hover:underline"
-        >
+      <span className={styles.urlActions}>
+        <a href={url} target="_blank" rel="noreferrer" className="text-[var(--vc-ide-accent-action)] hover:underline">
           {url}
         </a>
         <button
@@ -259,14 +270,22 @@ export function DomainValue({ url }: { url: string }) {
           readOnly
           value={url}
           onFocus={(event) => event.currentTarget.select()}
+          onPointerDown={(event) => {
+            if (event.button !== 0) {
+              return;
+            }
+
+            // Place focus without letting WebKit collapse the selection to a caret.
+            event.preventDefault();
+
+            const field = event.currentTarget;
+            field.focus();
+            field.setSelectionRange(0, field.value.length);
+          }}
           className="min-w-0 w-full rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-2 text-sm text-bolt-elements-textPrimary"
         />
       ) : null}
-      {showQr ? (
-        <span className="mt-1 inline-block w-fit rounded border border-bolt-elements-borderColor bg-white p-1">
-          <QRCode value={url} size={96} quietZone={4} />
-        </span>
-      ) : null}
+      {qrImage ? <img className={styles.qrImage} src={qrImage} alt={url} /> : null}
     </div>
   );
 }

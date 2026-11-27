@@ -6737,6 +6737,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-topbar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-color: var(--vc-ide-border-subtle) !important;
   background: var(--vc-ide-bg-panel) !important;
   color: var(--vc-ide-text-primary) !important;
@@ -17874,6 +17880,7 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
   padding: 6px 10px;
   cursor: grab;
+  touch-action: none;
   user-select: none;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-subtle, var(--vc-ide-bg-app));

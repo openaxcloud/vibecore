@@ -75,21 +75,61 @@ describe('agentPatchProposalSync', () => {
       );
     });
 
-    it('returns an empty array on non-OK responses without throwing', async () => {
+    it('skips a restore if the project has already changed', async () => {
+      const project = new AbortController();
+      project.abort();
+
+      expect(await fetchOpenAgentPatchProposals('proj-1', project.signal)).toBeUndefined();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it.each(['success', 'project change', 'deadline'])('cleans up the restore after %s', async (outcome) => {
+      vi.useFakeTimers();
+
+      try {
+        const project = new AbortController();
+        const remove = vi.spyOn(project.signal, 'removeEventListener');
+        fetchMock.mockImplementationOnce(async (_, init) => {
+          if (outcome === 'success') {
+            return jsonResponse({ proposals: [] });
+          }
+
+          return new Promise<Response>((_, reject) => {
+            init!.signal!.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+          });
+        });
+
+        const restore = fetchOpenAgentPatchProposals('proj-1', project.signal);
+
+        if (outcome === 'project change') {
+          project.abort();
+        } else if (outcome === 'deadline') {
+          await vi.advanceTimersByTimeAsync(8_000);
+        }
+
+        expect(await restore).toEqual(outcome === 'success' ? [] : undefined);
+        expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('reports an unavailable snapshot on non-OK responses', async () => {
       fetchMock.mockResolvedValueOnce(new Response('boom', { status: 500 }));
 
       const result = await fetchOpenAgentPatchProposals('proj-1');
 
-      expect(result).toEqual([]);
+      expect(result).toBeUndefined();
       expect(logSpy).toHaveBeenCalled();
     });
 
-    it('returns an empty array when the network throws', async () => {
+    it('reports an unavailable snapshot when the network throws', async () => {
       fetchMock.mockRejectedValueOnce(new Error('offline'));
 
       const result = await fetchOpenAgentPatchProposals('proj-1');
 
-      expect(result).toEqual([]);
+      expect(result).toBeUndefined();
       expect(logSpy).toHaveBeenCalled();
     });
 

@@ -1490,6 +1490,17 @@ export interface ApiStore {
     gitDefaultBranch?: string;
   }): Promise<ProjectRecord>;
 
+  /** Atomically persist settings and an optional slug redirect in the authorized organization. */
+  updateProjectSettings(input: {
+    projectId: string;
+    organizationId: string;
+    slug?: string;
+    name?: string;
+    description?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+  }): Promise<ProjectRecord>;
+
   /**
    * F13: change a project's slug and persist a redirect from the old slug so the
    * previous canonical URL keeps resolving for `redirectTtlDays` (default 30).
@@ -2552,7 +2563,10 @@ export interface ApiStore {
     expiresAt: Date;
   }): Promise<OrganizationInviteRecord>;
   findOrganizationInviteByToken(token: string): Promise<OrganizationInviteRecord | undefined>;
-  consumeOrganizationInvite(token: string, userId: string): Promise<OrganizationInviteRecord | undefined>;
+  consumeOrganizationInvite(
+    token: string,
+    userId: string,
+  ): Promise<{ invitation: OrganizationInviteRecord; roleKey: string } | undefined>;
   listOrganizationInvites(organizationId: string): Promise<OrganizationInviteRecord[]>;
   resendOrganizationInvite(
     inviteId: string,

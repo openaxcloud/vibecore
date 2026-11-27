@@ -80,6 +80,7 @@ async function openFloatingFile({ page, request, context }: Pick<PlaywrightTestA
 
   const floating = page.getByTestId(`floating-pane-${targetPaneId}`);
   await expect(floating).toBeVisible();
+  await expect(floating.locator('.bolt-project-floating-pane-header')).toHaveCSS('touch-action', 'none');
 
   return { projectId, targetPaneId, target, panes, floating, file };
 }
