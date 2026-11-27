@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -14,8 +15,8 @@ import {
   marketingExactAccountLanguagesFr,
 } from './marketing-exact-account-languages';
 import AccountInactivity from '~/components/marketing/ecode-exact/pages/AccountInactivity';
-import Languages from '~/components/marketing/ecode-exact/pages/Languages';
 import { createI18nInstance } from '~/lib/i18n/runtime';
+import Languages from '~/routes/languages';
 
 function leafPaths(value: unknown, path: string[] = []): string[] {
   if (Array.isArray(value)) {
@@ -47,13 +48,13 @@ function stringPairs(
   return typeof english === 'string' && typeof french === 'string' ? [{ path: path.join('.'), english, french }] : [];
 }
 
-function renderInFrench(node: ReactNode): string {
-  const router = createMemoryRouter([{ path: '*', element: node }], { initialEntries: ['/'] });
+function renderPage(node: ReactNode, language: 'en' | 'fr' = 'fr', path = '/'): string {
+  const router = createMemoryRouter([{ path: '*', element: node }], { initialEntries: [path] });
   const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
   try {
     return renderToStaticMarkup(
-      <I18nextProvider i18n={createI18nInstance('fr')}>
+      <I18nextProvider i18n={createI18nInstance(language)}>
         <RouterProvider router={router} />
       </I18nextProvider>,
     );
@@ -69,9 +70,9 @@ describe('exact account inactivity and languages marketing catalogs', () => {
     const fallback = getMarketingExactAccountLanguagesCopy('de-DE');
 
     expect(fallback.exactAccountInactivity.title).toBe('Account Inactivity Policy');
-    expect(fallback.exactLanguages.hero.title).toBe('Build in any language');
+    expect(fallback.exactLanguages.hero.title).toBe('Programming languages on E-Code');
     expect(getMarketingExactAccountLanguagesCopy('fr-FR').exactLanguages.hero.title).toBe(
-      'Créez dans le langage de votre choix',
+      'Les langages de programmation sur E-Code',
     );
   });
 
@@ -87,11 +88,11 @@ describe('exact account inactivity and languages marketing catalogs', () => {
       interpolateMarketingExactAccountLanguagesCopy(marketingExactAccountLanguagesFr.exactLanguages.hero.badge, {
         count: '12',
       }),
-    ).toBe('Plus de 12 langages, zéro configuration');
+    ).toBe('12 langages répertoriés');
   });
 
   it('renders the complete account inactivity policy in French with its canonical contact and date', () => {
-    const markup = renderInFrench(<AccountInactivity />);
+    const markup = renderPage(<AccountInactivity />);
 
     expect(markup).toContain('Politique d’inactivité du compte');
     expect(markup).toContain('Dernière mise à jour :');
@@ -108,21 +109,39 @@ describe('exact account inactivity and languages marketing catalogs', () => {
   });
 
   it('renders the complete languages page in French with contextual accessible actions', () => {
-    const markup = renderInFrench(<Languages />);
+    const markup = renderPage(<Languages />);
 
-    expect(markup).toContain('Créez dans le langage de votre choix');
-    expect(markup).toContain('Plus de 12 langages, zéro configuration');
-    expect(markup).toContain('Langages pris en charge');
-    expect(markup).toContain('Données, IA et services applicatifs avec installation instantanée des paquets.');
+    expect(markup).toContain('Les langages de programmation sur E-Code');
+    expect(markup).toContain('12 langages répertoriés');
+    expect(markup).toContain('Catalogue des langages');
+    expect(markup).toContain('Python 3.12 figure au catalogue des environnements gérés.');
     expect(markup).toContain('Frameworks et environnements d’exécution');
     expect(markup).toContain('Un espace de travail, toutes vos technologies');
     expect(markup).toContain('Choisissez un langage et commencez à créer');
     expect(markup).toContain('aria-label="Commencer à créer avec Python"');
     expect(markup).toContain('aria-label="Commencer à créer avec C++"');
-    expect(markup).not.toContain('Build in any language');
-    expect(markup).not.toContain('Supported languages');
+    expect(markup).not.toContain('Programming languages on E-Code');
+    expect(markup).not.toContain('Language catalog');
     expect(markup).not.toContain('One workspace, every stack');
     expect(markup).not.toContain('Pick a language and start building');
+  });
+
+  it.each([
+    ['en', 'The managed Rust runtime is unavailable.'],
+    ['fr', 'L’environnement d’exécution Rust géré est indisponible.'],
+  ] as const)('shows Rust availability without a launch action on /languages (%s)', (language, notice) => {
+    const html = renderPage(<Languages />, language, '/languages');
+    const page = new DOMParser().parseFromString(html, 'text/html');
+
+    const card = Array.from(page.querySelectorAll('h3')).find((heading) => heading.textContent === 'Rust')
+      ?.parentElement?.parentElement;
+
+    expect(card?.querySelector('p')?.textContent).toBe(notice);
+    expect(card?.querySelector('a, button')).toBeNull();
+
+    for (const name of ['javascript', 'python', 'go']) {
+      expect(page.querySelector(`a[data-testid="link-start-${name}"]`)?.getAttribute('href')).toBe('/');
+    }
   });
 
   it('renders every localized visible leaf and no replaced English leaf', () => {
@@ -130,12 +149,12 @@ describe('exact account inactivity and languages marketing catalogs', () => {
       [
         marketingExactAccountLanguagesEn.exactAccountInactivity,
         marketingExactAccountLanguagesFr.exactAccountInactivity,
-        renderInFrench(<AccountInactivity />),
+        renderPage(<AccountInactivity />),
       ],
       [
         marketingExactAccountLanguagesEn.exactLanguages,
         marketingExactAccountLanguagesFr.exactLanguages,
-        renderInFrench(<Languages />),
+        renderPage(<Languages />),
       ],
     ] as const;
 
@@ -176,8 +195,8 @@ describe('exact account inactivity and languages marketing catalogs', () => {
       english.exactLanguages.frameworks.items.map(({ id, name }) => ({ id, name })),
     );
 
-    const accountMarkup = renderInFrench(<AccountInactivity />);
-    const languagesMarkup = renderInFrench(<Languages />);
+    const accountMarkup = renderPage(<AccountInactivity />);
+    const languagesMarkup = renderPage(<Languages />);
 
     expect(accountMarkup).toContain('support@e-code.ai');
     expect(languagesMarkup).toContain('E-Code');
