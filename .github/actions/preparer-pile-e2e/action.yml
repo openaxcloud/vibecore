@@ -117,7 +117,23 @@ runs:
   - name: Select Ubuntu archive for browser dependencies
     if: runner.arch == 'X64' && (inputs.navigateurs == 'chromium' || inputs.navigateurs == 'chromium,webkit')
     shell: bash
-    run: sudo python3 .github/scripts/preparer-miroir-ubuntu.py
+    id: browser_apt
+    run: |
+      source /etc/os-release
+      if [[ "$ID" == ubuntu && "${VERSION_CODENAME:-}" == noble ]]; then
+        # Playwright invokes apt through sudo, which clears APT_CONFIG.
+        # A job-local drop-in reaches both apt update and apt install.
+        test -s /usr/share/keyrings/ubuntu-archive-keyring.gpg
+        sources=$(sudo mktemp /etc/apt/vibecore-browser-XXXXXXXX.list)
+        config=$(sudo mktemp /etc/apt/apt.conf.d/zz-vibecore-browser-XXXXXXXX.conf)
+        echo "sources=$sources" >> "$GITHUB_OUTPUT"
+        echo "config=$config" >> "$GITHUB_OUTPUT"
+        sudo install -m 0644 .github/scripts/browser-noble.list "$sources"
+        printf 'Dir::Etc::sourcelist "%s";\nDir::Etc::sourceparts "-";\n' "$sources" | sudo tee "$config" >/dev/null
+        sudo chmod 0644 "$config"
+      else
+        sudo python3 .github/scripts/preparer-miroir-ubuntu.py
+      fi
 
   - name: Install Playwright browsers
     shell: bash
@@ -171,6 +187,14 @@ runs:
         # doit pas fermer la porte E2E de tout le monde.
         pnpm exec playwright install webkit || echo "::warning::installation de WebKit en échec — le canari iOS sera sauté."
       fi
+
+  - name: Restore runner apt source selection
+    if: always() && steps.browser_apt.outputs.config != ''
+    shell: bash
+    env:
+      BROWSER_APT_CONFIG: ${{ steps.browser_apt.outputs.config }}
+      BROWSER_APT_SOURCES: ${{ steps.browser_apt.outputs.sources }}
+    run: sudo rm -f -- "$BROWSER_APT_CONFIG" "$BROWSER_APT_SOURCES"
 
   - name: Validate AI provider mode for E2E
     shell: bash
