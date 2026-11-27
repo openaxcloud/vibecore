@@ -82,6 +82,7 @@ export async function snapshotWorkspaceAppSource(opts: {
     `tar czf ${tarPath}`,
     '--exclude=./node_modules',
     '--exclude=./.git',
+    '--exclude=./.cache/.vibecore-builds',
     '--exclude=./.vibecore-deploy-*',
     '--exclude=./.vibecore-src-*',
     opts.extraExclude ? `--exclude=${opts.extraExclude}` : '',
@@ -260,7 +261,7 @@ export async function snapshotWorkspaceImageContext(opts: {
     .map(([name, value]) => `-H '${name}: ${value}'`)
     .join(' ');
   const script = [
-    `tar czf ${tarPath} --exclude=./.git --exclude='./.vibecore-deploy-*' --exclude='./.vibecore-src-*' .`,
+    `tar czf ${tarPath} --exclude=./.git --exclude=./.cache/.vibecore-builds --exclude='./.vibecore-deploy-*' --exclude='./.vibecore-src-*' .`,
     `SNAPSHOT_BYTES=$(wc -c < ${tarPath})`,
     `echo "[snapshot] image context: $SNAPSHOT_BYTES bytes (deps included)"`,
     `curl -fsS -X PUT ${headerFlags} --upload-file ${tarPath} '${upload.url}'`,

@@ -16435,7 +16435,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * the live workspace's node_modules (which broke the user's running dev
            * server). Removed after the artifact is pulled.
            */
-          sandboxDir: `.vibecore-deploy-${deploymentId}`,
+          sandboxDir: `.vibecore-deploy-${deploymentId}-${randomUUID()}`,
           materializeDir: tempDir,
           maxFileBytes: DEPLOY_MAX_PULL_FILE_BYTES,
           artifactSizeLimitMb: body.artifactSizeLimitMb,

@@ -1,4 +1,5 @@
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -110,6 +111,46 @@ describe('runWorkspaceStaticBuild', () => {
     expect(runCalls[1][0].command).toBe('npm');
   });
 
+  it('prepares distinct workspace-local copies, refuses reuse and cleans only its own cache directory', async () => {
+    const first = await materializeDir();
+    const second = await materializeDir();
+    const sandboxDir = '.vibecore-deploy-one';
+    async function commandsFor(name: string) {
+      const shell: string[] = [];
+      await runWorkspaceStaticBuild({ ...baseOptions, materializeDir: first, sandboxDir: name }, fakeAgent({
+        runStep: async ({ command, args }) => {
+          if (command === 'sh') shell.push(args[1]);
+          return { exitCode: 0, timedOut: false };
+        },
+      }));
+      return { prepare: shell[0], cleanup: shell.at(-1)! };
+    }
+    const { prepare, cleanup } = await commandsFor(sandboxDir);
+    const run = (script: string, cwd: string) => spawnSync('sh', ['-c', script], { cwd }).status;
+    const cache = join('.cache', '.vibecore-builds', sandboxDir);
+    for (const root of [first, second]) {
+      await mkdir(join(root, sandboxDir));
+      await writeFile(join(root, sandboxDir, 'user.txt'), root);
+      await mkdir(join(root, '.cache'));
+      await writeFile(join(root, '.cache', 'input'), 'keep');
+      expect(run(prepare, root)).toBe(0);
+      expect(await readFile(join(root, cache, sandboxDir, 'user.txt'), 'utf8')).toBe(root);
+      expect(await readFile(join(root, cache, '.cache', 'input'), 'utf8')).toBe('keep');
+      expect(run(prepare, root)).toBe(73);
+    }
+    const empty = await materializeDir();
+    expect(run(prepare, empty)).toBe(66);
+    await expect(stat(join(empty, cache))).rejects.toMatchObject({ code: 'ENOENT' });
+    const parallel = await commandsFor('.vibecore-deploy-two');
+    expect(run(parallel.prepare, first)).toBe(0);
+    expect(run(cleanup, first)).toBe(0);
+    expect(await readFile(join(first, '.cache/.vibecore-builds/.vibecore-deploy-two', sandboxDir, 'user.txt'), 'utf8')).toBe(first);
+    expect(run(parallel.cleanup, first)).toBe(0);
+    await expect(stat(join(first, cache))).rejects.toMatchObject({ code: 'ENOENT' });
+    expect(await readFile(join(first, sandboxDir, 'user.txt'), 'utf8')).toBe(first);
+    expect(await readFile(join(second, cache, sandboxDir, 'user.txt'), 'utf8')).toBe(second);
+  });
+
   it('isolates install+build in a sandbox so the live workspace is never mutated', async () => {
     const dir = await materializeDir();
     const calls: { command: string; cwd: string; args: string[] }[] = [];
@@ -120,7 +161,7 @@ describe('runWorkspaceStaticBuild', () => {
         return { exitCode: 0, timedOut: false };
       }),
       listFiles: vi.fn(async (path: string) => ({
-        files: path === '.deploy-x/dist' ? [{ path: '.deploy-x/dist/index.html', size: 12 }] : [],
+        files: path === '.cache/.vibecore-builds/.deploy-x/dist' ? [{ path: '.cache/.vibecore-builds/.deploy-x/dist/index.html', size: 12 }] : [],
       })),
       readFile: vi.fn(async () => ({ content: '<html></html>', encoding: 'utf8' as const })),
     });
@@ -136,20 +177,20 @@ describe('runWorkspaceStaticBuild', () => {
     expect(calls[0].command).toBe('sh');
     expect(calls[0].cwd).toBe('.');
     expect(calls[0].args[1]).toContain('! -name node_modules');
-    expect(calls[0].args[1]).toContain('.deploy-x');
+    expect(calls[0].args[1]).toContain('.cache/.vibecore-builds/.deploy-x');
 
     // React-18 manifest guard, then install + build, all INSIDE the sandbox (never the live root).
-    expect(calls[1]).toMatchObject({ command: 'node', cwd: '.deploy-x' });
-    expect(calls[2]).toMatchObject({ command: 'npm', cwd: '.deploy-x' });
-    expect(calls[3].cwd).toBe('.deploy-x');
+    expect(calls[1]).toMatchObject({ command: 'node', cwd: '.cache/.vibecore-builds/.deploy-x' });
+    expect(calls[2]).toMatchObject({ command: 'npm', cwd: '.cache/.vibecore-builds/.deploy-x' });
+    expect(calls[3].cwd).toBe('.cache/.vibecore-builds/.deploy-x');
 
     // the artifact is enumerated from the sandbox output dir.
-    expect(agent.listFiles as ReturnType<typeof vi.fn>).toHaveBeenCalledWith('.deploy-x/dist');
+    expect(agent.listFiles as ReturnType<typeof vi.fn>).toHaveBeenCalledWith('.cache/.vibecore-builds/.deploy-x/dist');
 
     // the sandbox is torn down afterwards.
     const last = calls[calls.length - 1];
     expect(last.command).toBe('sh');
-    expect(last.args[1]).toContain('rm -rf ".deploy-x"');
+    expect(last.args[1]).toContain('rm -rf ".cache/.vibecore-builds/.deploy-x"');
   });
 
   /*
@@ -173,7 +214,7 @@ describe('runWorkspaceStaticBuild', () => {
         return { exitCode: 0, timedOut: false };
       }),
       listFiles: vi.fn(async (path: string) => ({
-        files: path === '.deploy-m/dist' ? [{ path: '.deploy-m/dist/index.html', size: 12 }] : [],
+        files: path === '.cache/.vibecore-builds/.deploy-m/dist' ? [{ path: '.cache/.vibecore-builds/.deploy-m/dist/index.html', size: 12 }] : [],
       })),
       readFile: vi.fn(async () => ({ content: '<html></html>', encoding: 'utf8' as const })),
     });
@@ -187,11 +228,11 @@ describe('runWorkspaceStaticBuild', () => {
      * `cp` muet et une préparation exécutée ailleurs que le build.
      */
     expect(prep).toContain('source_abs=$(cd "." && pwd)');
-    expect(prep).toContain('sandbox_abs=$(cd ".deploy-m" && pwd)');
+    expect(prep).toContain('sandbox_abs=$(cd ".cache/.vibecore-builds/.deploy-m" && pwd)');
 
     // Les deux comptes, et la ligne qui les rend lisibles dans le journal.
     expect(prep).toContain('attendus=$(find');
-    expect(prep).toContain('copies=$(find ".deploy-m" -mindepth 1 -maxdepth 1 | wc -l');
+    expect(prep).toContain('copies=$(find ".cache/.vibecore-builds/.deploy-m" -mindepth 1 -maxdepth 1 | wc -l');
     expect(prep).toContain('echo "source=$source_abs entries=$attendus -> sandbox=$sandbox_abs copied=$copies"');
 
     /*
@@ -239,7 +280,7 @@ describe('runWorkspaceStaticBuild', () => {
     // Et le bac à sable est démonté même dans ce cas.
     const dernier = calls[calls.length - 1];
     expect(dernier.command).toBe('sh');
-    expect(dernier.args[1]).toContain('rm -rf ".deploy-vide"');
+    expect(dernier.args[1]).toContain('rm -rf ".cache/.vibecore-builds/.deploy-vide"');
   });
 
   /*
@@ -282,7 +323,7 @@ describe('runWorkspaceStaticBuild', () => {
     expect(journal).toContain('NO project file');
 
     const dernier = calls[calls.length - 1];
-    expect(dernier.args[1]).toContain('rm -rf ".deploy-src-vide"');
+    expect(dernier.args[1]).toContain('rm -rf ".cache/.vibecore-builds/.deploy-src-vide"');
   });
 
   it('le script REFUSE une source vide avant même de regarder la copie', async () => {
@@ -295,7 +336,7 @@ describe('runWorkspaceStaticBuild', () => {
         return { exitCode: 0, timedOut: false };
       }),
       listFiles: vi.fn(async (path: string) => ({
-        files: path === '.deploy-s/dist' ? [{ path: '.deploy-s/dist/index.html', size: 12 }] : [],
+        files: path === '.cache/.vibecore-builds/.deploy-s/dist' ? [{ path: '.cache/.vibecore-builds/.deploy-s/dist/index.html', size: 12 }] : [],
       })),
       readFile: vi.fn(async () => ({ content: '<html></html>', encoding: 'utf8' as const })),
     });
@@ -355,7 +396,7 @@ describe('runWorkspaceStaticBuild', () => {
 
     const last = calls[calls.length - 1];
     expect(last.command).toBe('sh');
-    expect(last.args[1]).toContain('rm -rf ".deploy-y"');
+    expect(last.args[1]).toContain('rm -rf ".cache/.vibecore-builds/.deploy-y"');
   });
 
   it('streams logs via onLog and reports phase transitions', async () => {

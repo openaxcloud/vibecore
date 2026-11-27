@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
 import { once } from 'node:events';
@@ -529,6 +529,32 @@ describe('workspace-agent', () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const response = await app.inject({ method: 'GET', url: '/files/tree' });
     expect(response.statusCode).toBe(401);
+  });
+
+  it('keeps an interrupted build out of project inventories while serving the project and explicit artifact', async () => {
+    const agent = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+    const cache = '.cache/.vibecore-builds/.vibecore-deploy-one';
+    const user = '.vibecore-deploy-one';
+    const bytes = Buffer.from([0, 13, 10, 128, 255]);
+    try {
+      await mkdir(join(root, user));
+      await writeFile(join(root, user, 'fixture.bin'), bytes);
+      await mkdir(join(root, cache, 'dist'), { recursive: true });
+      await writeFile(join(root, cache, 'dist/index.html'), 'built');
+      const list = async (path: string) => {
+        const response = await agent.inject({ method: 'GET', url: '/files/tree', query: { path }, headers });
+        expect(response.statusCode).toBe(200);
+        return response.json().map((entry: { path: string }) => entry.path);
+      };
+      expect(await list('.')).toContain(user);
+      expect(await list('.')).not.toContain('.cache');
+      expect(await list(user)).toEqual([`${user}/fixture.bin`]);
+      expect(await readFile(join(root, user, 'fixture.bin'))).toEqual(bytes);
+      expect(await list(`${cache}/dist`)).toEqual([`${cache}/dist/index.html`]);
+    } finally {
+      await agent.close();
+    }
   });
 
   it('writes and reads files inside the workspace root', async () => {

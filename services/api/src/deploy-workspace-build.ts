@@ -72,7 +72,7 @@ export interface WorkspaceStaticBuildOptions {
   cwd: string;
 
   /*
-   * Throwaway build sandbox, relative to the workspace root. When set, the deploy
+   * Name of a fresh build directory in the workspace-local build cache. When set, the deploy
    * copies the project sources (EXCLUDING node_modules/.git) into this directory
    * and runs install + build THERE, so `npm install` never mutates the live
    * workspace's node_modules — a deploy must not break the user's running dev
@@ -339,20 +339,33 @@ export async function runWorkspaceStaticBuild(
 ): Promise<WorkspaceStaticBuildResult> {
   const log = makeLogger(options.onLog);
   const sourceCwd = options.cwd || '.';
-  const sandbox = options.sandboxDir;
+  // The agent already excludes .cache from root inventories and snapshots.
+  // A hard interruption can leave a cache entry, never a rule hiding a project path.
+  const buildCache = '.cache/.vibecore-builds';
+  const name = options.sandboxDir;
+  if (name && (!/^[a-zA-Z0-9._-]+$/.test(name) || name === '.' || name === '..')) {
+    throw new Error(appPublicEnglish('WORKSPACE_BUILD_DIRECTORY_NAME_INVALID'));
+  }
+  const sandbox = name && posix.join(buildCache, name);
   const cwd = sandbox ?? sourceCwd;
+  let ownsSandbox = false;
 
   /*
-   * Best-effort teardown of the throwaway sandbox. Runs in a finally so a failed
-   * install/build/pull never leaves the copy behind. Never throws.
+   * Best-effort teardown of the acknowledged copy after install/build/pull. An
+   * interrupted agent can leave disposable cache data on the workspace volume.
    */
   const cleanupSandbox = async () => {
-    if (!sandbox) {
+    if (!sandbox || !ownsSandbox) {
       return;
     }
 
     await agent
-      .runStep({ command: 'sh', args: ['-c', `rm -rf "${sandbox}"`], cwd: '.', onLine: () => undefined })
+      .runStep({
+        command: 'sh',
+        args: ['-c', `rm -rf "${sandbox}"`],
+        cwd: '.',
+        onLine: () => undefined,
+      })
       .catch(() => undefined);
   };
 
@@ -370,8 +383,6 @@ export async function runWorkspaceStaticBuild(
         `Workspace deploy: preparing isolated build sandbox (${sandbox}); the live workspace is left untouched`,
       );
 
-      const sandboxBase = posix.basename(sandbox);
-
       /*
        * BUG-DEPLOY-010 — la copie DIT ce qu'elle a fait, et refuse de mentir.
        *
@@ -386,12 +397,14 @@ export async function runWorkspaceStaticBuild(
        * un artefact. Continuer, c'est faire échouer le déploiement cent lignes
        * plus loin sur un message npm sans rapport.
        */
-      const filtre = `-mindepth 1 -maxdepth 1 ! -name node_modules ! -name .git ! -name "${sandboxBase}"`;
+      const filtre = `-mindepth 1 -maxdepth 1 ! -name node_modules ! -name .git ! -name .cache`;
 
       const prepScript = [
         'set -e',
-        `rm -rf "${sandbox}"`,
-        `mkdir -p "${sandbox}"`,
+        `test ! -L .cache && test ! -L "${buildCache}" || exit 73`,
+        `mkdir -p "${buildCache}" && mkdir "${sandbox}" || exit 73`,
+        // An ordinary preparation failure cleans only the newly acquired directory.
+        `trap 'rm -rf "${sandbox}"' EXIT`,
         `find "${sourceCwd}" ${filtre} -exec cp -a {} "${sandbox}/" ';'`,
         `source_abs=$(cd "${sourceCwd}" && pwd)`,
         `sandbox_abs=$(cd "${sandbox}" && pwd)`,
@@ -409,6 +422,12 @@ export async function runWorkspaceStaticBuild(
         `if [ ! -f "${sandbox}/package.json" ]; then`,
         '  echo "no package.json in the sandbox (source=$source_abs entries=$attendus copied=$copies)"',
         'fi',
+        // Preserve ordinary cache inputs without ever copying another build.
+        `if test -d "${sourceCwd}/.cache"; then`,
+        `  mkdir -p "${sandbox}/.cache"`,
+        `  find "${sourceCwd}/.cache" -mindepth 1 -maxdepth 1 ! -name .vibecore-builds -exec cp -a {} "${sandbox}/.cache/" ';'`,
+        'fi',
+        'trap - EXIT',
       ].join('\n');
 
       const prep = await agent.runStep({
@@ -417,6 +436,8 @@ export async function runWorkspaceStaticBuild(
         cwd: '.',
         onLine: (level, line) => log.push(level, `[prepare] ${line}`),
       });
+
+      ownsSandbox = !prep.error && prep.exitCode === 0;
 
       if (prep.error) {
         log.push(
