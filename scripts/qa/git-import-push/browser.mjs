@@ -41,15 +41,33 @@ try {
     );
   await page.context().addCookies([{ name: 'vc_session', value: auth.token, url: web }]);
   await page.goto(web + '/import-github', { waitUntil: 'domcontentloaded' });
+  // Cold Vite optimization can reload the document while a route hydrates.
+  async function waitForRoute(control) {
+    try {
+      await control.waitFor({ timeout: 30000 });
+    } catch {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await control.waitFor();
+    }
+  }
+  await waitForRoute(page.locator('[name=repositoryUrl]'));
   await page.locator('[name=repositoryUrl]').fill('https://forge.example.invalid/qa/project.git');
   await page.locator('[name=branch]').fill('main');
   await page.locator('[name=name]').fill('Clone proof');
+  // A new account may see the navigation tour over the import form.
+  await page.keyboard.press('Escape');
   await page.locator('form button[type=submit]').click();
-  await page.getByTestId('ide-dock-git').waitFor();
+
   const org = auth.organization?.id ?? auth.organizations[0].id;
   const headers = { authorization: 'Bearer ' + auth.token };
-  const projects = await (await fetch(api + '/orgs/' + org + '/projects', { headers })).json();
-  const project = projects.projects.find((p) => p.name === 'Clone proof');
+  let project;
+  for (let attempt = 0; attempt < 60 && !project; attempt++) {
+    const response = await fetch(api + '/orgs/' + org + '/projects', { headers });
+    assert.equal(response.status, 200);
+    project = (await response.json()).projects.find((p) => p.name === 'Clone proof');
+    if (!project) await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  assert.ok(project, 'The import form must create the project');
   const cwd = root + '/projects/' + project.id;
   const bare = root + '/origin.git';
   const git = (args, dir = cwd) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' }).trim();
@@ -67,6 +85,8 @@ try {
     body: JSON.stringify({ zipBase64: await zip.generateAsync({ type: 'base64' }), replaceExisting: true }),
   });
   assert.equal(seed.ok, true);
+  await page.goto(web + '/projects/' + project.id + '/ide', { waitUntil: 'domcontentloaded' });
+  await waitForRoute(page.getByTestId('ide-dock-git'));
   const oldPid = server.pid;
   const rows = once(server, 'message');
   const stopped = once(server, 'exit');
@@ -83,6 +103,8 @@ try {
   assert.equal(git(['remote', 'get-url', 'origin']), 'https://forge.example.invalid/qa/project.git');
   const projectUrl = page.url();
   await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitForRoute(page.getByTestId('ide-dock-git'));
+  await page.keyboard.press('Escape');
   await page.getByTestId('ide-dock-git').click();
   assert.equal(page.url(), projectUrl);
   await page.getByRole('button', { name: /^(Tout indexer|Stage all)$/ }).click();

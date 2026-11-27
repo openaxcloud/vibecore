@@ -10,7 +10,8 @@ bare = os.path.join(os.environ["QA_ROOT"], "origin.git")
 git = "/usr/bin/git"
 
 if "clone" in args and args[-2] == fixture_url:
-    args = ["clone", "--no-local", "--no-checkout", "--template=", "--single-branch", "--branch", "main", bare, args[-1]]
+    options = [flag for flag in ("--no-checkout", "--depth=1") if flag in args]
+    args = ["clone", "--no-local", *options, "--template=", "--single-branch", "--branch", "main", bare, args[-1]]
 elif "push" in args:
     position = args.index("push")
     if args[position + 1:] != ["origin", "main"]:

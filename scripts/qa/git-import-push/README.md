@@ -23,3 +23,17 @@ En production, un montage temporaire absent ou sans plafond compatible fait éch
 Les valeurs Helm de production déclarent Filestore CSI en ReadWriteMany pour `/data/vibecore/projects`. Le panneau Git HTTPS utilise le dépôt de l’API. Le ZIP de synchronisation du workspace transporte les fichiers de travail, et le dépôt reste sur le volume de l’API. Le scénario local effectue une synchronisation ZIP avec remplacement, recharge l’IDE, puis vérifie le commit et le Push. Un test séparé rouvre le stockage après restauration d’un instantané. La validation du PVC monté, d’un redémarrage de pod et d’une lecture depuis une seconde réplique exige un environnement Kubernetes.
 
 Le scénario arrête complètement le premier processus API après la sauvegarde ZIP, supprime son répertoire de clone temporaire et démarre un second processus sur le même port et le même répertoire de projets. Le parent conserve en mémoire les lignes synthétiques qui représentent la base applicative. Le navigateur conserve sa session et rouvre la même URL. Le test exige une réponse 401 sans session, retrouve le même identifiant de projet avec la session, vérifie HEAD et origin, puis compare le SHA poussé à la référence du dépôt bare jetable. Ce scénario exerce le contrat du répertoire partagé sur une machine Linux. Le rattachement d’un PVC après remplacement d’un pod reste à éprouver sur un banc Kubernetes autorisé.
+
+## Contrôle sur deux répliques API existantes
+
+Sur un banc privé jetable explicitement autorisé, sélectionner deux pods API prêts du même ReplicaSet et le PVC RWX de projets qui leur est déjà monté. Lancer :
+
+```sh
+python3 scripts/qa/git-import-push/pvc_replicas.py CONTEXTE NAMESPACE PVC POD_A POD_B
+```
+
+La commande vérifie les UID des pods, leur propriétaire, le PVC lié et son point de montage. A crée un dépôt et une origine bare dans un répertoire temporaire du PVC. B relit les fichiers et l’origine, committe et pousse. A relit la référence distante, le parent et le contenu. Un succès retourne 0 et imprime `PASS`, les UID et les deux SHA. Toute erreur retourne un statut non nul. Accès nécessaires au banc : lecture des deux pods et du PVC, et exec dans leurs conteneurs API. Le test ne crée ni pod ni volume. Il exerce deux répliques déjà en service et complète le parcours Chromium avec remplacement du processus API. Il ne provoque aucun remplacement de pod.
+
+## Validation GitHub distincte
+
+Ce contrôle reste en attente tant qu’un dépôt GitHub jetable et un mode d’accès de test n’ont pas été explicitement autorisés. Lors d’une validation dédiée, relever la référence distante avant import, importer depuis le formulaire, rouvrir le projet, committer un fichier synthétique et utiliser Push depuis le panneau Git. Relire indépendamment la référence sur GitHub et confirmer que son nouveau SHA est celui du commit de l’IDE et que son parent est le SHA initial. Enregistrer uniquement ces SHA et le verdict. Un test sur une origine bare locale ne valide pas l’authentification ni les permissions du fournisseur.
