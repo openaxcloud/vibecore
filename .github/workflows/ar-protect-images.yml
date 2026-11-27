@@ -18,8 +18,9 @@
 #   * every image referenced by an app-* k8s Deployment (even scaled to zero —
 #     the wake path needs the image)                 -> active-<deploymentId>
 #
-# Tags are moved, never deleted here: a tag that stops matching simply gets
-# re-pointed on the next run; versions it leaves behind age out via the DELETE
+# Concurrent platform references use numbered slots after the canonical tag.
+# Tags are moved, never deleted here: an unused slot for a present package gets
+# re-pointed on refresh; versions it leaves behind age out via the DELETE
 # policy once they are genuinely unreferenced.
 
 name: AR Protect Running Images
@@ -65,48 +66,44 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Get cluster credentials via Connect Gateway
+      - id: cluster
+        name: Get cluster credentials via Connect Gateway
         run: |
           set -euo pipefail
           gcloud components install gke-gcloud-auth-plugin --quiet
           gcloud container fleet memberships get-credentials "$CLUSTER" \
             --project "$GCP_PROJECT_ID" --location "$REGION"
 
-      - name: Tag running platform images (running-*)
+      - id: running
+        name: Tag running platform images (running-*)
         run: |
           set -euo pipefail
-          # La dérivation du nom de paquet et la tolérance à un échec isolé
-          # vivent dans le script, qui est testé (scripts/ar-protect/*.spec.mjs).
-          # Les garder ici en ligne est ce qui a laissé les deux défauts passer.
-          kubectl get pods -A \
-            -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' \
-            | sort -u \
-            | scripts/ar-protect/tag-running.sh
+          pods=$(kubectl get pods -A -o json)
+          images=$(jq -r -f scripts/ar-protect/pod-images.jq <<< "$pods")
+          printf '%s\n' "$images" | sort -u | scripts/ar-protect/tag-running.sh
 
-      - name: Tag Helm-active images (helm-active-*)
+      - id: helm_active
+        name: Tag Helm-active images (helm-active-*)
+        if: ${{ !cancelled() && steps.cluster.outcome == 'success' }}
         run: |
           set -euo pipefail
-          # imageTags from the live release values; tier keys are camelCase,
-          # image package names are the kebab-case `image` field next to them.
-          helm -n "$NAMESPACE" get values vibecore -a -o json \
-            | jq -r '(.services // {}) | to_entries[]
-                     | select((.value | type == "object") and .value.imageTag and .value.image)
-                     | "\(.value.image) \(.value.imageTag)"' \
-            | while read -r pkg tag; do
-            gcloud artifacts docker tags add "$REPO_CONTAINERS/$pkg:$tag" \
-              "$REPO_CONTAINERS/$pkg:helm-active-$pkg" --quiet
-          done
+          # Use desired templates even when no pod has started or replicas are zero.
+          deploys=$(kubectl -n "$NAMESPACE" get deployments -l app.kubernetes.io/part-of=vibecore -o json)
+          images=$(jq -r '.items[].spec.template.spec | (.containers[], .initContainers[]?) | .image' <<< "$deploys")
+          release=$(helm -n "$NAMESPACE" get values vibecore -a -o json | jq -r --arg repo "$REPO_CONTAINERS" '
+            .global as $g | .services[] | select(.enabled and .image)
+            | (.imageDigest // "" | if length > 0 then . else ($g.imageDigest // "") end) as $digest
+            | if $digest != "" then "\($repo)/\(.image)@\($digest)"
+              else (.imageTag // "" | if length > 0 then . else $g.imageTag end) as $tag
+              | "\($repo)/\(.image):\($tag)" end')
+          agent=$(kubectl -n "$NAMESPACE" get configmap vibecore-vibecore-platform-platform-env -o json \
+            | jq -er '.data.WORKSPACE_AGENT_IMAGE | strings | select(length > 0)')
+          [[ "$agent" == "$REPO_CONTAINERS/"* ]] || { echo "::error::unexpected workspace-agent repository"; exit 1; }
+          printf '%s\n' "$images" "$release" "$agent" | sort -u | scripts/ar-protect/tag-running.sh helm-active
 
-          # The workspace-agent image is referenced by env, not by a Deployment.
-          agent_img=$(kubectl -n "$NAMESPACE" get configmap \
-            vibecore-vibecore-platform-platform-env \
-            -o jsonpath='{.data.WORKSPACE_AGENT_IMAGE}' || true)
-          if [ -n "$agent_img" ]; then
-            gcloud artifacts docker tags add "$agent_img" \
-              "$REPO_CONTAINERS/workspace-agent:helm-active-workspace-agent" --quiet
-          fi
-
-      - name: Tag app images referenced by k8s Deployments (active-*)
+      - id: apps
+        name: Tag app images referenced by k8s Deployments (active-*)
+        if: ${{ !cancelled() && steps.cluster.outcome == 'success' }}
         run: |
           set -euo pipefail
           # Includes scaled-to-zero apps: their Deployment object still carries
@@ -121,7 +118,7 @@ jobs:
           deployments=$(kubectl -n workspaces get deploy \
             -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.template.spec.containers[0].image}{"\n"}{end}')
 
-          tagged=0; skipped=0
+          tagged=0; skipped=0; failed=0
           while IFS=$'\t' read -r name img; do
             [ -n "${img:-}" ] || continue
             case "$img" in "$REPO_APPS"/*) ;; *) continue ;; esac
@@ -143,15 +140,32 @@ jobs:
             # and must still fail the run.
             case "$err" in
               *"not found"*|*"NOT_FOUND"*|*"does not exist"*)
-                echo "::notice::skipping vanished image $img"
-                skipped=$((skipped + 1))
+                # A missing version is harmless only after the desired reference disappears.
+                current=$(kubectl -n workspaces get deploy "$name" --ignore-not-found -o jsonpath='{.spec.template.spec.containers[0].image}')
+                if [[ "$current" == "$REPO_APPS/"* ]]; then
+                  echo "::error::failed to protect $img for $name (currently desires $current)"
+                  failed=1
+                else
+                  skipped=$((skipped + 1))
+                fi
                 ;;
               *)
                 echo "::error::failed to tag $img"
                 printf '%s\n' "$err" >&2
-                exit 1
+                failed=1
                 ;;
             esac
           done <<< "$deployments"
 
           echo "active-* tags written: $tagged, skipped (image gone): $skipped"
+          exit "$failed"
+
+      - name: Verify all retention passes
+        if: ${{ !cancelled() && steps.cluster.outcome == 'success' }}
+        env:
+          RUNNING: ${{ steps.running.outcome }}
+          HELM_ACTIVE: ${{ steps.helm_active.outcome }}
+          APPS: ${{ steps.apps.outcome }}
+        run: |
+          echo "Retention passes: running=$RUNNING helm-active=$HELM_ACTIVE apps=$APPS"
+          [[ "$RUNNING" == success && "$HELM_ACTIVE" == success && "$APPS" == success ]]

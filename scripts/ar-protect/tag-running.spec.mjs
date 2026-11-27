@@ -39,13 +39,15 @@ function lancer(images, { echouePour = [] } = {}) {
   chmodSync(faux, 0o755);
   writeFileSync(journal, '');
 
+  writeFileSync(join(dir, 'gcloud'), '#!/bin/sh\n[ "$1 $2 $3 $4" = "artifacts docker tags list" ]\n', { mode: 0o755 });
+
   let code = 0;
   let sortie = '';
 
   try {
     sortie = execFileSync('bash', [SCRIPT], {
       input: images.join('\n') + '\n',
-      env: { ...process.env, REPO_CONTAINERS: REPO, AR_TAGGER: faux },
+      env: { ...process.env, PATH: dir + ':' + process.env.PATH, REPO_CONTAINERS: REPO, AR_TAGGER: faux },
       encoding: 'utf8',
     });
   } catch (e) {
