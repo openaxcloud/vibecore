@@ -341,6 +341,9 @@ export async function runWorkspaceStaticBuild(
   const sourceCwd = options.cwd || '.';
   const sandbox = options.sandboxDir;
   const cwd = sandbox ?? sourceCwd;
+  // The workspace agent and its build subprocess share /tmp in the same pod.
+  // Keep the marker outside both the source inventory and the resulting artifact.
+  const sandboxMarker = sandbox && `/tmp/vibecore-active-${posix.basename(sandbox)}`;
 
   /*
    * Best-effort teardown of the throwaway sandbox. Runs in a finally so a failed
@@ -352,7 +355,12 @@ export async function runWorkspaceStaticBuild(
     }
 
     await agent
-      .runStep({ command: 'sh', args: ['-c', `rm -rf "${sandbox}"`], cwd: '.', onLine: () => undefined })
+      .runStep({
+        command: 'sh',
+        args: ['-c', `rm -rf "${sandbox}" && rmdir "${sandboxMarker}"`],
+        cwd: '.',
+        onLine: () => undefined,
+      })
       .catch(() => undefined);
   };
 
@@ -390,6 +398,7 @@ export async function runWorkspaceStaticBuild(
 
       const prepScript = [
         'set -e',
+        `mkdir -p "${sandboxMarker}"`,
         `rm -rf "${sandbox}"`,
         `mkdir -p "${sandbox}"`,
         `find "${sourceCwd}" ${filtre} -exec cp -a {} "${sandbox}/" ';'`,

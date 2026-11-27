@@ -186,6 +186,10 @@ describe('runWorkspaceStaticBuild', () => {
      * Les deux chemins absolus : c'est ce qui manquait pour trancher entre un
      * `cp` muet et une préparation exécutée ailleurs que le build.
      */
+    const marker = 'mkdir -p "/tmp/vibecore-active-.deploy-m"';
+    expect(prep).toContain(marker);
+    expect(prep.indexOf(marker)).toBeLessThan(prep.indexOf('mkdir -p ".deploy-m"'));
+    expect(calls.at(-1)?.args[1]).toContain('rmdir "/tmp/vibecore-active-.deploy-m"');
     expect(prep).toContain('source_abs=$(cd "." && pwd)');
     expect(prep).toContain('sandbox_abs=$(cd ".deploy-m" && pwd)');
 

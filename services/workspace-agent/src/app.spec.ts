@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -496,6 +496,34 @@ describe('workspace-agent', () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const response = await app.inject({ method: 'GET', url: '/files/tree' });
     expect(response.statusCode).toBe(401);
+  });
+
+  it('preserves an active deployment copy during root inventories while serving its explicit artifact path', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+    const sandbox = `.vibecore-deploy-${root.split('/').pop()}`;
+    const marker = join('/tmp', `vibecore-active-${sandbox}`);
+    const list = async (path: string) => {
+      const response = await app.inject({ method: 'GET', url: '/files/tree', query: { path }, headers });
+      expect(response.statusCode).toBe(200);
+      return response.json().map((node: { path: string }) => node.path);
+    };
+    try {
+      await mkdir(join(root, sandbox, 'dist'), { recursive: true });
+      await writeFile(join(root, sandbox, 'dist', 'index.html'), 'artifact');
+      await mkdir(join(root, 'src', sandbox), { recursive: true });
+      await mkdir(join(root, '.vibecore-deploy-user-config'));
+      await mkdir(marker);
+      expect(await list('.')).not.toContain(sandbox);
+      expect(await list('.')).toContain('.vibecore-deploy-user-config');
+      expect(await list('src')).toContain(`src/${sandbox}`);
+      expect(await list(`${sandbox}/dist`)).toEqual([`${sandbox}/dist/index.html`]);
+      await rm(marker, { recursive: true });
+      expect(await list('.')).toContain(sandbox);
+    } finally {
+      await rm(marker, { recursive: true, force: true });
+      await app.close();
+    }
   });
 
   it('writes and reads files inside the workspace root', async () => {
