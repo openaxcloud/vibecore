@@ -223,6 +223,37 @@ describe('localized backend route families', () => {
     expect(response.body).not.toContain('exactly 5 fields');
   });
 
+  it.each([
+    [200, { livemode: false }, 'STRIPE_TEST_KEY_OK', false],
+    [200, { livemode: true }, 'STRIPE_LIVE_KEY_OK', true],
+    [200, {}, 'STRIPE_MODE_UNKNOWN', null],
+    [200, { livemode: null }, 'STRIPE_MODE_UNKNOWN', null],
+    [200, { livemode: 'false' }, 'STRIPE_MODE_UNKNOWN', null],
+    [503, {}, 'STRIPE_UNREACHABLE', null],
+  ] as const)('reports Stripe health for HTTP %i with balance %j', async (status, balance, code, mode) => {
+    await store.updateUser({ userId, platformAdmin: true, mfaEnabled: true });
+    vi.stubEnv('STRIPE_SECRET_KEY', 'synthetic');
+    vi.stubEnv('STRIPE_API_BASE_URL', 'https://fixture.invalid');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        expect(url).toBe('https://fixture.invalid/v1/balance');
+        return Response.json(balance, { status });
+      }),
+    );
+
+    try {
+      await app.close();
+      app = await buildApiApp({ store, emailProvider: new QuietEmailProvider() });
+      const response = await app.inject({ method: 'GET', url: '/admin/stripe-health', headers: frenchHeaders(true) });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ configured: true, ok: mode !== null, livemode: mode, detailCode: code });
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('localizes Stripe health and never serializes the raw provider error field', async () => {
     await store.updateUser({ userId, platformAdmin: true, mfaEnabled: true });
 
