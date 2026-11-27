@@ -1505,6 +1505,9 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * Everything else (JS modules, assets, SSE/HMR streams) is streamed untouched.
      */
     if (upstreamContentType.includes('text/html')) {
+      // A dev server may validate writes only to the nearest second. Keep the
+      // edited workspace document fresh when the IDE reloads the same URL.
+      reply.header('cache-control', 'no-store');
       const html = await response.text();
 
       /*
