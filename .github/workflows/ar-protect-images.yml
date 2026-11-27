@@ -1,6 +1,6 @@
 # Artifact Registry retention — protection-tag refresher.
 #
-# The prod repos enforce cleanup policies (see infra/artifact-registry/*.json):
+# Versioned policy definitions (see infra/artifact-registry/*.json):
 #   vibecore-prod-containers: KEEP 20 most-recent per image
 #                             + KEEP tags running-*/helm-active-*
 #                             + DELETE older than 7 days
@@ -13,9 +13,11 @@
 # 6 hours (and on demand) it re-tags
 #   * nonterminal platform pods: running-sha256-<digest>
 #   * desired platform images: helm-active-sha256-<digest>
-#   * deployed apps (including scale-to-zero): active-sha256-<digest>
-# Refresh only adds digest-specific protection. Legacy tags remain untouched.
-# Protected versions accumulate until a separately coordinated retirement.
+#   * deployed apps (including scale-to-zero): active-<deploymentId> (tag) or active-<deployment name> (digest)
+# Platform refresh only adds digest-specific protection. Legacy platform tags remain untouched.
+# For a read-only growth report, count distinct pinned platform digests per package
+# over time and compare them with a complete pod/deployment/agent inventory.
+# Report unmatched digests and inventory errors separately; this job never prunes.
 
 name: AR Protect Running Images
 
@@ -73,7 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           pods=$(kubectl get pods -A -o json)
-          images=$(jq -r -f scripts/ar-protect/pod-images.jq <<< "$pods")
+          images=$(jq -sr -f scripts/ar-protect/pod-images.jq <<< "$pods")
           printf '%s\n' "$images" | sort -u | scripts/ar-protect/tag-running.sh
 
       - id: helm_active
@@ -83,17 +85,11 @@ jobs:
           set -euo pipefail
           # Use desired templates even when no pod has started or replicas are zero.
           deploys=$(kubectl -n "$NAMESPACE" get deployments -l app.kubernetes.io/part-of=vibecore -o json)
-          images=$(jq -r '.items[].spec.template.spec | (.containers[], .initContainers[]?) | .image' <<< "$deploys")
-          release=$(helm -n "$NAMESPACE" get values vibecore -a -o json | jq -r --arg repo "$REPO_CONTAINERS" '
-            .global as $g | .services[] | select(.enabled and .image)
-            | (.imageDigest // "" | if length > 0 then . else ($g.imageDigest // "") end) as $digest
-            | if $digest != "" then "\($repo)/\(.image)@\($digest)"
-              else (.imageTag // "" | if length > 0 then . else $g.imageTag end) as $tag
-              | "\($repo)/\(.image):\($tag)" end')
+          images=$(jq -sr --argjson platform true --arg repo "$REPO_CONTAINERS" -f scripts/ar-protect/deployment-images.jq <<< "$deploys")
           agent=$(kubectl -n "$NAMESPACE" get configmap vibecore-vibecore-platform-platform-env -o json \
-            | jq -er '.data.WORKSPACE_AGENT_IMAGE | strings | select(length > 0)')
+            | jq -ser 'if length == 1 then .[0].data.WORKSPACE_AGENT_IMAGE | strings | select(test("^\\S+$")) else error("invalid ConfigMap response") end')
           [[ "$agent" == "$REPO_CONTAINERS/"* ]] || { echo "::error::unexpected workspace-agent repository"; exit 1; }
-          printf '%s\n' "$images" "$release" "$agent" | sort -u | scripts/ar-protect/tag-running.sh helm-active
+          printf '%s\n' "$images" "$agent" | sort -u | scripts/ar-protect/tag-running.sh helm-active
 
       - id: apps
         name: Tag app images referenced by k8s Deployments (active-*)
@@ -103,16 +99,21 @@ jobs:
           # Includes scaled-to-zero apps: their Deployment object still carries
           # the image, and the scale-to-zero wake path must be able to pull it.
           #
-          deployments=$(kubectl -n workspaces get deploy \
-            -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.template.spec.containers[0].image}{"\n"}{end}')
+          list_apps() {
+            kubectl -n workspaces get deploy -o json | jq -sr --argjson platform false --arg repo "$REPO_APPS" -f scripts/ar-protect/deployment-images.jq
+          }
+          deployments=$(list_apps)
 
           tagged=0; skipped=0; failed=0
           while IFS=$'\t' read -r name img; do
             [ -n "${img:-}" ] || continue
             case "$img" in "$REPO_APPS"/*) ;; *) continue ;; esac
             ref="${img#"$REPO_APPS"/}"
-            pkg="${ref%%@*}"; pkg="${pkg%%:*}"
-            if err=$(scripts/ar-protect/pin-image.sh "$img" active "$REPO_APPS/$pkg" 2>&1); then
+            case "$ref" in
+              *@*) pkg="${ref%%@*}"; suffix="$name" ;;
+              *)   pkg="${ref%%:*}"; suffix="${ref##*:}" ;;
+            esac
+            if err=$(gcloud artifacts docker tags add "$img" "$REPO_APPS/$pkg:active-$suffix" --quiet 2>&1); then
               tagged=$((tagged + 1))
               continue
             fi
@@ -124,9 +125,9 @@ jobs:
             case "$err" in
               *"not found"*|*"NOT_FOUND"*|*"does not exist"*)
                 # A missing version is harmless only after the desired reference disappears.
-                current=$(kubectl -n workspaces get deploy "$name" --ignore-not-found -o jsonpath='{.spec.template.spec.containers[0].image}')
-                if [[ "$current" == "$REPO_APPS/"* ]]; then
-                  echo "::error::failed to protect $img for $name (currently desires $current)"
+                fresh=$(list_apps)
+                if awk -F '\t' -v name="$name" '$1 == name { found=1 } END { exit !found }' <<< "$fresh"; then
+                  echo "::error::failed to protect desired image $img for $name"
                   failed=1
                 else
                   skipped=$((skipped + 1))

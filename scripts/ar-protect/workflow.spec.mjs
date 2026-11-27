@@ -13,6 +13,10 @@ const app = apps + '/p-one@sha256:' + 'e'.repeat(64);
 let dir;
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
+function appList(img) {
+  return JSON.stringify({ items: [{ metadata: { name: 'app-one' }, spec: { replicas: 0, template: { spec: { containers: [{ image: img }] } } } }] });
+}
+
 function fixture() {
   dir = mkdtempSync(join(tmpdir(), 'retention-'));
   const put = (name, content) => writeFileSync(join(dir, name), content);
@@ -21,10 +25,9 @@ function fixture() {
       *" get pods "*) if [ -f "$FX/seen" ] && [ -f "$FX/refresh" ]; then cat "$FX/refresh"; else cat "$FX/pods"; fi; touch "$FX/seen";;
       *" get deployments "*) cat "$FX/templates";;
       *" get configmap "*) cat "$FX/agent";;
-      *" get deploy app-one "*) cat "$FX/current";;
-      *" get deploy "*) cat "$FX/apps";;
+      *" get deploy "*) if [ -f "$FX/appsSeen" ] && [ -f "$FX/appsFresh" ]; then cat "$FX/appsFresh"; else cat "$FX/apps"; fi; touch "$FX/appsSeen";;
       *) exit 80;; esac`,
-    helm: 'cat "$FX/release"',
+    helm: 'exit 82',
     gcloud: `case "$1 $2 $3 $4" in
       "artifacts docker images describe") cat "$FX/resolved";;
       "artifacts docker tags add")
@@ -43,12 +46,10 @@ function fixture() {
   const active = pod('Running', 'ReplicaSet', image('a'));
   active.status.containerStatuses = [{ name: 'worker', imageID: 'docker-pullable://' + image('a') }];
   put('pods', JSON.stringify({ items: [active, pod('Pending', 'Job', image('b')), pod('Succeeded', 'Job', image('c')), pod('Failed', 'ReplicaSet', image('c'))] }));
-  put('templates', JSON.stringify({ items: [{ spec: { replicas: 0, template: { spec: { containers: [{ image: image('d') }] } } } }] }));
+  put('templates', JSON.stringify({ items: [{ metadata: { name: 'worker' }, spec: { replicas: 0, template: { spec: { containers: [{ image: image('d') }] } } } }] }));
   put('agent', JSON.stringify({ data: { WORKSPACE_AGENT_IMAGE: repo + '/workspace-agent:v1' } }));
-  put('release', JSON.stringify({ global: {}, services: { worker: { enabled: true, image: 'worker', imageTag: 'old', imageDigest: 'sha256:' + 'd'.repeat(64) } } }));
   put('resolved', 'sha256:' + 'f'.repeat(64));
-  put('apps', 'app-one\t' + app + '\n');
-  put('current', app);
+  put('apps', appList(app));
   put('writes', '');
   function run(id, env = {}) {
     const step = steps.find((s) => s.id === id || s.name === id);
@@ -83,7 +84,7 @@ it('attempts independent passes and explicitly fails a missing active or desired
   expect(f.writes()).toContain('/workspace-agent:helm-active-sha256-');
   expect(f.writes()).not.toContain('/worker:old');
   expect(f.run('apps', { MISSING: app }).status).toBe(1);
-  f.put('current', '');
+  f.put('appsFresh', JSON.stringify({ items: [] }));
   expect(f.run('apps', { MISSING: app }).status).toBe(0);
   expect(f.run('Verify all retention passes', { RUNNING: 'failure', HELM_ACTIVE: 'success', APPS: 'success' }).status).toBe(1);
   expect(f.run('Verify all retention passes', { RUNNING: 'success', HELM_ACTIVE: 'success', APPS: 'success' }).status).toBe(0);
@@ -91,7 +92,7 @@ it('attempts independent passes and explicitly fails a missing active or desired
 
 it('accepts an absent running version only after a successful re-list shows it gone', () => {
   const f = fixture();
-  f.put('refresh', JSON.stringify({ items: [] }));
+  f.put('refresh', JSON.stringify({ items: [{ status: { phase: 'Succeeded' } }] }));
   expect(f.run('running', { MISSING: image('a') }).status).toBe(0);
   expect(f.writes()).toContain(image('b'));
 });
@@ -107,7 +108,7 @@ it('keeps prior protection across a partial write, inventory loss and rollout ch
   f.put('pods', '{');
   expect(f.run('running').status).not.toBe(0);
   f.put('pods', JSON.stringify({ items: [] }));
-  expect(f.run('running').status).toBe(0);
+  expect(f.run('running').status).not.toBe(0);
   expect(read(legacy)).toBe(image('b'));
   expect(read('running-sha256-' + 'a'.repeat(64))).toBe(image('a'));
 });
@@ -137,4 +138,49 @@ it('preserves old pins when a rollout changes during writes or a refresh is pagi
   expect(f.run('running', { MISSING: '' }).status).not.toBe(0);
   expect(readFileSync(join(dir, 'running-worker'), 'utf8')).toBe(image('c'));
   expect(readFileSync(join(dir, 'running-sha256-' + 'a'.repeat(64)), 'utf8').trim()).toBe(image('a'));
+});
+
+it('reads the declared zero-replica deployment and ConfigMap in the selected registry', () => {
+  const f = fixture();
+  expect(f.run('helm_active', { MISSING: '' }).status).toBe(0);
+  expect(f.writes()).toContain(image('d') + ' ' + repo + '/worker:helm-active-sha256-' + 'd'.repeat(64));
+  expect(f.writes()).toContain(repo + '/workspace-agent@sha256:' + 'f'.repeat(64));
+  expect(f.run('helm_active', { REPO_CONTAINERS: 'elsewhere.invalid/unmanaged' }).status).not.toBe(0);
+});
+
+it('fails platform discovery on empty, malformed, partial or missing desired references', () => {
+  const f = fixture();
+  const templates = readFileSync(join(dir, 'templates'), 'utf8');
+  for (const data of ['', '{', '{}', '{"items":[]}', '{"items":[{}]}', '{"metadata":{"continue":"next"},"items":[]}']) {
+    f.put('templates', data);
+    expect(f.run('helm_active').status).not.toBe(0);
+  }
+  f.put('templates', templates);
+  for (const data of ['', '{}', '{"data":{"WORKSPACE_AGENT_IMAGE":""}}']) {
+    f.put('agent', data);
+    expect(f.run('helm_active').status).not.toBe(0);
+  }
+  expect(f.writes()).toBe('');
+});
+
+it('keeps the original application tag names for both reference forms', () => {
+  const f = fixture();
+  expect(f.run('apps', { MISSING: '' }).status).toBe(0);
+  expect(f.writes()).toContain(app + ' ' + apps + '/p-one:active-app-one');
+  f.put('apps', appList(apps + '/p-one:release-id'));
+  expect(f.run('apps', { MISSING: '' }).status).toBe(0);
+  expect(f.writes()).toContain(apps + '/p-one:release-id ' + apps + '/p-one:active-release-id');
+  f.put('appsFresh', '');
+  expect(f.run('apps', { MISSING: apps + '/p-one:release-id' }).status).not.toBe(0);
+  for (const [name, prefix, count, age] of [
+    ['apps', ['active-'], 10, '5184000s'],
+    ['containers', ['running-', 'helm-active-'], 20, '604800s'],
+  ]) {
+    const rules = JSON.parse(readFileSync('infra/artifact-registry/cleanup-prod-' + name + '.json'));
+    expect(rules).toEqual(expect.arrayContaining([
+      expect.objectContaining({ action: { type: 'Keep' }, condition: { tagState: 'TAGGED', tagPrefixes: prefix } }),
+      expect.objectContaining({ action: { type: 'Keep' }, mostRecentVersions: { keepCount: count } }),
+      expect.objectContaining({ action: { type: 'Delete' }, condition: { olderThan: age } }),
+    ]));
+  }
 });

@@ -11,7 +11,7 @@ write_tag() {
   # excuse a missing running reference; desired templates are checked separately.
   if [[ "$prefix" == running && "$err" == *"the referenced version does not exist"* ]]; then
     if pods=$(kubectl get pods -A -o json) &&
-       images=$(jq -r -f "$(dirname "$0")/pod-images.jq" <<< "$pods") &&
+       images=$(jq -sr -f "$(dirname "$0")/pod-images.jq" <<< "$pods") &&
        ! grep -Fxq -- "$1" <<< "$images"; then
       echo "::notice::running reference disappeared: $1"
       return 0
