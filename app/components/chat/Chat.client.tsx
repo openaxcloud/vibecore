@@ -684,6 +684,35 @@ export const ChatImpl = memo(
       [astCopy, ensureProjectAiConversation, projectId, projectIdeMode],
     );
 
+    /*
+     * The sampler serializes full history saves, including the debounced HTTP
+     * acknowledgement. At a terminal boundary the previous snapshot can still
+     * own that queue. Stage this turn synchronously in the same project cache
+     * used by reload and pagehide; merge by message ID, preserving older turns.
+     */
+    const stageProjectTurn = (finished?: Message) => {
+      if (!projectIdeMode || !projectId) {
+        return;
+      }
+
+      const messages = latestMessagesRef.current;
+      const start = messages.findLastIndex((item) => item.role === 'user');
+
+      if (start < 0) {
+        return;
+      }
+
+      const turn = (finished ? [messages[start], finished] : messages.slice(start)).filter(
+        (item) => !item.annotations?.includes('no-store'),
+      );
+
+      if (turn.length) {
+        void saveProjectIdeMemory(projectId, { chat: { messages: turn } }).catch((error) => {
+          logger.warn('Failed to persist project turn', { projectId, error });
+        });
+      }
+    };
+
     const persistMessageHistory = useCallback(
       (nextMessages: Message[]) => {
         pendingPersistRef.current = nextMessages;
@@ -1023,6 +1052,8 @@ export const ChatImpl = memo(
         if (!outcome) {
           return;
         }
+
+        stageProjectTurn(message);
 
         const terminal = latestStreamTerminal(message.annotations, message.id);
         logger.info(
@@ -1424,6 +1455,7 @@ export const ChatImpl = memo(
       const pending = pendingGenerationRef.current;
       annulerRattrapage();
       terminalRecovery.cancel();
+      stageProjectTurn();
       stop();
 
       /* Un arrêt volontaire n'est pas une coupure : ce que l'utilisateur a arrêté reste arrêté. */
