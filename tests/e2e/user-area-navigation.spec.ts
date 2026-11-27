@@ -837,3 +837,32 @@ test.describe('user-area locale consistency', () => {
     }
   });
 });
+
+test('mobile drawer cycles keyboard focus and restores it on Escape', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await provisionWorkspace(page);
+  await page.goto('/dashboard?lang=en');
+
+  const opener = page.getByRole('button', { name: 'Open navigation menu' });
+  const drawer = page.locator('.vc-sidebar-drawer-panel');
+  const first = drawer.getByRole('link', { name: 'Organization switcher' });
+  const last = drawer.getByRole('button', { name: 'Account menu' });
+
+  await opener.focus();
+  await page.keyboard.press('Enter');
+  await expect(drawer).toBeVisible();
+  await expect(first).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(last).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(first).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(drawer).toBeHidden();
+  await expect(opener).toBeFocused();
+
+  await opener.click();
+  await expect(first).toBeFocused();
+  await drawer.getByRole('button', { name: 'Close navigation', exact: true }).click();
+  await expect(drawer).toBeHidden();
+  await expect(opener).toBeFocused();
+});

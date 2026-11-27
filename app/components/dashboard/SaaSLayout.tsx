@@ -104,6 +104,7 @@ import type { ProjectLifecycle } from '~/lib/project-card-presentation';
 import { profileStore } from '~/lib/stores/profile';
 import { loadSessionUser, sessionDisplayName, sessionUserStore } from '~/lib/stores/session-user';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
+import { useFocusTrap } from '~/lib/use-focus-trap';
 import { resolveUserAreaSurface } from '~/lib/user-area-surface';
 import { classNames } from '~/utils/classNames';
 
@@ -1336,6 +1337,7 @@ function SidebarBody({ collapsed, mobile = false }: { collapsed: boolean; mobile
 
 function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
+  const panelRef = useFocusTrap<HTMLElement>(open);
 
   useEffect(() => {
     if (!open) {
@@ -1367,6 +1369,7 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
         tabIndex={open ? 0 : -1}
       />
       <aside
+        ref={panelRef}
         className="vc-sidebar-drawer-panel"
         role="navigation"
         aria-label={t('userArea.shell.mainNavigation')}
@@ -2469,7 +2472,10 @@ function TopBar({
     >
       <button
         type="button"
-        onClick={onOpenDrawer}
+        onClick={(event) => {
+          event.currentTarget.focus({ preventScroll: true });
+          onOpenDrawer();
+        }}
         className="relative inline-flex h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-2 rounded-md px-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] lg:hidden"
         aria-label={t('userArea.topbar.openNavigation')}
         data-vc-tour-target="navigation"
