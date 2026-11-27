@@ -1,5 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
+import { createServer as createHttpServer } from 'node:http';
+import { once } from 'node:events';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { signAgentToken } from '@vibecore/workspace-sdk';
@@ -490,6 +492,37 @@ describe('workspace-agent', () => {
 
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });
+  });
+
+  it('serves editable HTML fresh and preserves upstream asset cache policy', async () => {
+    const server = createHttpServer((req, res) => {
+      res.setHeader('cache-control', 'max-age=60');
+      res.setHeader('content-type', req.url === '/' ? 'text/html' : 'text/plain');
+      res.end(req.url === '/' ? '<main>workspace</main>' : 'asset');
+    });
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    try {
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('Expected a TCP listener');
+      const preview = (path: string) =>
+        app.inject({
+          method: 'GET',
+          url: `/preview/${address.port}/${path}`,
+          headers: { authorization: `Bearer ${token}` },
+        });
+      const document = await preview('');
+      expect(document.statusCode).toBe(200);
+      expect(document.headers['cache-control']).toBe('no-store');
+      expect(document.body).toContain('<main>workspace</main>');
+      const asset = await preview('asset.txt');
+      expect(asset.headers['cache-control']).toBe('max-age=60');
+      expect(asset.body).toBe('asset');
+    } finally {
+      await app.close();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 
   it('requires a signed agent token', async () => {

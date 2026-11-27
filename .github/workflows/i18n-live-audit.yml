@@ -114,6 +114,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Select signed Ubuntu archives for Chromium prerequisites
+        id: browser_apt
+        if: runner.arch == 'X64'
+        shell: bash
+        run: |
+          source /etc/os-release
+          if [[ "$ID" == ubuntu && "${VERSION_CODENAME:-}" == noble ]]; then
+            bash .github/scripts/select-browser-noble-apt.sh
+          fi
+
       - name: Install Playwright Chromium
         run: |
           # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
@@ -137,6 +147,14 @@ jobs:
             sleep 10
           done
           pnpm exec playwright install chromium
+
+      - name: Restore runner apt source selection
+        if: always() && steps.browser_apt.outputs.config != ''
+        shell: bash
+        env:
+          BROWSER_APT_CONFIG: ${{ steps.browser_apt.outputs.config }}
+          BROWSER_APT_SOURCES: ${{ steps.browser_apt.outputs.sources }}
+        run: sudo rm -f -- "$BROWSER_APT_CONFIG" "$BROWSER_APT_SOURCES"
 
       # Match the production E2E workflow's real local dependencies instead of
       # mocking registration, persistence, mail delivery, or cache behavior.
