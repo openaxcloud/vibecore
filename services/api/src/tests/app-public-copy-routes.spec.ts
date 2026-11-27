@@ -224,12 +224,13 @@ describe('localized backend route families', () => {
   });
 
   it.each([
-    [{ livemode: false }, 'STRIPE_TEST_KEY_OK', false],
-    [{ livemode: true }, 'STRIPE_LIVE_KEY_OK', true],
-    [{}, 'STRIPE_MODE_UNKNOWN', null],
-    [{ livemode: null }, 'STRIPE_MODE_UNKNOWN', null],
-    [{ livemode: 'false' }, 'STRIPE_MODE_UNKNOWN', null],
-  ] as const)('reports Stripe health for balance %j', async (balance, code, mode) => {
+    [200, { livemode: false }, 'STRIPE_TEST_KEY_OK', false],
+    [200, { livemode: true }, 'STRIPE_LIVE_KEY_OK', true],
+    [200, {}, 'STRIPE_MODE_UNKNOWN', null],
+    [200, { livemode: null }, 'STRIPE_MODE_UNKNOWN', null],
+    [200, { livemode: 'false' }, 'STRIPE_MODE_UNKNOWN', null],
+    [503, {}, 'STRIPE_UNREACHABLE', null],
+  ] as const)('reports Stripe health for HTTP %i with balance %j', async (status, balance, code, mode) => {
     await store.updateUser({ userId, platformAdmin: true, mfaEnabled: true });
     vi.stubEnv('STRIPE_SECRET_KEY', 'synthetic');
     vi.stubEnv('STRIPE_API_BASE_URL', 'https://fixture.invalid');
@@ -237,7 +238,7 @@ describe('localized backend route families', () => {
       'fetch',
       vi.fn(async (url: string) => {
         expect(url).toBe('https://fixture.invalid/v1/balance');
-        return Response.json(balance);
+        return Response.json(balance, { status });
       }),
     );
 
