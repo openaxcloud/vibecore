@@ -10,4 +10,8 @@ echo "sources=$sources" >> "$GITHUB_OUTPUT"
 echo "config=$config" >> "$GITHUB_OUTPUT"
 sudo install -m 0644 .github/scripts/browser-noble.list "$sources"
 printf 'Dir::Etc::sourcelist "%s";\nDir::Etc::sourceparts "-";\n' "$sources" | sudo tee "$config" >/dev/null
+# Retry an idle HTTPS transfer inside the existing install-deps watchdog.
+if [[ "${BROWSER_APT_RETRY_STALLS:-}" == 1 ]]; then
+  printf '%s\n' 'Acquire::https::Timeout "30";' 'Acquire::Retries "1";' | sudo tee -a "$config" >/dev/null
+fi
 sudo chmod 0644 "$config"

@@ -172,6 +172,7 @@ it.each([
         .replaceAll('/etc/os-release', join(directory, 'os-release'))
         .replaceAll('/etc/apt/', apt + '/')
         .replaceAll('/usr/share/keyrings/ubuntu-archive-keyring.gpg', join(directory, 'keyring')),
+      { BROWSER_APT_RETRY_STALLS: '', ...steps[prepare].env },
     );
 
     const paths = Object.fromEntries(
@@ -180,6 +181,18 @@ it.each([
         .split('\n')
         .map((line) => line.split('=')),
     );
+
+    const aptSettings = execFileSync('apt-config', ['dump'], {
+      env: { ...process.env, APT_CONFIG: config },
+      encoding: 'utf8',
+    });
+
+    if (installer === 'Install Playwright browsers') {
+      expect(aptSettings).toContain('Acquire::https::Timeout "30";');
+      expect(aptSettings).toContain('Acquire::Retries "1";');
+    } else {
+      expect(readFileSync(paths.config, 'utf8')).not.toContain('Acquire::');
+    }
 
     const during = update();
     expect(during.status).toBe(200);
