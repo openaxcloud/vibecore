@@ -89,14 +89,22 @@ describe('billing action feedback accessibility', () => {
       fireEvent.click(save);
 
       const error = await screen.findByRole('alert');
-      expect(document.activeElement).toBe(error);
+      await waitFor(() => expect(document.activeElement).toBe(error));
       expect(screen.getByRole('status')).toBe(status);
       expect(status.textContent).toBe('');
       expect(status.childElementCount).toBe(0);
     } else {
-      expect(document.activeElement).toBe(feedback);
+      await waitFor(() => expect(document.activeElement).toBe(feedback));
       expect(status.textContent).toBe('');
       expect(status.childElementCount).toBe(0);
+
+      // Resubmitting the same invalid value reuses the alert. A new result must focus it again.
+      save.focus();
+      expect(document.activeElement).toBe(save);
+      fireEvent.click(save);
+      await waitFor(() => expect(document.activeElement).toBe(feedback));
+      expect(action).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole('alert')).toBe(feedback);
     }
 
     router.dispose();
