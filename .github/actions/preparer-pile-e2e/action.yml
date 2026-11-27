@@ -118,6 +118,8 @@ runs:
     if: runner.arch == 'X64' && (inputs.navigateurs == 'chromium' || inputs.navigateurs == 'chromium,webkit')
     shell: bash
     id: browser_apt
+    env:
+      BROWSER_APT_RETRY_STALLS: '1'
     run: |
       source /etc/os-release
       if [[ "$ID" == ubuntu && "${VERSION_CODENAME:-}" == noble ]]; then
