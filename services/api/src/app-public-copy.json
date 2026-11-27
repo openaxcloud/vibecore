@@ -1395,6 +1395,10 @@
     "en": "Live key is valid.",
     "fr": "La clé de production est valide."
   },
+  "STRIPE_HEALTH_MODE_UNKNOWN": {
+    "en": "Stripe responded, but the account mode could not be verified.",
+    "fr": "Stripe a répondu, mais le mode du compte n’a pas pu être vérifié."
+  },
   "STRIPE_HEALTH_TEST_KEY_OK": {
     "en": "Test key is valid.",
     "fr": "La clé de test est valide."
