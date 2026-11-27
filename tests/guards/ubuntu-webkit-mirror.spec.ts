@@ -112,10 +112,15 @@ describe('canonical Ubuntu mirror scoped to WebKit preparation', () => {
   });
 });
 
-it('isolates the Noble apt update from a third-party 403 and restores source discovery afterwards', () => {
-  const steps = parse(readFileSync(join(root, '.github/actions/preparer-pile-e2e/action.yml'), 'utf8')).runs.steps;
+it.each([
+  ['.github/actions/preparer-pile-e2e/action.yml', 'Install Playwright browsers'],
+  ['.github/workflows/i18n-live-audit.yml', 'Install Playwright Chromium'],
+])('%s scopes apt to Ubuntu and restores its sources', (file, installer) => {
+  const workflow = parse(readFileSync(join(root, file), 'utf8'));
+  const steps = workflow.runs?.steps ?? workflow.jobs['live-audit'].steps;
   const prepare = steps.findIndex((step: { id?: string }) => step.id === 'browser_apt');
-  expect(steps[prepare + 1].name).toBe('Install Playwright browsers');
+  expect(steps[prepare + 1].name).toBe(installer);
+  expect(steps[prepare].if).toContain("runner.arch == 'X64'");
 
   const cleanup = steps[prepare + 2];
   expect(cleanup.if).toBe("always() && steps.browser_apt.outputs.config != ''");
@@ -158,8 +163,12 @@ it('isolates the Noble apt update from a third-party 403 and restores source dis
       return { status: result.stdout.includes('packages.microsoft.com') ? 403 : 200, uris: result.stdout };
     };
     expect(update().status).toBe(403);
+
+    const script = '.github/scripts/select-browser-noble-apt.sh';
+    expect(steps[prepare].run).toContain('bash ' + script);
     shell(
       steps[prepare].run
+        .replace('bash ' + script, readFileSync(join(root, script), 'utf8'))
         .replaceAll('/etc/os-release', join(directory, 'os-release'))
         .replaceAll('/etc/apt/', apt + '/')
         .replaceAll('/usr/share/keyrings/ubuntu-archive-keyring.gpg', join(directory, 'keyring')),
