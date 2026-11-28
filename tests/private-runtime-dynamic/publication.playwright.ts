@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 import { assertRecipeClusterName, assertRecipeKubeconfig } from '../../scripts/private-runtime-recipe/checks.js';
 import { checkLocalPublication } from './anonymous';
-import { checkCalculation, emittedOrigin } from './probe';
+import { checkCalculation, emittedOrigin, waitForWorkspaceCalculation } from './probe';
 
 const web = 'http://127.0.0.1:5173',
   api = 'http://127.0.0.1:3001';
@@ -114,9 +114,8 @@ test('publish the saved server rule and compute anonymously', async ({ page }) =
   await run.click();
   const frame = page.locator('iframe[title="preview"]:visible');
   await expect(frame).toHaveAttribute('src', /^http:\/\/ws-[a-z0-9-]+-\d+\.localhost:3020\//, { timeout: 90000 });
-  const preview = new URL((await frame.getAttribute('src'))!);
   const inspector = await page.context().newPage();
-  await expect(async () => checkCalculation(inspector, preview.origin, a.version, a.factor)).toPass({ timeout: 60000 });
+  const preview = await waitForWorkspaceCalculation(inspector, frame, a.version, a.factor);
   const workspace = preview.hostname.replace(/-\d+\.localhost$/, '');
   await verifyService('workspace-' + workspace);
   await page.goto(ide + 'files');
