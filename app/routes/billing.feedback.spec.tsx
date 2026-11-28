@@ -110,3 +110,43 @@ describe('billing action feedback accessibility', () => {
     router.dispose();
   });
 });
+
+describe('billing plan commands', () => {
+  it.each([
+    ['ACTIVE', false],
+    ['TRIALING', false],
+    ['PAST_DUE', false],
+    ['CANCELED', true],
+  ] as const)('offers checkout only when eligible (%s)', async (status, canCheckout) => {
+    vi.stubGlobal('Request', FetchRequest);
+
+    const data = {
+      ...fixture,
+      billing: {
+        ...fixture.billing,
+        subscription: { status },
+        upgradePrompts: [{ planKey: 'team', name: 'Team' }],
+      },
+    };
+    const router = createMemoryRouter(
+      [{ path: '/billing', loader: () => data, Component: BillingPage, HydrateFallback: () => null }],
+      { initialEntries: ['/billing'] },
+    );
+
+    const i18n = createI18nInstance('fr');
+
+    try {
+      render(
+        <I18nextProvider i18n={i18n}>
+          <RouterProvider router={router} />
+        </I18nextProvider>,
+      );
+
+      const portal = await screen.findByRole('button', { name: i18n.t('billing.actions.openPortal') });
+      expect(portal.closest('form')?.querySelector('input[name=intent]')?.getAttribute('value')).toBe('portal');
+      expect(Boolean(document.querySelector('form input[name=planKey][value=team]'))).toBe(canCheckout);
+    } finally {
+      router.dispose();
+    }
+  });
+});

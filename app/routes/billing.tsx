@@ -415,6 +415,11 @@ export default function BillingPage() {
   const dateTime = (value: string) => formatBillingDate(value, language, true);
   const planName = billingDisplayLabel(billing.plan.key || billing.plan.name, language);
 
+  // Existing subscriptions change plans through the portal. A second checkout returns 409.
+  const checkoutPlans = ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(billing.subscription?.status ?? '')
+    ? []
+    : billing.upgradePrompts;
+
   const subscriptionStatus = billing.subscription?.status
     ? billingDisplayLabel(billing.subscription.status, language)
     : t('billing.label.noSubscription');
@@ -866,7 +871,7 @@ export default function BillingPage() {
         </section>
         {!billingAccessLimited ? (
           <div className="flex flex-wrap gap-3">
-            {billing.upgradePrompts.map((plan) => (
+            {checkoutPlans.map((plan) => (
               <Form key={plan.planKey} method="post" reloadDocument>
                 <input type="hidden" name="planKey" value={plan.planKey} />
                 <Button
