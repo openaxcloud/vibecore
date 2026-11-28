@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export function emittedOrigin(raw: string, deploymentId: string) {
   if (
@@ -25,4 +25,27 @@ export async function checkCalculation(page: Page, origin: string, version: stri
     expect(await response!.headerValue('content-type')).toContain('application/json');
     expect(await response!.json()).toEqual({ version, result: a * factor + offset });
   }
+}
+
+// Keep checking the browser-emitted address while the workspace discovers its listening port.
+export async function waitForWorkspaceCalculation(
+  page: Page,
+  frame: Locator,
+  version: string,
+  factor: number,
+  timeout = 60000,
+) {
+  let preview: URL | undefined;
+  const first = new URL((await frame.getAttribute('src'))!);
+  const workspaceHost = first.hostname.replace(/-\d+\.localhost$/, '');
+  await expect(async () => {
+    const raw = (await frame.getAttribute('src')) ?? '';
+    expect(raw).toMatch(/^http:\/\/ws-[a-z0-9-]+-\d+\.localhost:3020\//);
+    const current = new URL(raw);
+    expect(current.hostname.replace(/-\d+\.localhost$/, '')).toBe(workspaceHost);
+    await checkCalculation(page, current.origin, version, factor);
+    preview = current;
+  }).toPass({ timeout });
+  if (!preview) throw Error('Workspace preview calculation did not pass');
+  return preview;
 }
