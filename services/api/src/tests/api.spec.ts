@@ -5337,6 +5337,47 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
+  it('admits one concurrent history import per API instance and releases the slot after failure', async () => {
+    const gitProvider = new TestGitProvider();
+    const app = await buildTestApiApp({ store: new TestApiStore(), gitProvider });
+    const auth = await register(app, { email: 'import-capacity@example.invalid', organizationName: 'Import capacity' });
+    let signalStart!: () => void;
+    const started = new Promise<void>((resolve) => {
+      signalStart = resolve;
+    });
+    let failImport!: (error: Error) => void;
+    const blocking = new Promise<never>((_resolve, reject) => {
+      failImport = reject;
+    });
+    vi.spyOn(gitProvider, 'importRepository').mockImplementationOnce(() => {
+      signalStart();
+      return blocking;
+    });
+    const request = () =>
+      app
+        .inject({
+          method: 'POST',
+          url: `/orgs/${auth.organization.id}/projects/import/github`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { repositoryUrl: 'https://forge.example.invalid/fixture.git', branch: 'main' },
+        })
+        .then((response) => response);
+    const first = request();
+    await started;
+    try {
+      const second = await request();
+      expect(second.statusCode).toBe(503);
+      expect(second.json().code).toBe('IMPORT_BUSY');
+    } finally {
+      failImport(Object.assign(new Error('size limit'), { code: 'IMPORT_TOO_LARGE' }));
+    }
+    expect((await first).statusCode).toBe(413);
+    await vi.waitFor(async () => {
+      expect((await request()).statusCode).toBe(201);
+    });
+    await app.close();
+  });
+
   it('tests GitHub import and git operations', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'git@example.com', organizationName: 'Git Org' });

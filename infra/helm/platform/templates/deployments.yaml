@@ -228,6 +228,10 @@ spec:
             - name: WORKSPACE_PLAN_RESOURCES_JSON
               value: {{ $svc.planResourcesJson | quote }}
             {{- end }}
+            {{- if eq $name "api" }}
+            - name: GIT_IMPORT_SCRATCH_DIR
+              value: /tmp/git-import-scratch
+            {{- end }}
             {{- if $needsSharedStorage }}
             # When shared storage is enabled the chart overrides whatever
             # PROJECT_STORAGE_DIR / STATIC_DEPLOY_STORAGE_DIR come from the
@@ -293,6 +297,10 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- if eq $name "api" }}
+            - name: git-import-scratch
+              mountPath: /tmp/git-import-scratch
+            {{- end }}
             {{- if $needsSharedStorage }}
             - name: shared-data
               mountPath: {{ $.Values.storage.mountPath }}
@@ -303,6 +311,12 @@ spec:
           # fill the node disk and trigger a silent pod eviction with no signal.
           emptyDir:
             sizeLimit: {{ $svc.tmpSizeLimit | default "1Gi" }}
+        {{- if eq $name "api" }}
+        - name: git-import-scratch
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        {{- end }}
         {{- if $needsSharedStorage }}
         - name: shared-data
           persistentVolumeClaim:

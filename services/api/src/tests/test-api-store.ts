@@ -696,11 +696,11 @@ export class TestApiStore implements ApiStore {
     templateName?: string;
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
-  }) {
+  }, reservedId?: string) {
     const createdAt = now();
 
     const project: ProjectRecord = {
-      id: id('project'),
+      id: reservedId ?? id('project'),
       organizationId: input.organizationId,
       name: input.name,
       slug: input.slug || slugify(input.name),

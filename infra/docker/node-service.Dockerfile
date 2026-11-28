@@ -105,7 +105,7 @@ ARG KUBECTL_VERSION=v1.35.10
 # Épinglé par `tests/guards/image-de-base-a-jour.spec.ts`.
 RUN apt-get update \
   && apt-get upgrade -y --no-install-recommends \
-  && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client \
+  && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client coreutils util-linux \
   && curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
   && curl -fsSLo /tmp/kubectl.sha256 "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256" \
   && echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum -c - \

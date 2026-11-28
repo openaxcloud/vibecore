@@ -451,6 +451,18 @@
     "en": "The repository host could not be reached. This is not a problem with your repository — try again in a few minutes.",
     "fr": "L’hébergeur du dépôt n’a pas pu être joint. Le problème ne vient pas de votre dépôt — réessayez dans quelques minutes."
   },
+  "IMPORT_TOO_LARGE": {
+    "en": "This branch exceeds the Git import size limit.",
+    "fr": "Cette branche dépasse la limite de taille de l’import Git."
+  },
+  "IMPORT_STORAGE_UNAVAILABLE": {
+    "en": "Git import storage is currently unavailable.",
+    "fr": "Le stockage des imports Git est actuellement indisponible."
+  },
+  "IMPORT_BUSY": {
+    "en": "Git import capacity is temporarily unavailable. Try again shortly.",
+    "fr": "Le service d’import Git est temporairement occupé. Réessayez dans un instant."
+  },
   "IMPORT_FAILED": {
     "en": "The repository could not be imported. Try again.",
     "fr": "Impossible d’importer le dépôt. Réessayez."
