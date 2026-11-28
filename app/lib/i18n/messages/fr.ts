@@ -149,6 +149,10 @@ export const fr: TranslationBundle = {
   'auth.signup.organizationHint':
     'Laissez ce champ vide pour créer un espace de travail personnel ; vous pourrez le renommer plus tard dans les paramètres.',
   'auth.signup.addOrganization': '+ Ajouter un nom d’organisation (facultatif)',
+  'auth.signup.draftStorageFailed':
+    'Le brouillon ne peut pas être enregistré dans cet onglet. Copiez votre idée avant de continuer.',
+  'auth.signup.reviewDraft': 'Votre idée',
+  'auth.signup.continueWithoutDraft': 'Continuer sans le brouillon',
   'auth.signup.submit': 'Créer le compte',
   'auth.signup.submitting': 'Création du compte…',
   'auth.signup.github': 'S’inscrire avec GitHub',
