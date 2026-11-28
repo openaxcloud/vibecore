@@ -78,7 +78,7 @@ try {
     expect(response.ok()).toBe(true);
     const zip = await JSZip.loadAsync(Buffer.from((await response.json()).archive.base64, 'base64'));
     for (const [path, content] of Object.entries(files)) {
-      expect((await zip.file(path)?.async('string'))?.trimEnd(), path).toBe(content);
+      expect(await zip.file(path)?.async('nodebuffer'), path).toEqual(Buffer.from(content, 'utf8'));
     }
   };
   await expect(assertPersisted).toPass({ timeout: 90000 });
